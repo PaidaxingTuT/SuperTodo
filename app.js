@@ -548,7 +548,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.6.8';
+const APP_VERSION='v1.7.0';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 function openInfo(){ pushLayer(); $('#infoUpdate').textContent='点击检查'; $('#infoVer').textContent='SuperTodo · 版本 '+APP_VERSION.replace(/^v/,''); $('#infoMask').hidden=false; $('#infoModal').hidden=false; }
