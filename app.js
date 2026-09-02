@@ -570,12 +570,14 @@ async function checkUpdate(silent){
   }
 }
 function downloadFile(url,name){
+  const isNative=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+  const target=(isNative?'https://ghfast.top/':'')+url;
   try{
     const a=document.createElement('a');
-    a.href=url; a.download=name||'';
+    a.href=target; a.download=name||'';
     a.rel='noopener';
     document.body.appendChild(a); a.click(); a.remove();
-  }catch(e){ window.open(url,'_blank'); }
+  }catch(e){ window.open(target,'_blank'); }
 }
 
 /* ========== 设置：配色 ========== */
