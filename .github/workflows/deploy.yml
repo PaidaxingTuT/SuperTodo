@@ -68,17 +68,17 @@ jobs:
       - name: 生成更新说明（取自 CHANGELOG）
         run: |
           python3 - "$NEW" <<'PYEOF'
-import sys
-new = sys.argv[1]
-txt = open('CHANGELOG.md', encoding='utf-8').read()
-i = txt.find('## ' + new)
-if i < 0:
-    print('CHANGELOG 中未找到 ' + new)
-    sys.exit(1)
-j = txt.find('\n## ', i + 4)
-body = txt[i:] if j < 0 else txt[i:j]
-open('notes.md', 'w', encoding='utf-8').write(body.strip() + '\n')
-PYEOF
+          import sys
+          new = sys.argv[1]
+          txt = open('CHANGELOG.md', encoding='utf-8').read()
+          i = txt.find('## ' + new)
+          if i < 0:
+              print('CHANGELOG 中未找到 ' + new)
+              sys.exit(1)
+          j = txt.find('\n## ', i + 4)
+          body = txt[i:] if j < 0 else txt[i:j]
+          open('notes.md', 'w', encoding='utf-8').write(body.strip() + '\n')
+          PYEOF
       - name: APK 命名
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk "SuperTodo-$NEW.apk"
