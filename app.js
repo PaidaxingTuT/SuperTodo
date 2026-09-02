@@ -6,8 +6,8 @@ const DEFAULTS={types:['购物','待办','计划','旅游','愿望'],scenes:['�
 /* ========== 状态 ========== */
 let state={
   items:[], types:DEFAULTS.types.slice(), scenes:DEFAULTS.scenes.slice(), times:DEFAULTS.times.slice(),
-  type:'全部',      // 当前一级标题（类型）
-  groupBy:'scene',  // 二级分组维度 scene|time
+  type:'全部',      // 当前类型
+  groupBy:'scene',  // 分组维度 scene|time
   sortKey:'默认', sortAsc:true,
   view:{name:'home'},  // home | {name:'list', group, groupKey}
   search:'',
@@ -203,7 +203,7 @@ function renderDrawer(){
   const counts={};
   state.items.forEach(i=>counts[i.type]=(counts[i.type]||0)+(i.done?0:1));
   const totalActive=state.items.filter(i=>!i.done).length;
-  let html=`<div class="dnav-title">一级 · 类型</div>`;
+  let html=`<div class="dnav-title">类型</div>`;
   html+=`<button class="dnav-item dnav-all ${state.type==='全部'?'on':''}" data-t="全部"><span class="dnav-ic"></span>全部<span class="dnav-count">${totalActive}</span></button>`;
   state.types.forEach((t,i)=>{
     const active = state.type===t;
@@ -531,7 +531,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.6.5';
+const APP_VERSION='v1.6.6';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 function openInfo(){ pushLayer(); $('#infoUpdate').textContent='点击检查'; $('#infoVer').textContent='SuperTodo · 版本 '+APP_VERSION.replace(/^v/,''); $('#infoMask').hidden=false; $('#infoModal').hidden=false; }
@@ -632,17 +632,26 @@ function renameTag(kind,idx){
 /* ===== 云端解析（OpenAI 兼容） ===== */
 function hasCloudKey(){ return !!(state.ai&&state.ai.enabled&&state.ai.base&&state.ai.key) }
 function aiPrompt(){
-  return '你是清单应用的解析器。用户输入一句中文事项，提取字段，只输出 JSON。'+
+  const now=new Date();
+  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  return '你是清单应用的语义解析器。必须完整分析用户输入中的每个信息，只输出 JSON，不要解释。'+
+  '当前日期是 '+today+'（用户本地日期），所有相对时间都以此计算。'+
   '现有类型：'+JSON.stringify(state.types)+'，现有场景：'+JSON.stringify(state.scenes)+'，现有时间：'+JSON.stringify(state.times)+'。'+
-  '输出格式：{"title":"事项标题(整句)","type":"类型或空","scene":"场景或空","time":"时间或空","cost":数字(元)或null,"due":"YYYY-MM-DD或空","star":1-5或0,"suggest":{"type":"建议新建类型或空","scene":"建议新建场景或空","time":"建议新建时间或空"}}。'+
-  '规则：type/scene/time 必须从现有列表里选，找不到合适项就留空并在 suggest 对应字段填建议名；cost 只填明确金额；due 仅当句子有明确日期；star 仅当句子有明确重要程度。';
+  '输出格式：{"title":"简短事项主体","type":"类型或空","scene":"场景或空","time":"时间或空","cost":数字(元)或null,"due":"YYYY-MM-DD或空","star":1-5或0,"suggest":{"type":"建议新建类型或空","scene":"建议新建场景或空","time":"建议新建时间或空"}}。'+
+  '规则：1. title 只保留核心对象或任务，去掉时间、金额、地点、重要程度和“买/购买”等可由 type 表达的修饰；不要照抄整句。'+
+  '2. 根据语义推断所有字段，例如“买/购入”对应购物类型；不得漏掉可以明确推断的信息。'+
+  '3. 识别今天、明天、周末、月底、年底前、明年等相对时间并换算 due；“年底前/今年底/今年内”表示今年且 due 为当年 12-31。'+
+  '4. type/scene/time 必须从现有列表精确选择；没有合适项时该字段留空，并在 suggest 中给出简短建议。'+
+  '5. cost 只提取明确金额；star 按明确的重要程度映射到 1-5，未提及则为 0；不要臆造信息。'+
+  '示例：输入“年底前买ps5”，若现有列表包含购物和今年，则 title="ps5"、type="购物"、time="今年"、due="'+now.getFullYear()+'-12-31"，其他未提及字段保持空或 null。';
 }
-async function parseWithCloud(text){
+async function parseWithCloud(text,signal){
   try{
     const base=state.ai.base.replace(/\/+$/,'');
     const res=await fetch(base+'/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.ai.key},
+      signal,
       body:JSON.stringify({
         model:state.ai.model||'gpt-4o-mini',
         messages:[{role:'system',content:aiPrompt()},{role:'user',content:text}],
@@ -667,9 +676,9 @@ function normalizeCloud(r){
     cost, due, star, suggest:{type:t.s,scene:s.s,time:m.s} };
 }
 /* 主入口：开启 AI 增强且云端可用时才解析，否则返回 null */
-async function parseAI(text){
+async function parseAI(text,signal){
   if(!hasCloudKey()) return null;
-  const cloud=await parseWithCloud(text);
+  const cloud=await parseWithCloud(text,signal);
   if(cloud&&typeof cloud==='object') return normalizeCloud(cloud);
   return null;
 }
@@ -679,21 +688,39 @@ function addTagSilent(kind,name){
   arr.push(name); save();
 }
 /* ===== AI 速记 UI ===== */
+let aiRequestId=0, aiAbort=null;
 function openAi(){
+  aiRequestId++;
+  if(aiAbort)aiAbort.abort();
+  aiAbort=null;
   pushLayer();
-  $('#aiInput').value=''; $('#aiLoading').hidden=true;
+  $('#aiInput').value=''; $('#aiLoading').hidden=true; $('#aiGo').disabled=false;
   $('#aiStatus').textContent = 'AI 增强已开启'+(state.ai.model?(' · '+state.ai.model):'');
   $('#aiMask').hidden=false; $('#aiModal').hidden=false; $('#aiInput').focus();
 }
-function closeAi(){ $('#aiMask').hidden=true; $('#aiModal').hidden=true; if(!backSuppress)syncBack(); }
+function closeAi(cancelRequest=true){
+  if(cancelRequest){
+    aiRequestId++;
+    if(aiAbort)aiAbort.abort();
+    aiAbort=null;
+  }
+  $('#aiMask').hidden=true; $('#aiModal').hidden=true;
+  if(!backSuppress)syncBack();
+}
 async function runAi(){
   const text=$('#aiInput').value.trim();
   if(!text){ $('#aiInput').focus(); return }
+  const requestId=++aiRequestId;
+  if(aiAbort)aiAbort.abort();
+  const controller=new AbortController();
+  aiAbort=controller;
   $('#aiGo').disabled=true; $('#aiLoading').hidden=false; $('#aiStatus').textContent='正在解析…';
-  const r=await parseAI(text);
+  const r=await parseAI(text,controller.signal);
+  if(requestId!==aiRequestId||controller.signal.aborted||$('#aiModal').hidden)return;
+  aiAbort=null;
   $('#aiGo').disabled=false; $('#aiLoading').hidden=true;
   if(!r){ $('#aiStatus').textContent='解析失败：请检查 AI 配置与网络后重试'; return }
-  closeAi();
+  closeAi(false);
   openAdd(r);
 }
 /* ===== 智能整理（批量补标签） ===== */
