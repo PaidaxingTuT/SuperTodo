@@ -93,21 +93,23 @@ jobs:
             mkdir -p "$day" "$night"
             convert -background none ../../../../../app-icon.png -resize "${size}x${size}" "$day/ic_launcher.png"
             convert -background none ../../../../../app-icon.png -resize "${size}x${size}" "$day/ic_launcher_round.png"
+            convert -background none ../../../../../app-icon.png -resize "${foreground}x${foreground}" "$day/ic_launcher_foreground.png"
             convert -background none ../../../../../app-icon-dark.png -resize "${size}x${size}" "$night/ic_launcher.png"
             convert -background none ../../../../../app-icon-dark.png -resize "${size}x${size}" "$night/ic_launcher_round.png"
-            convert -background none ../../../../../app-icon-foreground.png -resize "${foreground}x${foreground}" "$day/ic_launcher_foreground.png"
             convert -background none ../../../../../app-icon-foreground.png -resize "${foreground}x${foreground}" "$night/ic_launcher_foreground.png"
           done
           mkdir -p values values-night
           printf '%s\n' '<resources><color name="ic_launcher_background">#FFFFFF</color><color name="splash_background">#FFFFFF</color></resources>' > values/ic_launcher_background.xml
           printf '%s\n' '<resources><color name="ic_launcher_background">#16191F</color><color name="splash_background">#16191F</color></resources>' > values-night/ic_launcher_background.xml
-          for spec in mdpi:288:120 hdpi:432:180 xhdpi:576:240 xxhdpi:864:360 xxxhdpi:1152:480; do
+          for spec in mdpi:288:108 hdpi:432:160 xhdpi:576:216 xxhdpi:864:324 xxxhdpi:1152:432; do
             density=${spec%%:*}; rest=${spec#*:}; canvas=${rest%%:*}; iconsize=${rest##*:}
-            mkdir -p "drawable-$density"
-            convert -background none ../../../../../app-icon-foreground.png -trim +repage -resize "${iconsize}x${iconsize}" -gravity center -extent "${canvas}x${canvas}" "drawable-$density/splash_icon.png"
+            mkdir -p "drawable-$density" "drawable-night-$density"
+            convert -background none ../../../../../app-icon.png -resize "${canvas}x${canvas}" "drawable-$density/splash_icon.png"
+            convert -background none ../../../../../app-icon-foreground.png -trim +repage -resize "${iconsize}x${iconsize}" -gravity center -extent "${canvas}x${canvas}" "drawable-night-$density/splash_icon.png"
           done
-          mkdir -p drawable
-          convert -background none ../../../../../app-icon-foreground.png -trim +repage -resize "180x180" -gravity center -extent "432x432" "drawable/splash_icon.png"
+          mkdir -p drawable drawable-night
+          convert -background none ../../../../../app-icon.png -resize "432x432" "drawable/splash_icon.png"
+          convert -background none ../../../../../app-icon-foreground.png -trim +repage -resize "160x160" -gravity center -extent "432x432" "drawable-night/splash_icon.png"
           python3 - <<'PYEOF'
           import re
           path = 'values/styles.xml'
