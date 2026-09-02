@@ -130,8 +130,9 @@ jobs:
               print('CHANGELOG 中未找到 ' + new)
               sys.exit(1)
           j = txt.find('\n## ', i + 4)
-          body = txt[i:] if j < 0 else txt[i:j]
-          open('notes.md', 'w', encoding='utf-8').write(body.strip() + '\n')
+          seg = txt[i:] if j < 0 else txt[i:j]
+          body = '\n'.join(seg.split('\n')[1:]).strip()
+          open('notes.md', 'w', encoding='utf-8').write(body + '\n')
           PYEOF
       - name: APK 命名
         run: |
