@@ -100,8 +100,17 @@ jobs:
           done
           mkdir -p values-night
           printf '%s\n' '<resources><color name="ic_launcher_background">#16191F</color></resources>' > values-night/ic_launcher_background.xml
-          sed -i 's|<item name="android:background">@drawable/splash</item>|<item name="android:background">@color/ic_launcher_background</item>|' values/styles.xml
-          sed -i '/<item name="android:background">@color\/ic_launcher_background<\/item>/a\        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>\n        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>' values/styles.xml
+          for src in drawable/splash.png drawable-land-*/splash.png drawable-port-*/splash.png; do
+            [ -f "$src" ] || continue
+            dir=${src%/*}
+            case "$dir" in
+              drawable) night="drawable-night" ;;
+              drawable-land-*) night="${dir/drawable-land-/drawable-land-night-}" ;;
+              drawable-port-*) night="${dir/drawable-port-/drawable-port-night-}" ;;
+            esac
+            mkdir -p "$night"
+            convert "$src" -fuzz 15% -fill '#16191F' -opaque white "$night/splash.png"
+          done
       - name: 设置 Android 版本号
         run: |
           VER="${NEW#v}"
