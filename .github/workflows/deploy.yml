@@ -82,7 +82,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - name: 应用自定义应用图标
+      - name: 应用自定义应用图标与启动页
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq imagemagick
@@ -99,7 +99,9 @@ jobs:
             convert -background none ../../../../../app-icon-dark.png -resize "${foreground}x${foreground}" "$night/ic_launcher_foreground.png"
           done
           mkdir -p values-night
-          printf '%s\n' '<resources><color name="ic_launcher_background">#181B21</color></resources>' > values-night/ic_launcher_background.xml
+          printf '%s\n' '<resources><color name="ic_launcher_background">#16191F</color></resources>' > values-night/ic_launcher_background.xml
+          sed -i 's|<item name="android:background">@drawable/splash</item>|<item name="android:background">@color/ic_launcher_background</item>|' values/styles.xml
+          sed -i '/<item name="android:background">@color\/ic_launcher_background<\/item>/a\        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>\n        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>' values/styles.xml
       - name: 设置 Android 版本号
         run: |
           VER="${NEW#v}"
