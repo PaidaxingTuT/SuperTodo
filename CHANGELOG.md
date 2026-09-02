@@ -5,7 +5,7 @@
 - 关于弹窗：应用 logo、名称「清单」、版本 v2.8、作者「派大星TuT」
 - **检查更新**：从 GitHub release API 拉取最新版本并对比提示（含新版本跳转下载）
 - 开源仓库地址跳转 github.com/PaidaxingTuT/todo
-- 新增 GitHub Actions：push `main` 自动部署 **GitHub Pages**，推送 `v*` 标签自动打包发布 **Release**
+- 新增 GitHub Actions：push `main` 自动部署网页版；推送 `v*` 标签自动构建 **Android APK**（WebView 壳）并发布 Release
 
 ## v2.7（2026-09-02）— 配色柔和化
 - 整体配色柔和淡雅：页面底色改淡蓝灰，顶部带主色系光晕氛围，不再单调
