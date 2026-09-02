@@ -2,7 +2,7 @@ name: Build & Release APK
 
 on:
   push:
-    branches: [ main ]
+    tags: [ 'v*' ]
   workflow_dispatch:
 
 permissions:
@@ -23,13 +23,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: 计算新版本号（最新 tag 末段 +1）
+      - name: 确定版本号（打标签用标签名；手动触发按最新标签递增）
         id: ver
         run: |
-          LATEST=$(git tag --sort=-v:refname | head -1)
-          NEW=$(python3 -c "import re; latest='$LATEST'.strip(); nums=[int(x) for x in re.findall(r'\d+',latest)] or [0,0]; nums[-1]+=1; print('v'+'.'.join(map(str,nums)))")
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            NEW="${{ github.ref_name }}"
+          else
+            LATEST=$(git tag --sort=-v:refname | head -1)
+            NEW=$(python3 -c "import re; latest='$LATEST'.strip(); nums=[int(x) for x in re.findall(r'\d+',latest)] or [0,0]; nums[-1]+=1; print('v'+'.'.join(map(str,nums)))")
+          fi
           echo "NEW=$NEW" >> "$GITHUB_ENV"
-          echo "latest=$LATEST -> new=$NEW"
+          echo "构建版本 $NEW"
       - name: Capacitor 封装（注入版本号到 Web 副本）
         run: |
           npm init -y
@@ -37,13 +41,25 @@ jobs:
           mkdir -p dist
           cp index.html style.css app.js manifest.webmanifest icon.svg sw.js dist/
           sed -i "s/const APP_VERSION='[^']*'/const APP_VERSION='$NEW'/" dist/app.js
-          npx cap init "清单" com.paidaxing.todo --web-dir dist
+          npx cap init "超级清单" com.paidaxing.todo --web-dir dist
           npx cap add android
           npx cap sync android
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
+      - name: 应用自定义应用图标
+        run: |
+          cd android/app/src/main/res
+          for d in mipmap-*/; do
+            size=$(basename "$d" | tr -dc '0-9')
+            [ -z "$size" ] && size=48
+            for f in ic_launcher ic_launcher_round; do
+              if [ -f "$d/$f.png" ]; then
+                convert -background none ../../../../../icon.svg -resize "${size}x${size}" "$d/$f.png"
+              fi
+            done
+          done
       - name: 构建 APK
         run: |
           cd android

@@ -1,7 +1,7 @@
 {
-  "name": "清单",
-  "short_name": "清单",
-  "description": "个人清单：购物、待办、计划、旅游、愿望集中管理",
+  "name": "超级清单 SuperTodo",
+  "short_name": "超级清单",
+  "description": "超级清单：购物、待办、计划、旅游、愿望集中管理",
   "lang": "zh-Hans",
   "start_url": "./index.html",
   "display": "standalone",

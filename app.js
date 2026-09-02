@@ -97,6 +97,25 @@ function sectionGroups(){
   return out;
 }
 
+/* ========== 返回键：历史栈导航 ========== */
+let backSuppress=false, codeBack=false;
+function pushLayer(){ history.pushState({l:1},'') }
+function syncBack(){ codeBack=true; history.back() }
+function backHome(){ state.view={name:'home'}; state.sortKey='默认'; render() }
+function closeTopLayer(){
+  backSuppress=true;
+  if(!$('#modal').hidden) hideModal();
+  else if(!$('#ctxModal').hidden) closeCtx();
+  else if(!$('#aiModal').hidden) closeAi();
+  else if(!$('#tidyModal').hidden) closeTidy();
+  else if(!$('#infoModal').hidden) closeInfo();
+  else if(!$('#setModal').hidden) closeSettings();
+  else if(!$('#sortModal').hidden) closeSort();
+  else if(!$('#drawer').hidden) closeDrawer();
+  else if(state.view.name==='list') backHome();
+  backSuppress=false;
+}
+
 /* ========== 渲染 ========== */
 function render(){
   renderTitle();
@@ -114,7 +133,7 @@ function renderTitle(){
   }else{
     $('#backBtn').hidden=true;
     $('#hamburger').hidden=false;
-    $('#appTitle').textContent = state.type==='全部'?'清单':state.type;
+    $('#appTitle').textContent = state.type==='全部'?'超级清单':state.type;
   }
   $('#homeGroupby').hidden=!isHome;
   $$('#groupBySeg .seg').forEach(s=>s.classList.toggle('on',s.dataset.gb===state.groupBy));
@@ -151,7 +170,7 @@ function renderHome(wrap,empty){
   empty.hidden=true;
   let html='';
   groups.forEach(g=>{
-    const undone=g.items.filter(i=>!i.done);
+    const undone=g.items.filter(i=>!i.done).slice().sort((a,b)=>(a.order??Infinity)-(b.order??Infinity)||a.created-b.created);
     const preview=undone.slice(0,3);
     html+=`<div class="section">
       <div class="section-head" data-open="${esc(g.key)}">
@@ -239,12 +258,13 @@ function init(){
 }
 
 /* 抽屉 */
-function openDrawer(){ $('#drawerMask').hidden=false; $('#drawer').hidden=false; }
-function closeDrawer(){ $('#drawerMask').hidden=true; $('#drawer').hidden=true; renderDrawer(); }
+function openDrawer(){ pushLayer(); $('#drawerMask').hidden=false; $('#drawer').hidden=false; }
+function closeDrawer(){ $('#drawerMask').hidden=true; $('#drawer').hidden=true; renderDrawer(); if(!backSuppress)syncBack(); }
 document.addEventListener('DOMContentLoaded',()=>{
   init();
+  window.addEventListener('popstate',()=>{ if(codeBack){ codeBack=false; return } closeTopLayer(); });
   $('#hamburger').addEventListener('click',openDrawer);
-  $('#backBtn').addEventListener('click',()=>{ state.view={name:'home'}; state.sortKey='默认'; render(); });
+  $('#backBtn').addEventListener('click',()=>{ backHome(); syncBack(); });
   $('#drawerClose').addEventListener('click',closeDrawer);
   $('#drawerMask').addEventListener('click',closeDrawer);
   $('#drawerNav').addEventListener('click',e=>{
@@ -317,11 +337,12 @@ function destroyTimer(){ clearTimeout(navTimer); navTimer=null }
 /* ========== 上下文菜单 ========== */
 let ctxKind=null, ctxIdx=null, ctxName=null;
 function openCtxMenu(item){
+  pushLayer();
   ctxKind=item.dataset.kind; ctxIdx=+item.dataset.idx; ctxName=item.dataset.t;
   $('#ctxTitle').textContent='「'+ctxName+'」';
   $('#ctxMask').hidden=false; $('#ctxModal').hidden=false;
 }
-function closeCtx(){ $('#ctxMask').hidden=true; $('#ctxModal').hidden=true; }
+function closeCtx(){ $('#ctxMask').hidden=true; $('#ctxModal').hidden=true; if(!backSuppress)syncBack(); }
 function ctxRename(){
   const arr = ctxKind==='type'?state.types:ctxKind==='scene'?state.scenes:state.times;
   const cur=arr[ctxIdx]; const nm=prompt('重命名为：',cur); 
@@ -359,7 +380,7 @@ function addType(){
   }
 }
 
-function enterGroup(key){ state.view={name:'list',group:key}; state.sortKey='默认'; render(); }
+function enterGroup(key){ pushLayer(); state.view={name:'list',group:key}; state.sortKey='默认'; render(); }
 function toggleDone(id){ const it=state.items.find(x=>x.id===id); if(!it)return; it.done=!it.done; save(); render(); }
 
 /* ========== 添加/编辑弹窗 ========== */
@@ -412,8 +433,8 @@ function openEdit(it){
   showModal();
 }
 function setSeg(kind,val){ const el=$('#f'+kind.charAt(0).toUpperCase()+kind.slice(1)+'Seg .seg-chip[data-v="'+val+'"]'); if(el)el.classList.add('on'); }
-function showModal(){ $('#modalMask').hidden=false; $('#modal').hidden=false; $('#fTitle').focus(); }
-function hideModal(){ $('#modal').hidden=true; $('#modalMask').hidden=true; modalOpen=false; }
+function showModal(){ pushLayer(); $('#modalMask').hidden=false; $('#modal').hidden=false; $('#fTitle').focus(); }
+function hideModal(){ $('#modal').hidden=true; $('#modalMask').hidden=true; modalOpen=false; if(!backSuppress)syncBack(); }
 
 function segSel(kind){ const el=document.querySelector('#f'+kind.charAt(0).toUpperCase()+kind.slice(1)+'Seg .seg-chip.on'); return el?el.dataset.v:''; }
 function gather(){
@@ -435,24 +456,26 @@ function saveForm(){
 
 /* ========== 排序弹窗 ========== */
 function openSort(){
+  pushLayer();
   const opts=[['默认','默认'],['花费','花费'],['重要','重要'],['日期','截止日期'],['创建','创建时间']];
   $('#sortOptions').innerHTML=opts.map(o=>`<label><input type="radio" name="sort" value="${o[0]}" ${state.sortKey===o[0]?'checked':''}><span>${o[1]}</span></label>`).join('');
   $('#sortAsc').checked=state.sortAsc; $('#sortAsc').disabled=state.sortKey==='默认';
   $('#sortMask').hidden=false; $('#sortModal').hidden=false;
 }
-function closeSort(){ $('#sortMask').hidden=true; $('#sortModal').hidden=true; }
+function closeSort(){ $('#sortMask').hidden=true; $('#sortModal').hidden=true; if(!backSuppress)syncBack(); }
 function openSettings(){
+  pushLayer();
   renderPalette();
   renderSetGroups(); renderAiCfg(); $('#setMask').hidden=false; $('#setModal').hidden=false;
 }
-function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; }
+function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v2.8';
+const APP_VERSION='v2.9';
 const REPO_URL='https://github.com/PaidaxingTuT/todo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/todo';
-function openInfo(){ $('#infoUpdate').textContent='点击检查'; $('#infoMask').hidden=false; $('#infoModal').hidden=false; }
-function closeInfo(){ $('#infoMask').hidden=true; $('#infoModal').hidden=true; }
+function openInfo(){ pushLayer(); $('#infoUpdate').textContent='点击检查'; $('#infoVer').textContent='SuperTodo · 版本 '+APP_VERSION; $('#infoMask').hidden=false; $('#infoModal').hidden=false; }
+function closeInfo(){ $('#infoMask').hidden=true; $('#infoModal').hidden=true; if(!backSuppress)syncBack(); }
 async function checkUpdate(){
   const el=$('#infoUpdate');
   el.textContent='正在检查…';
@@ -573,11 +596,12 @@ function addTagSilent(kind,name){
 }
 /* ===== AI 速记 UI ===== */
 function openAi(){
+  pushLayer();
   $('#aiInput').value=''; $('#aiLoading').hidden=true;
   $('#aiStatus').textContent = 'AI 增强已开启'+(state.ai.model?(' · '+state.ai.model):'');
   $('#aiMask').hidden=false; $('#aiModal').hidden=false; $('#aiInput').focus();
 }
-function closeAi(){ $('#aiMask').hidden=true; $('#aiModal').hidden=true; }
+function closeAi(){ $('#aiMask').hidden=true; $('#aiModal').hidden=true; if(!backSuppress)syncBack(); }
 async function runAi(){
   const text=$('#aiInput').value.trim();
   if(!text){ $('#aiInput').focus(); return }
@@ -595,6 +619,7 @@ async function openTidy(){
   const cands=state.items.filter(it=>!it.done&&(!it.scene||!it.time));
   if(!cands.length){ alert('没有需要整理的事项'); return }
   $('#tidyMask').hidden=false; $('#tidyModal').hidden=false;
+  pushLayer();
   $('#tidyLoading').hidden=false; $('#tidyList').innerHTML='';
   const rows=[];
   for(const it of cands){
@@ -634,10 +659,10 @@ function tidyApply(){
     if(tm&&tm!==it.time){ it.time=tm; n++; }
   });
   if(n){ save(); render(); }
-  $('#tidyMask').hidden=true; $('#tidyModal').hidden=true;
+  closeTidy();
   alert(n?('已整理 '+n+' 处标签'):'未做更改');
 }
-function closeTidy(){ $('#tidyMask').hidden=true; $('#tidyModal').hidden=true; }
+function closeTidy(){ $('#tidyMask').hidden=true; $('#tidyModal').hidden=true; if(!backSuppress)syncBack(); }
 /* ===== AI 云端配置 ===== */
 function renderAiCfg(){
   if(!state.ai)state.ai={enabled:false,base:'',key:'',model:''};
@@ -670,11 +695,13 @@ function onDragMove(e){
   const dy=e.clientY-dragState.y;
   dragState.row.style.transform='translateY('+dy+'px)';
   const dragTop=dragState.startTop+dy;
-  const rows=$$('#content .item-row').filter(r=>{ const it=state.items.find(x=>x.id===r.dataset.item); return it&&!it.done; });
+  const others=$$('#content .item-row').filter(r=>r!==dragState.row);
+  // FLIP：记录重排前各行的位置，插入后再平滑归位
+  const first=new Map(others.map(r=>[r,r.getBoundingClientRect().top]));
+  const rows=others.filter(r=>{ const it=state.items.find(x=>x.id===r.dataset.item); return it&&!it.done; });
   let target=null, before=false;
   if(dy>0){
     for(const r of rows){
-      if(r===dragState.row)continue;
       const b=r.getBoundingClientRect();
       if(dragTop < b.top+b.height/2){ target=r; before=true; break; }
     }
@@ -682,7 +709,6 @@ function onDragMove(e){
   } else if(dy<0){
     for(let i=rows.length-1;i>=0;i--){
       const r=rows[i];
-      if(r===dragState.row)continue;
       const b=r.getBoundingClientRect();
       if(dragTop > b.top+b.height/2){ target=r; break; }
     }
@@ -692,6 +718,23 @@ function onDragMove(e){
     if(before) target.insertAdjacentElement('beforebegin',dragState.row);
     else target.insertAdjacentElement('afterend',dragState.row);
   }
+  requestAnimationFrame(()=>{
+    others.forEach(r=>{
+      if(!r.isConnected)return;
+      const delta=first.get(r)-r.getBoundingClientRect().top;
+      if(delta){
+        r.style.transition='none';
+        r.style.transform='translateY('+delta+'px)';
+      }
+    });
+    requestAnimationFrame(()=>{
+      others.forEach(r=>{
+        if(!r.isConnected)return;
+        r.style.transition='transform .16s ease';
+        r.style.transform='';
+      });
+    });
+  });
 }
 function onDragEnd(){
   if(!dragState)return;
@@ -710,7 +753,7 @@ function exportData(){
   const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,ai:state.ai},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   const d=new Date(), p=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-  a.download=`清单备份_${p}.json`; a.click(); URL.revokeObjectURL(a.href);
+  a.download=`超级清单备份_${p}.json`; a.click(); URL.revokeObjectURL(a.href);
 }
 function importData(e){
   const f=e.target.files[0]; if(!f)return;
