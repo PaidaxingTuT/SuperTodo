@@ -78,13 +78,8 @@ listapp/
 - 代码为纯原生 ES6，`esprima` 可校验 JS 语法
 - 数据版本 key：`listapp.data.v2`
 
-## 打包与发布（GitHub Actions 一键）
+## 打包与发布（GitHub Actions 全自动）
 
-- **Android APK**（主）：推送 `v*` 标签，workflow 自动用 Capacitor 封装 WebView 壳并构建 **app-debug.apk**，发布到 Release，手机直接下载安装：
-
-```bash
-git tag v2.8 && git push origin v2.8
-```
-
-- **在线网页版**（可选）：push 到 `main` 自动部署 GitHub Pages。首次需在仓库 **Settings → Pages → Source** 选择「GitHub Actions」
-- App 内「检查更新」从 GitHub Release 获取最新版本（需仓库发布过 `v*` Release）
+- **每次 push 到 `main`**，workflow 自动递增版本号、用 Capacitor 封装并构建 Android APK，发布到 GitHub Release（附件 `app-debug.apk`）
+- 手机到仓库 **Releases** 页下载安装（安装时允许"未知来源"）
+- App 内「检查更新」从 GitHub Release 获取最新版本

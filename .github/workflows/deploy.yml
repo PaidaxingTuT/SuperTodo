@@ -1,66 +1,57 @@
-name: Build & Release
+name: Build & Release APK
 
 on:
   push:
     branches: [ main ]
-    tags: [ 'v*' ]
   workflow_dispatch:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
-  group: release
+  group: apk-release
   cancel-in-progress: true
 
 jobs:
-  # 在线网页版（可选用，push 到 main 自动部署）
-  pages:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-      - id: deployment
-        uses: actions/deploy-pages@v4
-
-  # 构建 Android APK（推送 v* 标签时自动打包并发到 Release）
   apk:
-    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Capacitor 封装（生成 WebView 壳工程）
+      - name: 计算新版本号（最新 tag 末段 +1）
+        id: ver
+        run: |
+          LATEST=$(git tag --sort=-v:refname | head -1)
+          NEW=$(python3 -c "import re; latest='$LATEST'.strip(); nums=[int(x) for x in re.findall(r'\d+',latest)] or [0,0]; nums[-1]+=1; print('v'+'.'.join(map(str,nums)))")
+          echo "NEW=$NEW" >> "$GITHUB_ENV"
+          echo "latest=$LATEST -> new=$NEW"
+      - name: Capacitor 封装（注入版本号到 Web 副本）
         run: |
           npm init -y
           npm i @capacitor/core @capacitor/cli @capacitor/android
           mkdir -p dist
           cp index.html style.css app.js manifest.webmanifest icon.svg sw.js dist/
+          sed -i "s/const APP_VERSION='[^']*'/const APP_VERSION='$NEW'/" dist/app.js
           npx cap init "清单" com.paidaxing.todo --web-dir dist
           npx cap add android
           npx cap sync android
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
       - name: 构建 APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
       - name: 发布 Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: android/app/build/outputs/apk/debug/app-debug.apk
-          generate_release_notes: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$NEW" android/app/build/outputs/apk/debug/app-debug.apk --title "$NEW" --generate-notes
+          echo "已发布 Release $NEW"
