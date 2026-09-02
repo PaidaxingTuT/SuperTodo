@@ -30,6 +30,7 @@
   - 精致的 App 内置对话框体系，状态栏沉浸避让。
   - 应用内检查更新与原生下载管理器直链高速下载（支持 ghfast 加速）。
 - **高度个性化**：内置 10 款精致预设主题配色方案，并支持自定义调色板，全界面实时跟随。
+- **日夜间模式**：界面默认跟随系统深浅色，也可在侧栏中手动切换；应用图标仅跟随手机系统。
 - **本地安全与数据备份**：所有数据均保存在本地 `localStorage`，支持完整的 JSON 格式数据导出与导入备份。
 
 ---
@@ -85,6 +86,7 @@ cd SuperTodo
 SuperTodo/
 ├── .github/workflows/    # GitHub Actions 自动化构建与发布流程
 ├── app-icon.png          # 应用图标原图
+├── app-icon-dark.png     # 夜间模式应用图标
 ├── app.js                # 核心业务逻辑、状态管理与本地持久化
 ├── CHANGELOG.md          # 版本更新历史记录
 ├── debug.keystore        # Android 固定签名证书

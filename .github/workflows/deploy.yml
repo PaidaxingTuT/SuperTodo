@@ -39,7 +39,7 @@ jobs:
           npm init -y
           npm i @capacitor/core @capacitor/cli @capacitor/android @capacitor/app
           mkdir -p dist
-          cp index.html style.css app.js Sortable.min.js icon.svg app-icon.png dist/
+          cp index.html style.css app.js Sortable.min.js icon.svg app-icon.png app-icon-dark.png dist/
           sed -i "s/const APP_VERSION='[^']*'/const APP_VERSION='$NEW'/" dist/app.js
           npx cap init "超级清单" com.dax.supertodo --web-dir dist
           npx cap add android
@@ -87,15 +87,19 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq imagemagick
           cd android/app/src/main/res
-          for d in mipmap-*/; do
-            size=$(basename "$d" | tr -dc '0-9')
-            [ -z "$size" ] && size=48
-            for f in ic_launcher ic_launcher_round; do
-              if [ -f "$d/$f.png" ]; then
-                convert -background none ../../../../../icon.svg -resize "${size}x${size}" "$d/$f.png"
-              fi
-            done
+          for spec in mdpi:48:108 hdpi:72:162 xhdpi:96:216 xxhdpi:144:324 xxxhdpi:192:432; do
+            density=${spec%%:*}; rest=${spec#*:}; size=${rest%%:*}; foreground=${rest##*:}
+            day="mipmap-$density"; night="mipmap-night-$density"
+            mkdir -p "$day" "$night"
+            convert -background none ../../../../../app-icon.png -resize "${size}x${size}" "$day/ic_launcher.png"
+            convert -background none ../../../../../app-icon.png -resize "${size}x${size}" "$day/ic_launcher_round.png"
+            convert -background none ../../../../../app-icon.png -resize "${foreground}x${foreground}" "$day/ic_launcher_foreground.png"
+            convert -background none ../../../../../app-icon-dark.png -resize "${size}x${size}" "$night/ic_launcher.png"
+            convert -background none ../../../../../app-icon-dark.png -resize "${size}x${size}" "$night/ic_launcher_round.png"
+            convert -background none ../../../../../app-icon-dark.png -resize "${foreground}x${foreground}" "$night/ic_launcher_foreground.png"
           done
+          mkdir -p values-night
+          printf '%s\n' '<resources><color name="ic_launcher_background">#181B21</color></resources>' > values-night/ic_launcher_background.xml
       - name: 设置 Android 版本号
         run: |
           VER="${NEW#v}"

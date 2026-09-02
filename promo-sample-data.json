@@ -203,6 +203,7 @@
     "以后再说"
   ],
   "theme": "#0b57d0",
+  "colorMode": "system",
   "ai": {
     "enabled": false,
     "base": "",

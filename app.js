@@ -12,6 +12,7 @@ let state={
   view:{name:'home'},  // home | {name:'list', group, groupKey}
   search:'',
   theme:'#0b57d0',
+  colorMode:'system',
   ai:{enabled:false,base:'',key:'',model:''}
 };
 
@@ -35,6 +36,7 @@ function load(){
     if(Array.isArray(d.times)&&d.times.length)state.times=d.times;
     if(d.groupBy)state.groupBy=d.groupBy;
     if(d.theme)state.theme=d.theme;
+    if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode;
     state.sortKey=d.sortKey||'默认'; state.sortAsc=d.sortAsc!==false;
     if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
   }catch(e){}
@@ -49,18 +51,30 @@ function hexToHsl(hex){
   return[Math.round(h*60),Math.round(s*100),Math.round(l*100)];
 }
 function hslToCss(h,s,l){ return 'hsl('+h+','+s+'%,'+l+'%)' }
+const colorModeQuery=window.matchMedia('(prefers-color-scheme: dark)');
+function isDarkMode(){ return state.colorMode==='dark'||(state.colorMode==='system'&&colorModeQuery.matches) }
 function applyTheme(hex){
   var h=hexToHsl(hex);
-  var soft=hslToCss(h[0],Math.min(92,h[1]+5),Math.max(87,Math.min(94,92+(h[2]-55)*0.4)));
-  var faint=hslToCss(h[0],Math.min(42,h[1]),Math.max(95,Math.min(97,95)));
+  var dark=isDarkMode();
+  var soft=dark?hslToCss(h[0],Math.min(55,h[1]),26):hslToCss(h[0],Math.min(92,h[1]+5),Math.max(87,Math.min(94,92+(h[2]-55)*0.4)));
+  var faint=dark?hslToCss(h[0],Math.min(35,h[1]),18):hslToCss(h[0],Math.min(42,h[1]),Math.max(95,Math.min(97,95)));
   var deep=hslToCss(h[0],Math.min(96,h[1]),Math.max(22,Math.round(h[2]*0.86)));
+  var ink=dark?hslToCss(h[0],Math.min(92,h[1]+5),72):hex;
   document.documentElement.style.setProperty('--primary',hex);
+  document.documentElement.style.setProperty('--primary-ink',ink);
   document.documentElement.style.setProperty('--primary-soft',soft);
   document.documentElement.style.setProperty('--primary-faint',faint);
   document.documentElement.style.setProperty('--primary-deep',deep);
   document.documentElement.style.setProperty('--on-primary','#fff');
-  var m=document.querySelector('meta[name=theme-color]'); if(m)m.setAttribute('content',hex);
+  var m=document.querySelector('meta[name=theme-color]'); if(m)m.setAttribute('content',dark?'#111318':hex);
 }
+function applyColorMode(){
+  const dark=isDarkMode(),root=document.documentElement,btn=$('#drawerTheme');
+  root.dataset.colorMode=dark?'dark':'light';
+  applyTheme(state.theme);
+  if(btn){ const label=dark?'切换到日间模式':'切换到夜间模式'; btn.setAttribute('aria-label',label); btn.title=label; }
+}
+function toggleColorMode(){ state.colorMode=isDarkMode()?'light':'dark'; save(); applyColorMode(); }
 
 /* ========== 分组逻辑 ========== */
 function groupKey(it){ return state.groupBy==='scene' ? (it.scene||'未分组') : (it.time||'未分组') }
@@ -309,7 +323,7 @@ function renderEmptyText(){
 /* ========== 事件 ========== */
 function init(){
   load();
-  applyTheme(state.theme);
+  applyColorMode();
   buildStars();
   render();
   setTimeout(setupNativeBack,300);
@@ -343,7 +357,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     state.groupBy=seg.dataset.gb; state.view={name:'home'}; save(); render();
   });
   $('#drawerSettings').addEventListener('click',()=>{ closeDrawer(); openSettings(); });
+  $('#drawerTheme').addEventListener('click',toggleColorMode);
   $('#drawerInfo').addEventListener('click',()=>{ closeDrawer(); openInfo(); });
+  const onSystemColorChange=()=>{ if(state.colorMode==='system')applyColorMode(); };
+  if(colorModeQuery.addEventListener)colorModeQuery.addEventListener('change',onSystemColorChange); else colorModeQuery.addListener(onSystemColorChange);
 
   /* 内容事件（委托） */
   $('#content').addEventListener('click',e=>{
@@ -531,7 +548,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.6.7';
+const APP_VERSION='v1.6.8';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 function openInfo(){ pushLayer(); $('#infoUpdate').textContent='点击检查'; $('#infoVer').textContent='SuperTodo · 版本 '+APP_VERSION.replace(/^v/,''); $('#infoMask').hidden=false; $('#infoModal').hidden=false; }
@@ -807,14 +824,14 @@ function initSortable(){
 
 /* ========== 导出/导入/清空 ========== */
 function exportData(){
-  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,ai:state.ai},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,ai:state.ai},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   const d=new Date(), p=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   a.download=`超级清单备份_${p}.json`; a.click(); URL.revokeObjectURL(a.href);
 }
 function importData(e){
   const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=d.items||[]; if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); save(); applyTheme(state.theme); render(); renderSetGroups(); renderPalette(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
+  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=d.items||[]; if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); save(); applyColorMode(); render(); renderSetGroups(); renderPalette(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
 }
 function clearAll(){ confirmDlg('清空数据','确定清空全部数据？此操作不可撤销。',()=>{ state.items=[]; save(); render(); },'清空','delete'); }
 
