@@ -3,6 +3,7 @@
 *.png
 !app-icon.png
 !app-icon-dark.png
+!app-icon-foreground.png
 !screenshots/*.png
 *.apk
 *.bak
@@ -13,6 +14,7 @@ Thumbs.db
 
 # 开发文档（仓库只保留 README/CHANGELOG，其余本地自留不上传）
 AGENTS.md
+ANDROID_SPLASH_HANDOFF.md
 PROJECT_OVERVIEW.md
 PROJECT_STATUS.md
 requirements.md
