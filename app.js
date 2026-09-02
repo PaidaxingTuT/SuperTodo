@@ -471,10 +471,10 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v2.9';
+const APP_VERSION='v1.5.1';
 const REPO_URL='https://github.com/PaidaxingTuT/todo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/todo';
-function openInfo(){ pushLayer(); $('#infoUpdate').textContent='点击检查'; $('#infoVer').textContent='SuperTodo · 版本 '+APP_VERSION; $('#infoMask').hidden=false; $('#infoModal').hidden=false; }
+function openInfo(){ pushLayer(); $('#infoUpdate').textContent='点击检查'; $('#infoVer').textContent='SuperTodo · 版本 '+APP_VERSION.replace(/^v/,''); $('#infoMask').hidden=false; $('#infoModal').hidden=false; }
 function closeInfo(){ $('#infoMask').hidden=true; $('#infoModal').hidden=true; if(!backSuppress)syncBack(); }
 async function checkUpdate(){
   const el=$('#infoUpdate');
