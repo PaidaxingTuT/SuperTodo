@@ -458,7 +458,8 @@ async function checkUpdate(){
   el.textContent='正在检查…';
   try{
     const res=await fetch(REPO_API+'/releases/latest');
-    if(!res.ok) throw new Error('no release');
+    if(res.status===404){ el.textContent='暂无已发布版本'; return }
+    if(!res.ok) throw new Error('net');
     const d=await res.json();
     const latest=d.tag_name;
     if(latest&&latest!==APP_VERSION){
