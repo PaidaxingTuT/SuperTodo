@@ -274,8 +274,9 @@ body.home-view .content{padding-top:calc(56px + env(safe-area-inset-top,0px) + 5
 .info-click{cursor:pointer}
 .info-click:active{background:var(--primary-faint)}
 .info-click .info-v{color:var(--primary)}
-.info-repo{text-align:right;font-size:13px;color:var(--primary);padding:2px 4px 0;cursor:pointer}
-.info-repo:active{opacity:.7}
+.info-repo{margin:6px auto 0;display:flex;width:fit-content;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;background:var(--primary-soft);color:var(--primary);font-size:13px;cursor:pointer}
+.info-repo svg{width:16px;height:16px;flex-shrink:0}
+.info-repo:active{opacity:.8}
 
 /* ===== 手动拖拽排序 ===== */
 .drag-handle{width:20px;height:20px;flex-shrink:0;opacity:.35;touch-action:none;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%235f6368"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>');background-repeat:no-repeat;background-position:center;background-size:contain}
