@@ -62,6 +62,20 @@ jobs:
               fi
             done
           done
+      - name: 设置 Android 版本号
+        run: |
+          VER="${NEW#v}"
+          VCODE=$(python3 - "$VER" <<'PYEOF'
+          import sys
+          code=0
+          for p in [int(x) for x in sys.argv[1].split('.')]:
+              code = code*100 + p
+          print(code)
+          PYEOF
+          )
+          sed -i "s/versionName \"[^\"]*\"/versionName \"$VER\"/" android/app/build.gradle
+          sed -i "s/versionCode [0-9]*/versionCode $VCODE/" android/app/build.gradle
+          echo "versionName=$VER versionCode=$VCODE"
       - name: 构建 APK
         run: |
           cd android

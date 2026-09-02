@@ -518,7 +518,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.6.2';
+const APP_VERSION='v1.6.3';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 function openInfo(){ pushLayer(); $('#infoUpdate').textContent='点击检查'; $('#infoVer').textContent='SuperTodo · 版本 '+APP_VERSION.replace(/^v/,''); $('#infoMask').hidden=false; $('#infoModal').hidden=false; }
@@ -543,7 +543,11 @@ async function checkUpdate(silent){
     const latest=d.tag_name;
     if(verGt(latest,APP_VERSION)){
       if(el) el.textContent='发现新版本 '+latest;
-      confirmDlg('发现新版本', '有新版本 '+latest.replace(/^v/,'')+' 可更新，是否前往下载？', ()=>{ window.open(REPO_URL+'/releases','_blank'); }, '下载');
+      const asset=d.assets&&d.assets[0];
+      confirmDlg('发现新版本', '有新版本 '+latest.replace(/^v/,'')+'，是否立即下载更新？', ()=>{
+        if(asset&&asset.browser_download_url){ downloadFile(asset.browser_download_url, asset.name); }
+        else window.open(REPO_URL+'/releases','_blank');
+      }, '下载');
     }else{
       if(el) el.textContent='已是最新版本';
     }
@@ -551,6 +555,14 @@ async function checkUpdate(silent){
     if(el) el.textContent='检查失败';
     if(!silent) alertDlg('检查失败','无法连接更新服务器，请稍后再试');
   }
+}
+function downloadFile(url,name){
+  try{
+    const a=document.createElement('a');
+    a.href=url; a.download=name||'';
+    a.rel='noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+  }catch(e){ window.open(url,'_blank'); }
 }
 
 /* ========== 设置：配色 ========== */
