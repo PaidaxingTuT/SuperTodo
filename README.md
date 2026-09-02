@@ -110,6 +110,6 @@ SuperTodo/
 
 ---
 
-## 📄 开源许可
+## 开源许可
 
 本项目基于 [MIT License](LICENSE) 开源协议。
