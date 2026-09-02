@@ -62,16 +62,3 @@
 ├── PROJECT_STATUS.md
 └── requirements.md
 ```
-
----
-
-## 开发与测试
-
-- 本地直接打开 `index.html` 即可在浏览器调试
-- 纯原生 JavaScript，无构建框架，最终交付为 Android APK
-
-## 打包发布（GitHub Actions）
-
-- 在仓库 **Actions** 页手动触发，或推送 `v*` 标签，自动构建 **Android APK** 并发布到 Release
-- Release 附带 `app-debug.apk`，在手机下载安装（首次安装需允许「未知来源」）
-- App 内「检查更新」从 GitHub Release 获取最新版本
