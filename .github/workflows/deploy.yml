@@ -110,15 +110,51 @@ jobs:
           sed -i "s/versionName \"[^\"]*\"/versionName \"$VER\"/" android/app/build.gradle
           sed -i "s/versionCode [0-9]*/versionCode $VCODE/" android/app/build.gradle
           echo "versionName=$VER versionCode=$VCODE"
-      - name: 固定签名密钥（保证版本间可覆盖安装）
+      - name: 固定签名密钥（显式写入 build.gradle，指向仓库内 debug.keystore）
         run: |
           mkdir -p ~/.android
           cp debug.keystore ~/.android/debug.keystore
+          cat >> android/app/build.gradle <<'GRADLEEOF'
+
+          android {
+              signingConfigs {
+                  debug {
+                      storeFile file('../../debug.keystore')
+                      storePassword 'android'
+                      keyAlias 'androiddebugkey'
+                      keyPassword 'android'
+                  }
+              }
+              buildTypes {
+                  debug {
+                      signingConfig signingConfigs.debug
+                  }
+              }
+          }
+          GRADLEEOF
+          echo "已将 debug 签名显式指向仓库内 debug.keystore"
       - name: 构建 APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
+      - name: 校验 APK 签名 = 仓库固定钥匙（不一致则构建失败，防止再发布错误签名包）
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | tail -1)
+          if [ -z "$APKSIGNER" ]; then echo "找不到 apksigner"; exit 1; fi
+          keytool -exportcert -keystore debug.keystore -storepass android -alias androiddebugkey -file /tmp/fixed.der
+          KEY_SHA=$(sha256sum /tmp/fixed.der | cut -d' ' -f1)
+          APK_SHA=$("$APKSIGNER" verify --print-certs android/app/build/outputs/apk/debug/app-debug.apk \
+            | awk -F': ' 'tolower($0) ~ /sha-256 digest/ {print $NF; exit}' \
+            | tr -d ':\r\n ' | tr 'A-F' 'a-f')
+          echo "APK 证书: $APK_SHA"
+          echo "固定钥匙: $KEY_SHA"
+          if [ -n "$APK_SHA" ] && [ "$APK_SHA" = "$KEY_SHA" ]; then
+            echo "签名校验通过：APK 由固定 debug.keystore 签名"
+          else
+            echo "签名校验失败：APK 未使用固定 debug.keystore 签名！"
+            exit 1
+          fi
       - name: 生成更新说明（取自 CHANGELOG）
         run: |
           python3 - "$NEW" <<'PYEOF'
