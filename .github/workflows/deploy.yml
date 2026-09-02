@@ -39,7 +39,7 @@ jobs:
           npm init -y
           npm i @capacitor/core @capacitor/cli @capacitor/android
           mkdir -p dist
-          cp index.html style.css app.js manifest.webmanifest icon.svg sw.js dist/
+          cp index.html style.css app.js Sortable.min.js manifest.webmanifest icon.svg sw.js dist/
           sed -i "s/const APP_VERSION='[^']*'/const APP_VERSION='$NEW'/" dist/app.js
           npx cap init "超级清单" com.paidaxing.todo --web-dir dist
           npx cap add android

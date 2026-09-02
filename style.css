@@ -267,4 +267,5 @@ body.home-view .content{padding-top:calc(56px + env(safe-area-inset-top,0px) + 5
 /* ===== 手动拖拽排序 ===== */
 .drag-handle{width:20px;height:20px;flex-shrink:0;opacity:.35;touch-action:none;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%235f6368"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>');background-repeat:no-repeat;background-position:center;background-size:contain}
 .drag-handle:active{opacity:.8}
-.item-row.dragging{box-shadow:var(--shadow2);opacity:.9;z-index:5}
+.sortable-ghost{opacity:.35}
+.sortable-drag{box-shadow:var(--shadow2);opacity:.95}

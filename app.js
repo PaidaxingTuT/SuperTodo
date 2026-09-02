@@ -121,6 +121,7 @@ function render(){
   renderTitle();
   renderDrawer();
   renderContent();
+  initSortable();
 }
 function renderTitle(){
   const isHome=state.view.name==='home';
@@ -287,7 +288,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#drawerInfo').addEventListener('click',()=>{ closeDrawer(); openInfo(); });
 
   /* 内容事件（委托） */
-  $('#content').addEventListener('pointerdown',onDragStart);
   $('#content').addEventListener('click',e=>{
     if(e.target.closest('.drag-handle'))return;
     const done=e.target.closest('[data-done]');
@@ -677,75 +677,21 @@ function saveAiField(field){
   save(); render();
 }
 
-/* ========== 手动拖拽排序（仅默认排序下可用） ========== */
-let dragState=null;
-function onDragStart(e){
-  const h=e.target.closest('.drag-handle'); if(!h)return;
-  const row=h.closest('.item-row'); if(!row)return;
-  e.preventDefault();
-  dragState={row,y:e.clientY,startTop:row.getBoundingClientRect().top};
-  row.classList.add('dragging');
-  row.style.transform='translateY(0)';
-  document.addEventListener('pointermove',onDragMove);
-  document.addEventListener('pointerup',onDragEnd);
-  document.addEventListener('pointercancel',onDragEnd);
-}
-function onDragMove(e){
-  if(!dragState)return;
-  const dy=e.clientY-dragState.y;
-  dragState.row.style.transform='translateY('+dy+'px)';
-  const dragTop=dragState.startTop+dy;
-  const others=$$('#content .item-row').filter(r=>r!==dragState.row);
-  // FLIP：记录重排前各行的位置，插入后再平滑归位
-  const first=new Map(others.map(r=>[r,r.getBoundingClientRect().top]));
-  const rows=others.filter(r=>{ const it=state.items.find(x=>x.id===r.dataset.item); return it&&!it.done; });
-  let target=null, before=false;
-  if(dy>0){
-    for(const r of rows){
-      const b=r.getBoundingClientRect();
-      if(dragTop < b.top+b.height/2){ target=r; before=true; break; }
+/* ========== 拖拽排序（SortableJS，仅默认排序下可用） ========== */
+let sortable=null;
+function initSortable(){
+  if(sortable){ sortable.destroy(); sortable=null; }
+  if(state.view.name!=='list'||state.sortKey!=='默认'||typeof Sortable==='undefined') return;
+  sortable=new Sortable($('#content'),{
+    handle:'.drag-handle',
+    animation:160,
+    easing:'cubic-bezier(.2,.7,.2,1)',
+    ghostClass:'sortable-ghost',
+    onEnd(){
+      $$('#content .item-row').forEach((r,i)=>{ const it=state.items.find(x=>x.id===r.dataset.item); if(it&&!it.done)it.order=i; });
+      save();
     }
-    if(!target&&rows.length){ target=rows[rows.length-1]; before=false; }
-  } else if(dy<0){
-    for(let i=rows.length-1;i>=0;i--){
-      const r=rows[i];
-      const b=r.getBoundingClientRect();
-      if(dragTop > b.top+b.height/2){ target=r; break; }
-    }
-    if(!target&&rows.length){ target=rows[0]; before=true; }
-  }
-  if(target){
-    if(before) target.insertAdjacentElement('beforebegin',dragState.row);
-    else target.insertAdjacentElement('afterend',dragState.row);
-  }
-  requestAnimationFrame(()=>{
-    others.forEach(r=>{
-      if(!r.isConnected)return;
-      const delta=first.get(r)-r.getBoundingClientRect().top;
-      if(delta){
-        r.style.transition='none';
-        r.style.transform='translateY('+delta+'px)';
-      }
-    });
-    requestAnimationFrame(()=>{
-      others.forEach(r=>{
-        if(!r.isConnected)return;
-        r.style.transition='transform .16s ease';
-        r.style.transform='';
-      });
-    });
   });
-}
-function onDragEnd(){
-  if(!dragState)return;
-  document.removeEventListener('pointermove',onDragMove);
-  document.removeEventListener('pointerup',onDragEnd);
-  document.removeEventListener('pointercancel',onDragEnd);
-  dragState.row.classList.remove('dragging');
-  dragState.row.style.transform='';
-  $$('#content .item-row').forEach((r,i)=>{ const it=state.items.find(x=>x.id===r.dataset.item); if(it&&!it.done)it.order=i; });
-  save(); render();
-  dragState=null;
 }
 
 /* ========== 导出/导入/清空 ========== */
