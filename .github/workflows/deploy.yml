@@ -45,7 +45,9 @@ jobs:
         run: |
           npm init -y
           npm i @capacitor/core @capacitor/cli @capacitor/android
-          npx cap init "清单" com.paidaxing.todo --web-dir .
+          mkdir -p dist
+          cp index.html style.css app.js manifest.webmanifest icon.svg sw.js dist/
+          npx cap init "清单" com.paidaxing.todo --web-dir dist
           npx cap add android
           npx cap sync android
       - uses: actions/setup-java@v4
