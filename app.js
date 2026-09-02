@@ -133,9 +133,23 @@ function setupNativeBack(){
 
 /* ========== 通用对话框（替代原生 alert/confirm/prompt） ========== */
 let dlgType='alert', dlgCb=null, dlgOnCancel=null;
+const DICONS={
+  info:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>',
+  question:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>',
+  delete:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>'
+};
 function dlgShow(opts){
   dlgType=opts.type||'alert';
   dlgCb=opts.onOk||null; dlgOnCancel=opts.onCancel||null;
+  const defIc = dlgType==='confirm'?'question':dlgType==='input'?'edit':'info';
+  const ic = opts.icon||defIc;
+  const icEl=$('#dlgIcon');
+  if(icEl){
+    icEl.innerHTML=DICONS[ic]||DICONS.info;
+    icEl.classList.toggle('danger', ic==='delete');
+  }
   $('#dlgTitle').textContent=opts.title||'';
   const hasMsg=!!opts.msg;
   $('#dlgMsg').hidden=!hasMsg; $('#dlgMsg').textContent=opts.msg||'';
@@ -155,7 +169,7 @@ function dlgClose(){
   if(!backSuppress) syncBack();
 }
 function alertDlg(title,msg){ dlgShow({title,msg,type:'alert',okText:'知道了'}); }
-function confirmDlg(title,msg,onOk,okText){ dlgShow({title,msg,type:'confirm',onOk,okText:okText||'确定'}); }
+function confirmDlg(title,msg,onOk,okText,icon){ dlgShow({title,msg,type:'confirm',onOk,okText:okText||'确定',icon}); }
 function inputDlg(title,placeholder,initial,onOk,onCancel){ dlgShow({title,type:'input',placeholder,initial,onOk,onCancel}); }
 
 /* ========== 渲染 ========== */
@@ -407,8 +421,7 @@ function deleteTag(kind,idx){
   if(!arr)return;
   if(arr.length<=1){ alertDlg('提示','至少保留一项'); return }
   const rem=arr[idx];
-  confirmDlg('删除标签', `确定删除「${rem}」？相关事项中的该标签会被清空。`, ()=>{
-    arr.splice(idx,1);
+  confirmDlg('删除标签', `确定删除「${rem}」？相关事项中的该标签会被清空。`, ()=>{    arr.splice(idx,1);
     state.items.forEach(it=>{
       if(kind==='type'&&it.type===rem)it.type=state.types[0];
       else if(kind==='scene'&&it.scene===rem)it.scene='';
@@ -416,7 +429,7 @@ function deleteTag(kind,idx){
     });
     if(state.type===rem)state.type='全部';
     save(); render(); renderSetGroups();
-  }, '删除');
+  }, '删除','delete');
 }
 function addType(){
   inputDlg('新增类型', '输入新类型名称', '', (nm)=>{
@@ -774,7 +787,7 @@ function importData(e){
   const f=e.target.files[0]; if(!f)return;
   const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=d.items||[]; if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); save(); applyTheme(state.theme); render(); renderSetGroups(); renderPalette(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
 }
-function clearAll(){ confirmDlg('清空数据','确定清空全部数据？此操作不可撤销。',()=>{ state.items=[]; save(); render(); },'清空'); }
+function clearAll(){ confirmDlg('清空数据','确定清空全部数据？此操作不可撤销。',()=>{ state.items=[]; save(); render(); },'清空','delete'); }
 
 /* ========== 弹窗事件（一次性绑定） ========== */
 document.addEventListener('DOMContentLoaded',()=>{

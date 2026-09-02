@@ -250,11 +250,15 @@ body.home-view .content{padding-top:calc(56px + env(safe-area-inset-top,0px) + 5
 .tidy-sels select{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;background:#fff;color:var(--text);outline:none;max-width:140px}
 
 /* ===== 通用对话框 ===== */
-.dlg-title{font-size:16px;font-weight:600;margin-bottom:4px;line-height:1.4}
-.dlg-msg{font-size:14px;color:var(--text2);line-height:1.6}
-.dlg-input{margin-top:6px}
-.dlg-input input{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;outline:none;background:#f8faff}
-.dlg-input input:focus{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary);background:#fff}
+.dlg-body{text-align:center;padding:24px 20px 12px}
+.dlg-icon{width:62px;height:62px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;background:var(--primary-soft);color:var(--primary);box-shadow:0 4px 12px rgba(11,87,208,.12)}
+.dlg-icon svg{width:30px;height:30px}
+.dlg-icon.danger{background:rgba(217,48,37,.1);color:var(--danger);box-shadow:0 4px 12px rgba(217,48,37,.14)}
+.dlg-title{font-size:17px;font-weight:700;margin-bottom:6px;line-height:1.4}
+.dlg-msg{font-size:14px;color:var(--text2);line-height:1.7;margin:0 auto;max-width:320px}
+.dlg-input{margin-top:18px;text-align:left}
+.dlg-input input{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15px;outline:none;background:#f7f9fc;transition:border .15s,box-shadow .15s,background .15s}
+.dlg-input input:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 2px var(--primary-soft)}
 
 /* ===== 软件信息弹窗 ===== */
 .info-hero{display:flex;flex-direction:column;align-items:center;padding:4px 0 18px}
