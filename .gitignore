@@ -1,0 +1,8 @@
+# 测试与临时产物
+.playwright-cli/
+*.png
+*.bak
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
