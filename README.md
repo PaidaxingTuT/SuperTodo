@@ -1,63 +1,115 @@
-# 超级清单 · SuperTodo
+<div align="center">
 
-一个个人专享的清单管理 App，统一记录购物 / 待办 / 计划 / 旅游 / 愿望。
+# 📝 SuperTodo · 超级清单
 
-- **形态**：Android App（APK，WebView 壳）
-- **数据**：本地存储，支持导出 / 导入备份
-- **风格**：Material 风格，简洁清爽，可自定义配色
-- **技术**：HTML + CSS + JavaScript 原生实现（构建为 APK）
+一款轻量、优雅且丝滑的现代化多维度待办与清单管理应用。  
+支持三层架构分类、拖拽调序、AI 智能速记与整理，提供纯前端静态体验与原生 Android APK 封装。
 
----
+[![Release](https://img.shields.io/github/v/release/PaidaxingTuT/SuperTodo?color=blue&label=Release)](https://github.com/PaidaxingTuT/SuperTodo/releases)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web-brightgreen)](#)
+[![Tech Stack](https://img.shields.io/badge/Stack-HTML5%20%2B%20CSS3%20%2B%20JS-F7DF1E?logo=javascript&logoColor=black)](#)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## 核心功能
+<br/>
 
-### 三层信息架构
-| 层级 | 是什么 | 在哪 |
-|------|--------|------|
-| **类型** | 购物/待办/计划/旅游/愿望… | 左上角 ☰ 汉堡菜单 |
-| **分组** | 按场景或按时间 | 主页大区块卡片 |
-| **事项** | 具体待办事项 | 点进分组区块后看到 |
+<img src="screenshots/title.png" alt="SuperTodo" width="720" style="max-width: 100%; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);" />
 
-### 记录
-- 右下角 **＋** 一键添加
-- 完整表单：标题 / 备注 / 类型 / 场景 / 时间 / 预估花费 / 截止日期 / ★重要程度
-- 点击已有事项可编辑 / 删除
-
-### AI 速记
-- 右下角 **✨** 一句话速记：输入一句话，AI 自动解析类型 / 场景 / 时间 / 花费 / 截止日期 / 重要度，填好表单确认保存（需开启 AI 增强）
-- 设置 → AI · 云端增强：开启后填写 OpenAI 兼容接口的 base URL / key / 模型名
-- 解析到不存在的标签时提示「建议新建」，默认勾选可取消
-- 设置 → 数据 → **智能整理**：为未分类事项建议补场景 / 时间，列表预览 + 一键采纳
-
-### 分类与排序
-- 类型 / 场景 / 时间标签均可自定义增删改
-- 列表页右上角排序：花费（升/降）、重要度、截止日期、创建时间、默认（手动顺序）
-- 默认排序下，按住行右侧 **≡ 把手** 拖拽调整顺序，落位即保存
-- 完成事项自动沉底
-
-### 全面自定义
-| 想改什么 | 操作方法 |
-|---------|---------|
-| **配色** | 设置 → 外观·主色：预设 10 色 + 自定义取色器 |
-| **类型** | 汉堡菜单里长按类型可重命名 / 删除；菜单内「＋ 新增类型」 |
-| **场景 / 时间** | 设置 → 对应区块：重命名、删除、添加 |
-
-### 数据管理
-- 设置 → 数据：导出备份 / 导入备份 / 清空全部
-- 软件信息：关于弹窗查看版本 / 作者 / 检查更新 / 开源仓库
+</div>
 
 ---
 
-## 目录结构
+## ✨ 核心特性
 
+- 🗂️ **三层清晰架构**：类型（购物 / 待办 / 计划 / 旅游 / 愿望等）→ 场景/时间分组 → 事项清单，告别杂乱无章。
+- 🤖 **AI 智能增强**：
+  - **一句话速记**：自然语言输入即可自动提取分类、截止日期、预估花费与重要程度。
+  - **智能归类整理**：一键为未分类或待整理事项建议场景与标签，逐条预览采纳。
+- 🖐️ **丝滑拖拽排序**：集成 Sortable.js，在默认排序下随时长按/按住把手拖拽调整优先级，动画流畅，落位即存。
+- 📱 **原生 Android 体验**：
+  - 深度适配 Android 原生返回键层级返回（抽屉/弹窗/分组逐级返回，防止误退）。
+  - 精致的 App 内置对话框体系，状态栏沉浸避让。
+  - 应用内检查更新与原生下载管理器直链高速下载（支持 ghfast 加速）。
+- 🎨 **高度个性化**：内置 10 款精致预设主题配色方案，并支持自定义调色板，全界面实时跟随。
+- 🔒 **本地安全与数据备份**：所有数据均保存在本地 `localStorage`，支持完整的 JSON 格式数据导出与导入备份。
+
+---
+
+## 📷 功能预览
+
+| **软件首页** | **AI 速记** | **添加事项** | **软件设置** |
+| :---: | :---: | :---: | :---: |
+| <img src="screenshots/home.jpg" alt="软件首页" width="200" /> | <img src="screenshots/ai.jpg" alt="AI 一句话速记" width="200" /> | <img src="screenshots/add.jpg" alt="添加事项" width="200" /> | <img src="screenshots/settings.jpg" alt="软件设置" width="200" /> |
+
+---
+
+## 🛠️ 技术栈
+
+- **前端核心**：纯原生 HTML5 / CSS3（CSS Variables + Modern Flexbox/Grid）/ Vanilla JavaScript（ES6+），无任何重型前端框架依赖。
+- **拖拽交互**：[Sortable.js](https://github.com/SortableJS/Sortable)
+- **原生封装**：Capacitor（Android WebView 原生能力与下载支持）
+- **AI 接口**：标准 OpenAI 兼容接口（可在设置中自定义 Base URL / API Key / Model）
+- **自动化构建**：GitHub Actions（自动化打包 Android APK、固定签名校验并发布 Release）
+
+---
+
+## 🚀 快速开始
+
+本项目为纯原生前端架构，本地调试无需配置复杂的 Node.js 或构建工具环境。
+
+### 1. 获取代码
+
+```bash
+git clone https://github.com/PaidaxingTuT/SuperTodo.git
+cd SuperTodo
 ```
-├── index.html          # 界面结构
-├── style.css           # 样式
-├── app.js              # 逻辑
-├── Sortable.min.js     # 拖拽排序库
-├── icon.svg            # 应用图标
-├── app-icon.png        # About 弹窗 Logo
-├── README.md
-├── CHANGELOG.md
-└── .github/workflows/deploy.yml   # 云端打包 + 发布流水线
+
+### 2. 运行与体验
+
+- **方式一（直接打开）**：双击根目录下的 `index.html`，即可在浏览器中体验全部功能。
+- **方式二（本地静态服务器，推荐）**：
+  ```bash
+  # 使用 Python 启动本地 HTTP 服务
+  python -m http.server 8000
+  ```
+  在浏览器中访问 `http://localhost:8000` 即可。
+
+### 3. Android APK 安装
+
+前往 [Releases 页面](https://github.com/PaidaxingTuT/SuperTodo/releases) 下载最新版本的 `SuperTodo-X.Y.Z.apk` 安装包即可。
+
+---
+
+## 📂 项目结构
+
+```plaintext
+SuperTodo/
+├── .github/workflows/    # GitHub Actions 自动化构建与发布流程
+├── app-icon.png          # 应用图标原图
+├── app.js                # 核心业务逻辑、状态管理与本地持久化
+├── CHANGELOG.md          # 版本更新历史记录
+├── debug.keystore        # Android 固定签名证书
+├── icon.svg              # 矢量图标文件
+├── index.html            # 页面 DOM 结构与弹窗模板
+├── screenshots/          # 应用演示截图与效果图
+│   ├── add.jpg           # 添加事项
+│   ├── ai.jpg            # AI 一句话速记
+│   ├── home.jpg          # 软件首页
+│   ├── settings.jpg      # 软件设置
+│   └── title.png         # 项目顶部横幅
+├── Sortable.min.js       # 拖拽排序核心依赖库
+├── style.css             # 响应式布局、动画与主题配色样式
+└── README.md             # 项目使用说明文档
 ```
+
+---
+
+## 🤝 贡献与反馈
+
+欢迎提交 [Issue](https://github.com/PaidaxingTuT/SuperTodo/issues) 反馈 Bug 或提出功能建议！  
+如果你觉得这个项目对你有帮助，欢迎点个 ⭐️ **Star** 支持一下。
+
+---
+
+## 📄 开源许可
+
+本项目基于 [MIT License](LICENSE) 开源协议。
