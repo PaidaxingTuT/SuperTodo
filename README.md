@@ -85,8 +85,9 @@ cd SuperTodo
 ```plaintext
 SuperTodo/
 ├── .github/workflows/    # GitHub Actions 自动化构建与发布流程
-├── app-icon.png          # 应用图标原图
+├── app-icon.png          # 应用图标原图（日间模式）
 ├── app-icon-dark.png     # 夜间模式应用图标
+├── app-icon-foreground.png # 夜间自适应前景与启动页纯透明小标
 ├── app.js                # 核心业务逻辑、状态管理与本地持久化
 ├── CHANGELOG.md          # 版本更新历史记录
 ├── debug.keystore        # Android 固定签名证书

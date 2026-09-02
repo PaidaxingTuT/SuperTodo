@@ -44,12 +44,20 @@ git push origin main vX.Y.Z
 - ImageMagick 必须安装；Java 必须为 21。
 - 覆盖安装失败时检查签名是否一致、`versionCode` 是否递增。
 
-## 签名（铁律，勿回退）
+## 图标与启动页规范
 
-完整事故报告见 `SIGNING_REPORT.md`。
+- **日间模式**：
+  - 桌面图标 `ic_launcher`、`ic_launcher_round`、`ic_launcher_foreground` 以及系统启动过渡小标统一由 `app-icon.png` 生成。
+  - 严禁在日间模式复用 `app-icon-foreground.png`，否则会导致日间图标和启动 Logo 异常放大并丢失网格背景。
+- **夜间模式**：
+  - 传统图标由 `app-icon-dark.png` 生成；自适应前景 `mipmap-night-*/ic_launcher_foreground.png` 必须基于纯透明前景 `app-icon-foreground.png` 生成。
+  - 自适应背景由 `values-night/ic_launcher_background.xml`（`#16191F`）提供。
+  - Android 12+ 原生启动过渡页通过 `Theme.SplashScreen` 显式指定 `windowSplashScreenBackground`（`#16191F`）与 `windowSplashScreenAnimatedIcon`（`@drawable/splash_icon`，基于 `app-icon-foreground.png` 生成并保持居中 60dp 视觉尺寸），彻底杜绝自适应图标白框穿透。
+
+## 签名（铁律，勿回退）
 
 - **禁止回归**「只复制 keystore 到 `~/.android/debug.keystore`」的旧写法——实测在 GitHub runner 上 AGP 不会采用，会静默现生成随机调试钥，导致每次构建签名都不同、覆盖安装必报「签名冲突」。
 - 签名必须**显式**写在 `android/app/build.gradle`：`signingConfigs.debug` 的 `storeFile` 指向仓库根 `debug.keystore`，`storePassword`/`keyPassword`=`android`，`keyAlias`=`androiddebugkey`，并让 `buildTypes.debug` 使用它。`deploy.yml` 已注入该配置，并在打包后校验「APK 证书 = 固定钥匙」（apksigner 比对 sha256，不一致构建失败）。
 - **事实更正（重要）**：不是「v1.6.5 起同钥」。已发布的 v1.6.5 / v1.6.6 APK 均为随机签名（证书 `4B:C9:36:F3…`、`F6:00:DE:CC…`），互不兼容。固定钥匙证书 SHA-256 为 `C5:3E:3A:82:F0:4F:75:1D:4C:4F:8A:36:7B:3F:73:82:26:27:00:F5:21:54:D5:1E:F2:BC:B3:C8:A2:42:64:97`。
 - **自 v1.6.7（显式签名修复后的首个版本）起才真正共用固定钥匙**。
-- 手机端只需**最后一次**卸载重装来切到固定钥：先导出备份 → 卸载 → 安装 v1.6.7 → 导入备份；此后所有版本可直接覆盖安装。
+- 手机端只需**最后一次**卸载重装来切到固定钥：先导出备份 → 卸载 → 安装 v1.6.7+ → 导入备份；此后所有版本可直接覆盖安装。
