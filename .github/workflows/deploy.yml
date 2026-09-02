@@ -83,10 +83,10 @@ jobs:
           PYEOF
       - name: APK 命名
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk "SuperTodo-$NEW.apk"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "SuperTodo-${NEW#v}.apk"
       - name: 发布 Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$NEW" "SuperTodo-$NEW.apk" --title "$NEW" --notes-file notes.md
+          gh release create "$NEW" "SuperTodo-${NEW#v}.apk" --title "$NEW" --notes-file notes.md
           echo "已发布 Release $NEW"
