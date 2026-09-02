@@ -62,7 +62,7 @@ input{font-family:inherit}
   animation:slideIn .22s ease;
 }
 @keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
-.drawer-head{display:flex;align-items:center;padding:14px 12px 4px;border-bottom:1px solid var(--line)}
+.drawer-head{display:flex;align-items:center;padding:8px 12px 4px;border-bottom:1px solid var(--line)}
 .drawer-logobox{display:flex;align-items:center;gap:10px;flex:1;padding:6px}
 .drawer-logo{width:26px;height:26px;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%230b57d0"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>') center/contain no-repeat}
 .drawer-title{font-size:17px;font-weight:600;color:var(--text)}
