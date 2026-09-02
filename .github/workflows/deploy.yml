@@ -37,11 +37,11 @@ jobs:
       - name: Capacitor 封装（注入版本号到 Web 副本）
         run: |
           npm init -y
-          npm i @capacitor/core @capacitor/cli @capacitor/android
+          npm i @capacitor/core @capacitor/cli @capacitor/android @capacitor/app
           mkdir -p dist
-          cp index.html style.css app.js Sortable.min.js manifest.webmanifest icon.svg sw.js dist/
+          cp index.html style.css app.js Sortable.min.js manifest.webmanifest icon.svg app-icon.png sw.js dist/
           sed -i "s/const APP_VERSION='[^']*'/const APP_VERSION='$NEW'/" dist/app.js
-          npx cap init "超级清单" com.paidaxing.todo --web-dir dist
+          npx cap init "超级清单" com.dax.supertodo --web-dir dist
           npx cap add android
           npx cap sync android
       - uses: actions/setup-java@v4

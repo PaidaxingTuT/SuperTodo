@@ -233,15 +233,32 @@
   <div class="modal-head"><h2>关于</h2><button class="md-close" id="infoClose" aria-label="关闭"></button></div>
   <div class="modal-body">
     <div class="info-hero">
-      <img class="info-logo" src="icon.svg" alt="超级清单">
+      <div class="info-logo"><img src="app-icon.png" alt="超级清单"></div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.5.3</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.6.0</div>
     </div>
     <div class="info-meta">
       <div class="info-row"><span class="info-k">作者</span><span class="info-v">派大星TuT</span></div>
       <div class="info-row info-click" id="infoUpdateRow"><span class="info-k">检查更新</span><span class="info-v" id="infoUpdate">点击检查</span></div>
     </div>
     <div class="info-repo" id="infoRepo" role="button">开源仓库 · github.com/PaidaxingTuT/todo</div>
+  </div>
+</div>
+
+<!-- ===== 通用对话框（替代原生 alert/confirm/prompt） ===== -->
+<div class="modal-mask" id="dlgMask" hidden></div>
+<div class="modal modal-sm" id="dlgModal" hidden>
+  <div class="modal-body">
+    <div class="dlg-title" id="dlgTitle"></div>
+    <div class="dlg-msg" id="dlgMsg" hidden></div>
+    <div class="dlg-input" id="dlgInputWrap" hidden>
+      <input type="text" id="dlgInput" autocomplete="off">
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn-text" id="dlgCancel" hidden>取消</button>
+    <div class="spacer"></div>
+    <button class="btn-filled" id="dlgOk">确定</button>
   </div>
 </div>
 

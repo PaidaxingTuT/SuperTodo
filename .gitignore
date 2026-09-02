@@ -1,6 +1,8 @@
 # 测试与临时产物
 .playwright-cli/
 *.png
+!app-icon.png
+*.apk
 *.bak
 
 # 系统与编辑器

@@ -104,17 +104,59 @@ function syncBack(){ codeBack=true; history.back() }
 function backHome(){ state.view={name:'home'}; state.sortKey='默认'; render() }
 function closeTopLayer(){
   backSuppress=true;
-  if(!$('#modal').hidden) hideModal();
-  else if(!$('#ctxModal').hidden) closeCtx();
-  else if(!$('#aiModal').hidden) closeAi();
-  else if(!$('#tidyModal').hidden) closeTidy();
-  else if(!$('#infoModal').hidden) closeInfo();
-  else if(!$('#setModal').hidden) closeSettings();
-  else if(!$('#sortModal').hidden) closeSort();
-  else if(!$('#drawer').hidden) closeDrawer();
-  else if(state.view.name==='list') backHome();
+  if(!$('#dlgModal').hidden){ dlgClose(); backSuppress=false; return true; }
+  if(!$('#modal').hidden){ hideModal(); backSuppress=false; return true; }
+  if(!$('#ctxModal').hidden){ closeCtx(); backSuppress=false; return true; }
+  if(!$('#aiModal').hidden){ closeAi(); backSuppress=false; return true; }
+  if(!$('#tidyModal').hidden){ closeTidy(); backSuppress=false; return true; }
+  if(!$('#infoModal').hidden){ closeInfo(); backSuppress=false; return true; }
+  if(!$('#setModal').hidden){ closeSettings(); backSuppress=false; return true; }
+  if(!$('#sortModal').hidden){ closeSort(); backSuppress=false; return true; }
+  if(!$('#drawer').hidden){ closeDrawer(); backSuppress=false; return true; }
+  if(state.view.name==='list'){ backHome(); backSuppress=false; return true; }
   backSuppress=false;
+  return false;
 }
+
+/* Capacitor 原生返回键（APK 内） */
+function setupNativeBack(){
+  try{
+    const C=window.Capacitor;
+    if(!C||!C.isNativePlatform||!C.isNativePlatform()) return;
+    if(C.Plugins&&C.Plugins.App){
+      C.Plugins.App.addListener('backButton',()=>{
+        if(!closeTopLayer()){ C.Plugins.App.exitApp(); }
+      });
+    }
+  }catch(e){}
+}
+
+/* ========== 通用对话框（替代原生 alert/confirm/prompt） ========== */
+let dlgType='alert', dlgCb=null, dlgOnCancel=null;
+function dlgShow(opts){
+  dlgType=opts.type||'alert';
+  dlgCb=opts.onOk||null; dlgOnCancel=opts.onCancel||null;
+  $('#dlgTitle').textContent=opts.title||'';
+  const hasMsg=!!opts.msg;
+  $('#dlgMsg').hidden=!hasMsg; $('#dlgMsg').textContent=opts.msg||'';
+  const needInput=dlgType==='input';
+  $('#dlgInputWrap').hidden=!needInput;
+  if(needInput){ $('#dlgInput').value=opts.initial||''; $('#dlgInput').placeholder=opts.placeholder||''; }
+  const hasCancel=dlgType==='confirm'||dlgType==='input';
+  $('#dlgCancel').hidden=!hasCancel;
+  $('#dlgCancel').textContent=opts.cancelText||'取消';
+  $('#dlgOk').textContent=opts.okText||'确定';
+  pushLayer();
+  $('#dlgMask').hidden=false; $('#dlgModal').hidden=false;
+  if(needInput) setTimeout(()=>$('#dlgInput').focus(),60);
+}
+function dlgClose(){
+  $('#dlgMask').hidden=true; $('#dlgModal').hidden=true;
+  if(!backSuppress) syncBack();
+}
+function alertDlg(title,msg){ dlgShow({title,msg,type:'alert',okText:'知道了'}); }
+function confirmDlg(title,msg,onOk,okText){ dlgShow({title,msg,type:'confirm',onOk,okText:okText||'确定'}); }
+function inputDlg(title,placeholder,initial,onOk,onCancel){ dlgShow({title,type:'input',placeholder,initial,onOk,onCancel}); }
 
 /* ========== 渲染 ========== */
 function render(){
@@ -256,6 +298,8 @@ function init(){
   applyTheme(state.theme);
   buildStars();
   render();
+  setTimeout(setupNativeBack,300);
+  setTimeout(()=>checkUpdate(true),900);
 }
 
 /* 抽屉 */
@@ -345,39 +389,42 @@ function openCtxMenu(item){
 function closeCtx(){ $('#ctxMask').hidden=true; $('#ctxModal').hidden=true; if(!backSuppress)syncBack(); }
 function ctxRename(){
   const arr = ctxKind==='type'?state.types:ctxKind==='scene'?state.scenes:state.times;
-  const cur=arr[ctxIdx]; const nm=prompt('重命名为：',cur); 
-  if(nm&&nm.trim()&&nm.trim()!==cur){
-    const old=cur, name=nm.trim();
-    arr[ctxIdx]=name;
-    state.items.forEach(it=>{ if(ctxKind==='type'&&it.type===old)it.type=name; });
-    if(state.type===old)state.type=name;
-    save(); render(); renderSetGroups();
-  }
-  closeCtx();
+  const cur=arr[ctxIdx];
+  inputDlg('重命名', '输入新名称', cur, (nm)=>{
+    if(nm&&nm!==cur){
+      const old=cur, name=nm;
+      arr[ctxIdx]=name;
+      state.items.forEach(it=>{ if(ctxKind==='type'&&it.type===old)it.type=name; });
+      if(state.type===old)state.type=name;
+      save(); render(); renderSetGroups();
+    }
+    closeCtx();
+  }, closeCtx);
 }
 function ctxDelete(){ closeCtx(); deleteTag(ctxKind,ctxIdx); }
 function deleteTag(kind,idx){
   const arr = kind==='type'?state.types:kind==='scene'?state.scenes:kind==='time'?state.times:null;
   if(!arr)return;
-  if(arr.length<=1){ alert('至少保留一项'); return }
+  if(arr.length<=1){ alertDlg('提示','至少保留一项'); return }
   const rem=arr[idx];
-  if(!confirm(`删除「${rem}」？相关事项中的该标签会被清空。`))return;
-  arr.splice(idx,1);
-  state.items.forEach(it=>{
-    if(kind==='type'&&it.type===rem)it.type=state.types[0];
-    else if(kind==='scene'&&it.scene===rem)it.scene='';
-    else if(kind==='time'&&it.time===rem)it.time='';
-  });
-  if(state.type===rem)state.type='全部';
-  save(); render(); renderSetGroups();
+  confirmDlg('删除标签', `确定删除「${rem}」？相关事项中的该标签会被清空。`, ()=>{
+    arr.splice(idx,1);
+    state.items.forEach(it=>{
+      if(kind==='type'&&it.type===rem)it.type=state.types[0];
+      else if(kind==='scene'&&it.scene===rem)it.scene='';
+      else if(kind==='time'&&it.time===rem)it.time='';
+    });
+    if(state.type===rem)state.type='全部';
+    save(); render(); renderSetGroups();
+  }, '删除');
 }
 function addType(){
-  const nm=prompt('新增类型名称');
-  if(nm&&nm.trim()){
-    const name=nm.trim();
-    if(state.types.includes(name)){alert('已存在');return}
-    state.types.push(name); save(); render(); renderDrawer();
-  }
+  inputDlg('新增类型', '输入新类型名称', '', (nm)=>{
+    if(nm){
+      if(state.types.includes(nm)){ alertDlg('提示','该类型已存在'); return }
+      state.types.push(nm); save(); render(); renderDrawer();
+    }
+  });
 }
 
 function enterGroup(key){ pushLayer(); state.view={name:'list',group:key}; state.sortKey='默认'; render(); }
@@ -471,31 +518,38 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.5.3';
-const REPO_URL='https://github.com/PaidaxingTuT/todo';
-const REPO_API='https://api.github.com/repos/PaidaxingTuT/todo';
+const APP_VERSION='v1.6.0';
+const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
+const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 function openInfo(){ pushLayer(); $('#infoUpdate').textContent='点击检查'; $('#infoVer').textContent='SuperTodo · 版本 '+APP_VERSION.replace(/^v/,''); $('#infoMask').hidden=false; $('#infoModal').hidden=false; }
 function closeInfo(){ $('#infoMask').hidden=true; $('#infoModal').hidden=true; if(!backSuppress)syncBack(); }
-async function checkUpdate(){
+function verGt(a,b){
+  const pa=String(a||'').replace(/^v/,'').split('.').map(Number);
+  const pb=String(b||'').replace(/^v/,'').split('.').map(Number);
+  for(let i=0;i<Math.max(pa.length,pb.length);i++){
+    const x=pa[i]||0, y=pb[i]||0;
+    if(x>y)return true; if(x<y)return false;
+  }
+  return false;
+}
+async function checkUpdate(silent){
   const el=$('#infoUpdate');
-  el.textContent='正在检查…';
+  if(el) el.textContent='正在检查…';
   try{
     const res=await fetch(REPO_API+'/releases/latest');
-    if(res.status===404){ el.textContent='暂无已发布版本'; return }
+    if(res.status===404){ if(el)el.textContent='暂无已发布版本'; return }
     if(!res.ok) throw new Error('net');
     const d=await res.json();
     const latest=d.tag_name;
-    if(latest&&latest!==APP_VERSION){
-      el.textContent='发现新版本 '+latest;
-      if(confirm('发现新版本 '+latest+'，是否前往下载？')){
-        window.open(REPO_URL+'/releases','_blank');
-      }
+    if(verGt(latest,APP_VERSION)){
+      if(el) el.textContent='发现新版本 '+latest;
+      confirmDlg('发现新版本', '有新版本 '+latest.replace(/^v/,'')+' 可更新，是否前往下载？', ()=>{ window.open(REPO_URL+'/releases','_blank'); }, '下载');
     }else{
-      el.textContent='已是最新版本';
+      if(el) el.textContent='已是最新版本';
     }
   }catch(e){
-    el.textContent='检查失败';
-    alert('无法连接更新服务器，请稍后再试');
+    if(el) el.textContent='检查失败';
+    if(!silent) alertDlg('检查失败','无法连接更新服务器，请稍后再试');
   }
 }
 
@@ -515,33 +569,36 @@ function renderSetGroups(){
   g('#setTypes',state.types,'type'); g('#setScenes',state.scenes,'scene'); g('#setTimes',state.times,'time');
 }
 function addTag(kind){
-  const nm=prompt('输入新标签名称'); if(!nm||!nm.trim())return;
-  const name=nm.trim(), arr=kind==='type'?state.types:kind==='scene'?state.scenes:state.times;
-  if(arr.includes(name)){alert('已存在');return}
-  arr.push(name); save(); renderSetGroups(); render();
-  // 若事项表单开着，刷新对应标签组并选中新标签
-  if(modalOpen){
-    const cap=kind.charAt(0).toUpperCase()+kind.slice(1);
-    const el=$('#f'+cap+'Seg');
-    if(el){
-      el.innerHTML=segHTML(kind);
-      const chip=el.querySelector('.seg-chip[data-v="'+name+'"]');
-      if(chip)chip.classList.add('on');
+  const arr=kind==='type'?state.types:kind==='scene'?state.scenes:state.times;
+  inputDlg('添加标签', '输入新标签名称', '', (name)=>{
+    if(!name) return;
+    if(arr.includes(name)){ alertDlg('提示','该标签已存在'); return }
+    arr.push(name); save(); renderSetGroups(); render();
+    // 若事项表单开着，刷新对应标签组并选中新标签
+    if(modalOpen){
+      const cap=kind.charAt(0).toUpperCase()+kind.slice(1);
+      const el=$('#f'+cap+'Seg');
+      if(el){
+        el.innerHTML=segHTML(kind);
+        const chip=el.querySelector('.seg-chip[data-v="'+name+'"]');
+        if(chip)chip.classList.add('on');
+      }
     }
-  }
+  });
 }
 function renameTag(kind,idx){
   const arr=kind==='type'?state.types:kind==='scene'?state.scenes:state.times;
-  const old=arr[idx]; const nm=prompt('重命名为：',old);
-  if(nm&&nm.trim()&&nm.trim()!==old){
-    const name=nm.trim();
-    if(arr.includes(name)&&arr[idx]!==name){alert('已存在');return}
-    arr[idx]=name;
-    if(kind==='type'){ state.items.forEach(it=>{if(it.type===old)it.type=name}); if(state.type===old)state.type=name; }
-    else if(kind==='scene'){ state.items.forEach(it=>{if(it.scene===old)it.scene=name}); }
-    else if(kind==='time'){ state.items.forEach(it=>{if(it.time===old)it.time=name}); }
-    save(); render(); renderSetGroups();
-  }
+  const old=arr[idx];
+  inputDlg('重命名', '输入新名称', old, (nm)=>{
+    if(nm&&nm!==old){
+      if(arr.includes(nm)){ alertDlg('提示','该名称已存在'); return }
+      arr[idx]=nm;
+      if(kind==='type'){ state.items.forEach(it=>{if(it.type===old)it.type=nm}); if(state.type===old)state.type=nm; }
+      else if(kind==='scene'){ state.items.forEach(it=>{if(it.scene===old)it.scene=nm}); }
+      else if(kind==='time'){ state.items.forEach(it=>{if(it.time===old)it.time=nm}); }
+      save(); render(); renderSetGroups();
+    }
+  });
 }
 
 /* ========== AI：一句话速记 + 智能整理（云端） ========== */
@@ -615,9 +672,9 @@ async function runAi(){
 /* ===== 智能整理（批量补标签） ===== */
 let tidyRows=[];
 async function openTidy(){
-  if(!hasCloudKey()){ alert('智能整理需要先开启 AI 增强（设置 → AI · 云端增强）'); return }
+  if(!hasCloudKey()){ alertDlg('智能整理','需要先开启 AI 增强（设置 → AI · 云端增强）'); return }
   const cands=state.items.filter(it=>!it.done&&(!it.scene||!it.time));
-  if(!cands.length){ alert('没有需要整理的事项'); return }
+  if(!cands.length){ alertDlg('智能整理','没有需要整理的事项'); return }
   $('#tidyMask').hidden=false; $('#tidyModal').hidden=false;
   pushLayer();
   $('#tidyLoading').hidden=false; $('#tidyList').innerHTML='';
@@ -660,7 +717,7 @@ function tidyApply(){
   });
   if(n){ save(); render(); }
   closeTidy();
-  alert(n?('已整理 '+n+' 处标签'):'未做更改');
+  alertDlg('智能整理', n?('已整理 '+n+' 处标签'):'未做更改');
 }
 function closeTidy(){ $('#tidyMask').hidden=true; $('#tidyModal').hidden=true; if(!backSuppress)syncBack(); }
 /* ===== AI 云端配置 ===== */
@@ -703,9 +760,9 @@ function exportData(){
 }
 function importData(e){
   const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=d.items||[]; if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); save(); applyTheme(state.theme); render(); renderSetGroups(); renderPalette(); alert('导入成功'); }catch(er){ alert('导入失败：文件格式错误') } }; r.readAsText(f); e.target.value='';
+  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=d.items||[]; if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); save(); applyTheme(state.theme); render(); renderSetGroups(); renderPalette(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
 }
-function clearAll(){ if(!confirm('确定清空全部数据？此操作不可撤销。'))return; state.items=[]; save(); render(); }
+function clearAll(){ confirmDlg('清空数据','确定清空全部数据？此操作不可撤销。',()=>{ state.items=[]; save(); render(); },'清空'); }
 
 /* ========== 弹窗事件（一次性绑定） ========== */
 document.addEventListener('DOMContentLoaded',()=>{
@@ -751,8 +808,19 @@ document.addEventListener('DOMContentLoaded',()=>{
   /* 软件信息 */
   $('#infoClose').addEventListener('click',closeInfo);
   $('#infoMask').addEventListener('click',closeInfo);
-  $('#infoUpdateRow').addEventListener('click',checkUpdate);
+  $('#infoUpdateRow').addEventListener('click',()=>checkUpdate());
   $('#infoRepo').addEventListener('click',()=>window.open(REPO_URL,'_blank'));
+
+  /* 通用对话框 */
+  $('#dlgOk').addEventListener('click',()=>{
+    const cb=dlgCb;
+    const val=dlgType==='input'?$('#dlgInput').value.trim():null;
+    const hasCb=dlgType==='confirm'||dlgType==='input';
+    dlgClose();
+    if(hasCb&&cb) cb(val);
+  });
+  $('#dlgCancel').addEventListener('click',()=>{ const c=dlgOnCancel; dlgClose(); if(c)c(); });
+  $('#dlgMask').addEventListener('click',()=>{ const c=dlgOnCancel; dlgClose(); if(c)c(); });
 
   $('#tidyBtn').addEventListener('click',()=>{ closeSettings(); openTidy(); });
   $('#exportBtn').addEventListener('click',exportData);
