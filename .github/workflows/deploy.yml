@@ -39,7 +39,7 @@ jobs:
           npm init -y
           npm i @capacitor/core @capacitor/cli @capacitor/android @capacitor/app
           mkdir -p dist
-          cp index.html style.css app.js Sortable.min.js manifest.webmanifest icon.svg app-icon.png sw.js dist/
+          cp index.html style.css app.js Sortable.min.js icon.svg app-icon.png dist/
           sed -i "s/const APP_VERSION='[^']*'/const APP_VERSION='$NEW'/" dist/app.js
           npx cap init "超级清单" com.dax.supertodo --web-dir dist
           npx cap add android

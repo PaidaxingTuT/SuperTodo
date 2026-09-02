@@ -8,3 +8,10 @@
 # 系统与编辑器
 .DS_Store
 Thumbs.db
+
+# 开发文档（仓库只保留 README/CHANGELOG，其余本地自留不上传）
+AGENTS.md
+PROJECT_OVERVIEW.md
+PROJECT_STATUS.md
+requirements.md
+SIGNING_REPORT.md

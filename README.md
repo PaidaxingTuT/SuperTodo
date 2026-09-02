@@ -56,9 +56,8 @@
 ├── app.js              # 逻辑
 ├── Sortable.min.js     # 拖拽排序库
 ├── icon.svg            # 应用图标
-├── manifest.webmanifest
+├── app-icon.png        # About 弹窗 Logo
 ├── README.md
 ├── CHANGELOG.md
-├── PROJECT_STATUS.md
-└── requirements.md
+└── .github/workflows/deploy.yml   # 云端打包 + 发布流水线
 ```
