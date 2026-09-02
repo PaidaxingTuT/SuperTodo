@@ -50,6 +50,8 @@ jobs:
           java-version: '21'
       - name: 应用自定义应用图标
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq imagemagick
           cd android/app/src/main/res
           for d in mipmap-*/; do
             size=$(basename "$d" | tr -dc '0-9')
