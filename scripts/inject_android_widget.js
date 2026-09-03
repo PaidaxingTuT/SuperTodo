@@ -1,29 +1,31 @@
-#!/usr/bin/env python3
-import os
-import sys
+#!/usr/bin/env node
+const fs = require('fs');
+const path = require('path');
 
-def inject_widget_manifest():
-    manifest_path = os.path.join("android", "app", "src", "main", "AndroidManifest.xml")
-    if not os.path.exists(manifest_path):
-        print(f"Error: {manifest_path} not found")
-        sys.exit(1)
+function injectWidgetManifest() {
+  const manifestPath = path.join('android', 'app', 'src', 'main', 'AndroidManifest.xml');
+  if (!fs.existsSync(manifestPath)) {
+    console.error(`Error: ${manifestPath} not found`);
+    process.exit(1);
+  }
 
-    with open(manifest_path, "r", encoding="utf-8") as f:
-        content = f.read()
+  let content = fs.readFileSync(manifestPath, 'utf8');
 
-    if "TodoWidget4x2Provider" in content:
-        print("Widget components already injected in AndroidManifest.xml")
-        return
+  if (content.includes('TodoWidget4x2Provider')) {
+    console.log('Widget components already injected in AndroidManifest.xml');
+    return;
+  }
 
-    # 1. 注入桌面快捷方式与小部件创建权限（小米澎湃OS / ColorOS 必备）
-    perms = """
+  // 1. 注入桌面快捷方式与小部件创建权限（小米澎湃OS / ColorOS 必备）
+  const perms = `
     <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
     <uses-permission android:name="com.miui.home.launcher.permission.INSTALL_SHORTCUT" />
-"""
-    if "INSTALL_SHORTCUT" not in content:
-        content = content.replace("<application", perms + "\n    <application")
+`;
+  if (!content.includes('INSTALL_SHORTCUT')) {
+    content = content.replace('<application', perms + '\n    <application');
+  }
 
-    widget_entries = """
+  const widgetEntries = `
         <!-- Android 原生桌面小部件 4x2（全面兼容小米澎湃OS / OPPO ColorOS / vivo OriginOS / 华为 / 荣耀等全部安卓系统，免应用商店审核） -->
         <receiver
             android:name="com.dax.supertodo.widget.TodoWidget4x2Provider"
@@ -71,16 +73,21 @@ def inject_widget_manifest():
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
-"""
-    app_end = "</application>"
-    if app_end not in content:
-        print("Error: </application> tag not found in AndroidManifest.xml")
-        sys.exit(1)
+`;
 
-    content = content.replace(app_end, widget_entries + "\n    " + app_end)
-    with open(manifest_path, "w", encoding="utf-8") as f:
-        f.write(content)
-    print("Successfully injected widget components and permissions into AndroidManifest.xml")
+  const appEnd = '</application>';
+  if (!content.includes(appEnd)) {
+    console.error('Error: </application> tag not found in AndroidManifest.xml');
+    process.exit(1);
+  }
 
-if __name__ == "__main__":
-    inject_widget_manifest()
+  content = content.replace(appEnd, widgetEntries + '\n    ' + appEnd);
+  fs.writeFileSync(manifestPath, content, 'utf8');
+  console.log('Successfully injected widget components and permissions into AndroidManifest.xml');
+}
+
+if (require.main === module) {
+  injectWidgetManifest();
+}
+
+module.exports = { injectWidgetManifest };
