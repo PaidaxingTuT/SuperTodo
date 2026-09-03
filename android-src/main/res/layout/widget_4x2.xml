@@ -28,16 +28,19 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:background="@drawable/widget_tag_bg"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="2dp"
+            android:paddingLeft="6dp"
+            android:paddingRight="6dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
             android:text="全部事项"
             android:textColor="@color/widget_badge_text"
             android:textSize="10sp"
             android:textStyle="bold" />
 
-        <View
+        <!-- 占位空白，使用 RemoteViews 允许的 TextView，严禁使用原生 View 避免触发 InflateException -->
+        <TextView
             android:layout_width="0dp"
-            android:layout_height="1dp"
+            android:layout_height="0dp"
             android:layout_weight="1" />
 
         <TextView

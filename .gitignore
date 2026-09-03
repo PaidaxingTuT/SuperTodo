@@ -5,6 +5,7 @@
 !app-icon-dark.png
 !app-icon-foreground.png
 !screenshots/*.png
+!android-src/main/res/drawable/*.png
 *.apk
 *.bak
 

@@ -591,7 +591,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.1-beta.1';
+const APP_VERSION='v1.7.1-beta.3';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 function openInfo(){ pushLayer(); $('#infoUpdate').textContent='点击检查'; $('#infoVer').textContent='SuperTodo · 版本 '+APP_VERSION.replace(/^v/,''); $('#infoMask').hidden=false; $('#infoModal').hidden=false; }
@@ -977,19 +977,19 @@ function pinWidget(size){
   if(window.AndroidWidgetBridge&&window.AndroidWidgetBridge.requestPinWidget){
     const ok=window.AndroidWidgetBridge.requestPinWidget(size);
     if(ok){
-      alertDlg('已发送添加请求', '已向系统发起添加 ' + name + ' 小部件请求。\n\n如您的手机（如小米/Redmi 澎湃OS）未弹出确认弹窗，请在手机桌面「双指捏合 -> 小部件 -> 超级清单」手动拖动添加，或在系统权限中允许超级清单「桌面快捷方式」。');
+      alertDlg('已发送添加请求', '已向桌面发起添加 ' + name + ' 小部件请求。\n\n如您的手机（如 OPPO ColorOS / vivo OriginOS / 小米澎湃OS）未弹出确认框，说明系统拦截了应用自动添加，请直接在手机桌面「双指捏合 -> 小部件/插件/原子组件 -> 超级清单」拖动添加。');
     }else{
-      confirmDlg('添加小部件', '当前系统暂不支持直接添加或已被系统拦截。\n\n请在手机桌面「双指捏合 -> 小部件 -> 找到超级清单」选择 ' + name + ' 拖拽到桌面即可。', null, '知道了', 'info');
+      confirmDlg('添加小部件', '当前桌面启动器拦截了直接添加请求。\n\n请在手机桌面「双指捏合」或长按空白处，点击「小部件/插件/原子组件」，找到「超级清单」选择 ' + name + ' 拖拽到桌面即可。', null, '知道了', 'info');
     }
   }else{
-    alertDlg('小部件说明', '桌面小部件功能需在 Android APK 安装包内使用。\n\n安装后可在桌面「双指捏合 -> 小部件 -> 超级清单」选择 4×2 或 4×4 放置到桌面，支持按场景/时间筛选、自定义排序及直接打勾已完成。');
+    alertDlg('小部件说明', '桌面小部件需在 Android APK 安装包内使用。\n\n已适配小米澎湃OS、OPPO ColorOS、vivo OriginOS 及各大安卓桌面：\n• 支持 4×2 与 4×4 标准尺寸\n• 桌面直接打勾完成状态\n• 按场景/时间筛选与自定义排序\n• 日夜间模式自动跟随');
   }
 }
 
 function showWidgetHelp(){
   dlgShow({
     title:'桌面小部件使用指南',
-    msg:'1. 添加小部件：在手机桌面「双指捏合」或长按空白处，点击「小部件」/「添加小部件」，找到「超级清单」，拖动 4×2 或 4×4 到桌面即可。\n\n2. 切换分类与排序：长按小部件点击「编辑小部件」，或点击小部件右上角 ⚙ 设置图标，即可选择按场景或按时间展示，指定具体分类，并自定义排序规则与方向。\n\n3. 桌面快速打勾：直接点击小部件上的圆圈，即可在桌面标记事项完成/未完成，无需打开 App。\n\n4. 澎湃OS专属优化：小部件采用独立低功耗后台进程，支持小米澎湃OS曝光刷新与夜间模式自动跟随。',
+    msg:'【如何添加到桌面】\n• 小米 / Redmi（澎湃OS / MIUI）：桌面双指捏合 ->「小部件」-> 找到「超级清单」拖至桌面\n• OPPO / 一加 / realme（ColorOS）：桌面双指捏合或长按桌面空白处 ->「插件」或「卡片」-> 找到「超级清单」拖至桌面\n• vivo / iQOO（OriginOS）：桌面双指捏合或桌面滑出「原子组件库」-> 找到「超级清单」拖至桌面\n• 华为 / 荣耀 / 三星 / 原生 Android：桌面双指捏合 ->「微件/窗口小部件」-> 找到「超级清单」\n\n【功能特性】\n1. 切换分类与自定义排序：长按小部件点击「编辑小部件」，或点击小部件右上角 ⚙ 设置图标，可按场景/时间筛选指定分类并调整排序。\n2. 桌面快速打勾：直接点击列表左侧圆圈，即可在桌面标记完成/未完成，零延迟更新且无需打开 App。\n3. 日夜间自适应：深度契合澎湃OS、ColorOS、OriginOS 原生深色/浅色模式规范。',
     type:'alert',
     okText:'知道了'
   });

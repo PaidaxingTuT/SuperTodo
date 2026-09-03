@@ -16,12 +16,11 @@ def inject_widget_manifest():
         return
 
     widget_entries = """
-        <!-- 小米澎湃OS / Android 桌面小部件 4x2 -->
+        <!-- Android / 小米澎湃OS / OPPO ColorOS / vivo OriginOS 桌面小部件 4x2 -->
         <receiver
             android:name="com.dax.supertodo.widget.TodoWidget4x2Provider"
             android:exported="true"
-            android:label="@string/widget_4x2_name"
-            android:process=":widgetProvider">
+            android:label="@string/widget_4x2_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="miui.appwidget.action.APPWIDGET_UPDATE" />
@@ -42,12 +41,11 @@ def inject_widget_manifest():
                 android:value="10000" />
         </receiver>
 
-        <!-- 小米澎湃OS / Android 桌面小部件 4x4 -->
+        <!-- Android / 小米澎湃OS / OPPO ColorOS / vivo OriginOS 桌面小部件 4x4 -->
         <receiver
             android:name="com.dax.supertodo.widget.TodoWidget4x4Provider"
             android:exported="true"
-            android:label="@string/widget_4x4_name"
-            android:process=":widgetProvider">
+            android:label="@string/widget_4x4_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="miui.appwidget.action.APPWIDGET_UPDATE" />
@@ -68,12 +66,11 @@ def inject_widget_manifest():
                 android:value="10000" />
         </receiver>
 
-        <!-- 小部件列表远程服务（独立进程） -->
+        <!-- 小部件列表远程服务 -->
         <service
             android:name="com.dax.supertodo.widget.TodoWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS"
-            android:exported="false"
-            android:process=":widgetProvider" />
+            android:exported="false" />
 
         <!-- 小部件配置页（长按编辑小部件或点击齿轮进入） -->
         <activity
