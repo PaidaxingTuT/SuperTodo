@@ -110,6 +110,14 @@ public class WidgetDataManager {
         return list;
     }
 
+    public static List<String> loadAvailableScenes(Context context) {
+        return loadTags(context, "scenes");
+    }
+
+    public static List<String> loadAvailableTimes(Context context) {
+        return loadTags(context, "times");
+    }
+
     public static synchronized boolean toggleItemDone(Context context, String itemId) {
         if (context == null || itemId == null || itemId.isEmpty()) return false;
         String json = getWidgetData(context);

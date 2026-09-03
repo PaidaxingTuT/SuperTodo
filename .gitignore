@@ -8,6 +8,7 @@
 !android-src/main/res/drawable/*.png
 *.apk
 *.bak
+preview_*.html
 
 # 系统与编辑器
 .DS_Store

@@ -12,4 +12,12 @@
     <color name="widget_item_bg">#252A36</color>
     <color name="widget_btn_tint">#9AA0A6</color>
     <color name="widget_star_color">#FBBF24</color>
+
+    <!-- 配置页面 SuperTodo 风格夜间配色 -->
+    <color name="config_card_bg">#20242D</color>
+    <color name="config_input_bg">#282D38</color>
+    <color name="config_pill_unselected">#2A303C</color>
+    <color name="config_pill_text_unselected">#9AA0A6</color>
+    <color name="config_divider">#2E3442</color>
+    <color name="config_btn_cancel_border">#3C4354</color>
 </resources>

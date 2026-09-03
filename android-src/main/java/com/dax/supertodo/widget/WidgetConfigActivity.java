@@ -3,35 +3,67 @@ package com.dax.supertodo.widget;
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
+import android.widget.TextView;
 import com.dax.supertodo.R;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 小部件个性化配置页面（全面遵循 SuperTodo 现代卡片设计，与应用内弹窗风格统一）
+ */
 public class WidgetConfigActivity extends Activity {
 
     private int appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
 
-    private RadioGroup rgGroupBy;
-    private RadioButton rbGroupAll, rbGroupScene, rbGroupTime;
+    // 分段胶囊选择器：展示维度
+    private TextView btnPillScene, btnPillTime, btnPillAll;
+    private String selectedGroupBy = "scene"; // "scene", "time", "all"
+
+    // 具体分类
+    private TextView tvCategoryLabel;
+    private RelativeLayout layoutCategoryBox;
     private Spinner spCategory;
+    private final List<String> currentCategoryList = new ArrayList<>();
+    private ArrayAdapter<String> categoryAdapter;
+
+    // 排序设置
     private Spinner spSortKey;
-    private RadioGroup rgSortOrder;
-    private RadioButton rbSortAsc, rbSortDesc;
+    private TextView btnPillAsc, btnPillDesc;
+    private boolean selectedSortAsc = true;
+
+    // 过滤与控制
     private CheckBox cbHideDone;
     private Button btnCancel, btnSave;
+    private ImageView btnClose;
+    private View rootBackdrop, configCard;
 
-    private List<String> currentCategoryList = new ArrayList<>();
-    private ArrayAdapter<String> categoryAdapter;
+    private static final String[] SORT_LABELS = new String[] {
+        "默认顺序（添加先后）",
+        "重要程度（★ 星级）",
+        "截止日期（临近日优先）",
+        "花费金额（由高到低）",
+        "未完成优先（未完成置顶）"
+    };
+
+    private static final String[] SORT_KEYS = new String[] {
+        "默认",
+        "重要程度",
+        "截止时间",
+        "金额",
+        "未完成优先"
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,7 +71,7 @@ public class WidgetConfigActivity extends Activity {
         setResult(RESULT_CANCELED);
 
         Intent intent = getIntent();
-        Bundle extras = intent.getExtras();
+        Bundle extras = intent != null ? intent.getExtras() : null;
         if (extras != null) {
             appWidgetId = extras.getInt(
                 AppWidgetManager.EXTRA_APPWIDGET_ID,
@@ -59,41 +91,101 @@ public class WidgetConfigActivity extends Activity {
     }
 
     private void initViews() {
-        rgGroupBy = findViewById(R.id.rg_group_by);
-        rbGroupAll = findViewById(R.id.rb_group_all);
-        rbGroupScene = findViewById(R.id.rb_group_scene);
-        rbGroupTime = findViewById(R.id.rb_group_time);
+        rootBackdrop = findViewById(R.id.config_root_backdrop);
+        configCard = findViewById(R.id.config_card);
+        btnClose = findViewById(R.id.btn_config_close);
 
+        btnPillScene = findViewById(R.id.btn_pill_scene);
+        btnPillTime = findViewById(R.id.btn_pill_time);
+        btnPillAll = findViewById(R.id.btn_pill_all);
+
+        tvCategoryLabel = findViewById(R.id.tv_category_label);
+        layoutCategoryBox = findViewById(R.id.layout_category_box);
         spCategory = findViewById(R.id.sp_category);
-        spSortKey = findViewById(R.id.sp_sort_key);
 
-        rgSortOrder = findViewById(R.id.rg_sort_order);
-        rbSortAsc = findViewById(R.id.rb_sort_asc);
-        rbSortDesc = findViewById(R.id.rb_sort_desc);
+        spSortKey = findViewById(R.id.sp_sort_key);
+        btnPillAsc = findViewById(R.id.btn_pill_asc);
+        btnPillDesc = findViewById(R.id.btn_pill_desc);
 
         cbHideDone = findViewById(R.id.cb_hide_done);
+        View layoutFilterRow = findViewById(R.id.layout_filter_row);
+
         btnCancel = findViewById(R.id.btn_config_cancel);
         btnSave = findViewById(R.id.btn_config_save);
 
-        // 初始化排序选项
-        String[] sortNames = new String[] {
-            "默认顺序（添加先后）",
-            "重要程度（★ 星级）",
-            "截止日期（临近日）",
-            "花费金额（数值）",
-            "未完成优先（未完成置顶）"
-        };
-        ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, sortNames);
+        // 1. 下拉框适配器（使用 SuperTodo 专属字体与内边距布局）
+        ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(this, R.layout.config_spinner_item, SORT_LABELS);
+        sortAdapter.setDropDownViewResource(R.layout.config_spinner_dropdown_item);
         spSortKey.setAdapter(sortAdapter);
 
-        // 分类适配器
-        categoryAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, currentCategoryList);
+        categoryAdapter = new ArrayAdapter<>(this, R.layout.config_spinner_item, currentCategoryList);
+        categoryAdapter.setDropDownViewResource(R.layout.config_spinner_dropdown_item);
         spCategory.setAdapter(categoryAdapter);
 
-        rgGroupBy.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+        // 2. 胶囊维度切换事件
+        btnPillScene.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onCheckedChanged(RadioGroup group, int checkedId) {
-                updateCategoryOptions(null);
+            public void onClick(View v) {
+                setGroupBy("scene", null);
+            }
+        });
+
+        btnPillTime.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setGroupBy("time", null);
+            }
+        });
+
+        btnPillAll.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setGroupBy("all", null);
+            }
+        });
+
+        // 3. 排序方向胶囊切换
+        btnPillAsc.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setSortAsc(true);
+            }
+        });
+
+        btnPillDesc.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setSortAsc(false);
+            }
+        });
+
+        // 4. 过滤设置整行点击
+        layoutFilterRow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cbHideDone.setChecked(!cbHideDone.isChecked());
+            }
+        });
+
+        // 5. 点击背景或右上角关闭直接退出
+        btnClose.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+
+        rootBackdrop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+
+        configCard.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // 阻断卡片内部点击穿透到背景
             }
         });
 
@@ -112,115 +204,121 @@ public class WidgetConfigActivity extends Activity {
         });
     }
 
-    private void updateCategoryOptions(String selectTarget) {
-        currentCategoryList.clear();
-        int checkedId = rgGroupBy.getCheckedRadioButtonId();
+    private void setGroupBy(String groupBy, String targetCategory) {
+        selectedGroupBy = groupBy;
 
-        if (checkedId == R.id.rb_group_scene) {
-            currentCategoryList.add("全部场景");
+        // 样式刷新
+        int unselectedColor = getColor(R.color.config_pill_text_unselected);
+        btnPillScene.setBackgroundResource("scene".equals(groupBy) ? R.drawable.config_pill_selected : R.drawable.config_pill_unselected);
+        btnPillScene.setTextColor("scene".equals(groupBy) ? Color.WHITE : unselectedColor);
+
+        btnPillTime.setBackgroundResource("time".equals(groupBy) ? R.drawable.config_pill_selected : R.drawable.config_pill_unselected);
+        btnPillTime.setTextColor("time".equals(groupBy) ? Color.WHITE : unselectedColor);
+
+        btnPillAll.setBackgroundResource("all".equals(groupBy) ? R.drawable.config_pill_selected : R.drawable.config_pill_unselected);
+        btnPillAll.setTextColor("all".equals(groupBy) ? Color.WHITE : unselectedColor);
+
+        // 分类下拉框动态显隐与填充
+        currentCategoryList.clear();
+        if ("scene".equals(groupBy)) {
+            tvCategoryLabel.setVisibility(View.VISIBLE);
+            layoutCategoryBox.setVisibility(View.VISIBLE);
+            tvCategoryLabel.setText("选择场景分类");
             List<String> scenes = WidgetDataManager.loadTags(this, "scenes");
-            for (String s : scenes) {
-                if (!currentCategoryList.contains(s)) currentCategoryList.add(s);
+            if (scenes.isEmpty()) {
+                currentCategoryList.add("全部场景");
+                currentCategoryList.add("未分组");
+            } else {
+                currentCategoryList.addAll(scenes);
+                if (!currentCategoryList.contains("未分组")) currentCategoryList.add("未分组");
             }
-            currentCategoryList.add("未分组");
-            spCategory.setEnabled(true);
-        } else if (checkedId == R.id.rb_group_time) {
-            currentCategoryList.add("全部时间");
+        } else if ("time".equals(groupBy)) {
+            tvCategoryLabel.setVisibility(View.VISIBLE);
+            layoutCategoryBox.setVisibility(View.VISIBLE);
+            tvCategoryLabel.setText("选择时间分类");
             List<String> times = WidgetDataManager.loadTags(this, "times");
-            for (String t : times) {
-                if (!currentCategoryList.contains(t)) currentCategoryList.add(t);
+            if (times.isEmpty()) {
+                currentCategoryList.add("全部时间");
+                currentCategoryList.add("未分组");
+            } else {
+                currentCategoryList.addAll(times);
+                if (!currentCategoryList.contains("未分组")) currentCategoryList.add("未分组");
             }
-            currentCategoryList.add("未分组");
-            spCategory.setEnabled(true);
         } else {
-            currentCategoryList.add("全部事项");
-            spCategory.setEnabled(false);
+            tvCategoryLabel.setVisibility(View.GONE);
+            layoutCategoryBox.setVisibility(View.GONE);
         }
 
         categoryAdapter.notifyDataSetChanged();
 
-        if (selectTarget != null) {
-            int pos = currentCategoryList.indexOf(selectTarget);
-            if (pos >= 0) {
-                spCategory.setSelection(pos);
-            } else if (selectTarget.equals("全部")) {
-                spCategory.setSelection(0);
-            }
+        if (targetCategory != null && !targetCategory.isEmpty()) {
+            int idx = currentCategoryList.indexOf(targetCategory);
+            if (idx >= 0) spCategory.setSelection(idx);
+        } else if (!currentCategoryList.isEmpty()) {
+            spCategory.setSelection(0);
         }
+    }
+
+    private void setSortAsc(boolean asc) {
+        selectedSortAsc = asc;
+        int unselectedColor = getColor(R.color.config_pill_text_unselected);
+        btnPillAsc.setBackgroundResource(asc ? R.drawable.config_pill_selected : R.drawable.config_pill_unselected);
+        btnPillAsc.setTextColor(asc ? Color.WHITE : unselectedColor);
+
+        btnPillDesc.setBackgroundResource(!asc ? R.drawable.config_pill_selected : R.drawable.config_pill_unselected);
+        btnPillDesc.setTextColor(!asc ? Color.WHITE : unselectedColor);
     }
 
     private void loadSavedConfig() {
-        String groupBy = WidgetDataManager.getWidgetGroupBy(this, appWidgetId);
-        String category = WidgetDataManager.getWidgetCategory(this, appWidgetId);
-        String sortKey = WidgetDataManager.getWidgetSortKey(this, appWidgetId);
-        boolean sortAsc = WidgetDataManager.getWidgetSortAsc(this, appWidgetId);
-        boolean hideDone = WidgetDataManager.getWidgetHideDone(this, appWidgetId);
+        SharedPreferences sp = getSharedPreferences("supertodo_widget_prefs", MODE_PRIVATE);
+        String savedGroup = sp.getString("widget_" + appWidgetId + "_groupby", "scene");
+        String savedCategory = sp.getString("widget_" + appWidgetId + "_category", "");
+        String savedSortKey = sp.getString("widget_" + appWidgetId + "_sort_key", "默认");
+        boolean savedSortAsc = sp.getBoolean("widget_" + appWidgetId + "_sort_asc", true);
+        boolean savedHideDone = sp.getBoolean("widget_" + appWidgetId + "_hide_done", false);
 
-        if (WidgetDataManager.GROUP_TIME.equals(groupBy)) {
-            rbGroupTime.setChecked(true);
-        } else if (WidgetDataManager.GROUP_ALL.equals(groupBy)) {
-            rbGroupAll.setChecked(true);
-        } else {
-            rbGroupScene.setChecked(true);
+        setGroupBy(savedGroup, savedCategory);
+        setSortAsc(savedSortAsc);
+
+        // 匹配排序方式选中项
+        int sortIdx = 0;
+        for (int i = 0; i < SORT_KEYS.length; i++) {
+            if (SORT_KEYS[i].equals(savedSortKey)) {
+                sortIdx = i;
+                break;
+            }
         }
+        spSortKey.setSelection(sortIdx);
 
-        updateCategoryOptions(category);
-
-        int sortPos = 0;
-        if (WidgetDataManager.SORT_STAR.equals(sortKey)) sortPos = 1;
-        else if (WidgetDataManager.SORT_DUE.equals(sortKey)) sortPos = 2;
-        else if (WidgetDataManager.SORT_COST.equals(sortKey)) sortPos = 3;
-        else if (WidgetDataManager.SORT_UNDONE_FIRST.equals(sortKey)) sortPos = 4;
-        spSortKey.setSelection(sortPos);
-
-        if (sortAsc) {
-            rbSortAsc.setChecked(true);
-        } else {
-            rbSortDesc.setChecked(true);
-        }
-
-        cbHideDone.setChecked(hideDone);
+        cbHideDone.setChecked(savedHideDone);
     }
 
     private void saveAndApply() {
-        String groupBy = WidgetDataManager.GROUP_SCENE;
-        int checkedGroup = rgGroupBy.getCheckedRadioButtonId();
-        if (checkedGroup == R.id.rb_group_time) {
-            groupBy = WidgetDataManager.GROUP_TIME;
-        } else if (checkedGroup == R.id.rb_group_all) {
-            groupBy = WidgetDataManager.GROUP_ALL;
-        }
-
-        String category = "全部";
-        if (spCategory.getSelectedItem() != null) {
+        String category = "";
+        if (!"all".equals(selectedGroupBy) && spCategory.getSelectedItem() != null) {
             category = spCategory.getSelectedItem().toString();
-            if ("全部场景".equals(category) || "全部时间".equals(category) || "全部事项".equals(category)) {
-                category = "全部";
-            }
         }
 
-        String sortKey = WidgetDataManager.SORT_DEFAULT;
         int sortPos = spSortKey.getSelectedItemPosition();
-        if (sortPos == 1) sortKey = WidgetDataManager.SORT_STAR;
-        else if (sortPos == 2) sortKey = WidgetDataManager.SORT_DUE;
-        else if (sortPos == 3) sortKey = WidgetDataManager.SORT_COST;
-        else if (sortPos == 4) sortKey = WidgetDataManager.SORT_UNDONE_FIRST;
+        String sortKey = (sortPos >= 0 && sortPos < SORT_KEYS.length) ? SORT_KEYS[sortPos] : "默认";
 
-        boolean sortAsc = rbSortAsc.isChecked();
         boolean hideDone = cbHideDone.isChecked();
 
+        // 持久化当前小部件配置
         WidgetDataManager.saveWidgetConfig(
             this,
             appWidgetId,
-            groupBy,
+            selectedGroupBy,
             category,
             sortKey,
-            sortAsc,
+            selectedSortAsc,
             hideDone
         );
 
+        // 立即通知所有小部件原地刷新列表与标题
         WidgetDataManager.notifyAllWidgets(this);
 
+        // 返回成功结果给 Launcher
         Intent resultValue = new Intent();
         resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
         setResult(RESULT_OK, resultValue);

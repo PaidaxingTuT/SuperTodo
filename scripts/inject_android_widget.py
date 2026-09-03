@@ -16,54 +16,34 @@ def inject_widget_manifest():
         return
 
     widget_entries = """
-        <!-- Android / 小米澎湃OS / OPPO ColorOS / vivo OriginOS 桌面小部件 4x2 -->
+        <!-- Android 原生桌面小部件 4x2（全面兼容小米澎湃OS / OPPO ColorOS / vivo OriginOS / 华为 / 荣耀等全部安卓系统，免应用商店审核） -->
         <receiver
             android:name="com.dax.supertodo.widget.TodoWidget4x2Provider"
             android:exported="true"
             android:label="@string/widget_4x2_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="miui.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.dax.supertodo.ACTION_WIDGET_CLICK" />
                 <action android:name="com.dax.supertodo.ACTION_REFRESH_WIDGET" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_4x2_info" />
-            <meta-data
-                android:name="miuiWidget"
-                android:value="true" />
-            <meta-data
-                android:name="miuiWidgetRefresh"
-                android:value="exposure" />
-            <meta-data
-                android:name="miuiWidgetRefreshMinInterval"
-                android:value="10000" />
         </receiver>
 
-        <!-- Android / 小米澎湃OS / OPPO ColorOS / vivo OriginOS 桌面小部件 4x4 -->
+        <!-- Android 原生桌面小部件 4x4（全面兼容小米澎湃OS / OPPO ColorOS / vivo OriginOS / 华为 / 荣耀等全部安卓系统，免应用商店审核） -->
         <receiver
             android:name="com.dax.supertodo.widget.TodoWidget4x4Provider"
             android:exported="true"
             android:label="@string/widget_4x4_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="miui.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.dax.supertodo.ACTION_WIDGET_CLICK" />
                 <action android:name="com.dax.supertodo.ACTION_REFRESH_WIDGET" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_4x4_info" />
-            <meta-data
-                android:name="miuiWidget"
-                android:value="true" />
-            <meta-data
-                android:name="miuiWidgetRefresh"
-                android:value="exposure" />
-            <meta-data
-                android:name="miuiWidgetRefreshMinInterval"
-                android:value="10000" />
         </receiver>
 
         <!-- 小部件列表远程服务 -->

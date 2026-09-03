@@ -15,8 +15,6 @@ import java.util.List;
 
 public class TodoWidget4x4Provider extends AppWidgetProvider {
 
-    public static final String ACTION_MIUI_UPDATE = "miui.appwidget.action.APPWIDGET_UPDATE";
-
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         for (int appWidgetId : appWidgetIds) {
@@ -130,8 +128,8 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
                 mainIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 context.startActivity(mainIntent);
             }
-        } else if (WidgetDataManager.ACTION_REFRESH_WIDGET.equals(action) || ACTION_MIUI_UPDATE.equals(action)) {
-            // 小米澎湃OS曝光刷新或手动刷新
+        } else if (WidgetDataManager.ACTION_REFRESH_WIDGET.equals(action)) {
+            // 手动刷新或数据变更刷新
             AppWidgetManager mgr = AppWidgetManager.getInstance(context);
             if (mgr != null) {
                 ComponentName cn = new ComponentName(context, TodoWidget4x4Provider.class);

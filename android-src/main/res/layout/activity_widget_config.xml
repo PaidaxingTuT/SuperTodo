@@ -1,192 +1,314 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/config_root_backdrop"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/widget_bg"
-    android:fillViewport="true"
+    android:background="#80000000"
     android:padding="20dp">
 
+    <!-- 居中卡片弹窗（与 SuperTodo 主界面弹窗风格一致） -->
     <LinearLayout
+        android:id="@+id/config_card"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/config_card_bg"
+        android:elevation="10dp"
         android:orientation="vertical">
 
-        <!-- 页面标题 -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="小部件设置"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+        <!-- 弹窗头部 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingLeft="20dp"
+            android:paddingRight="14dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="配置当前小部件展示的分组维度、具体分类与排序规则"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="13sp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="小部件设置"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/btn_config_close"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="关闭"
+                android:padding="8dp"
+                android:src="@drawable/config_ic_close" />
+        </LinearLayout>
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginVertical="16dp"
-            android:background="@color/widget_stroke" />
+            android:background="@color/config_divider" />
 
-        <!-- 1. 分组维度 -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="1. 展示维度"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-
-        <RadioGroup
-            android:id="@+id/rg_group_by"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal">
-
-            <RadioButton
-                android:id="@+id/rb_group_scene"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:checked="true"
-                android:text="按场景"
-                android:textColor="@color/widget_text_primary" />
-
-            <RadioButton
-                android:id="@+id/rb_group_time"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="按时间"
-                android:textColor="@color/widget_text_primary" />
-
-            <RadioButton
-                android:id="@+id/rb_group_all"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="全部"
-                android:textColor="@color/widget_text_primary" />
-        </RadioGroup>
-
-        <!-- 2. 具体分类 -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="2. 目标分类"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-
-        <Spinner
-            android:id="@+id/sp_category"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/widget_btn_bg"
-            android:paddingHorizontal="12dp" />
-
-        <!-- 3. 自定义排序 -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="3. 自定义排序"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-
-        <Spinner
-            android:id="@+id/sp_sort_key"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/widget_btn_bg"
-            android:paddingHorizontal="12dp" />
-
-        <RadioGroup
-            android:id="@+id/rg_sort_order"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:orientation="horizontal">
-
-            <RadioButton
-                android:id="@+id/rb_sort_asc"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:checked="true"
-                android:text="正序"
-                android:textColor="@color/widget_text_primary" />
-
-            <RadioButton
-                android:id="@+id/rb_sort_desc"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="倒序"
-                android:textColor="@color/widget_text_primary" />
-        </RadioGroup>
-
-        <!-- 4. 过滤设置 -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="4. 显示过滤"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-
-        <CheckBox
-            android:id="@+id/cb_hide_done"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="隐藏已完成事项"
-            android:textColor="@color/widget_text_primary" />
-
-        <View
+        <!-- 弹窗主体内容滚动区 -->
+        <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:minHeight="24dp" />
+            android:fadeScrollbars="false"
+            android:overScrollMode="never"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp">
 
-        <!-- 底部按钮 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- 1. 展示维度 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="展示维度"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <!-- 胶囊分段选择器（按场景 / 按时间 / 全部） -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/btn_pill_scene"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/config_pill_selected"
+                        android:gravity="center"
+                        android:text="按场景"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/btn_pill_time"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/config_pill_unselected"
+                        android:gravity="center"
+                        android:text="按时间"
+                        android:textColor="@color/config_pill_text_unselected"
+                        android:textSize="13.5sp" />
+
+                    <TextView
+                        android:id="@+id/btn_pill_all"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:background="@drawable/config_pill_unselected"
+                        android:gravity="center"
+                        android:text="全部"
+                        android:textColor="@color/config_pill_text_unselected"
+                        android:textSize="13.5sp" />
+                </LinearLayout>
+
+                <!-- 2. 目标分类 -->
+                <TextView
+                    android:id="@+id/tv_category_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="具体分类"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <RelativeLayout
+                    android:id="@+id/layout_category_box"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/config_spinner_bg">
+
+                    <Spinner
+                        android:id="@+id/sp_category"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@android:color/transparent"
+                        android:dropDownVerticalOffset="46dp"
+                        android:paddingRight="36dp"
+                        android:spinnerMode="dropdown" />
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginEnd="12dp"
+                        android:src="@drawable/config_ic_arrow_down" />
+                </RelativeLayout>
+
+                <!-- 3. 自定义排序 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="排序方式"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/config_spinner_bg">
+
+                    <Spinner
+                        android:id="@+id/sp_sort_key"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@android:color/transparent"
+                        android:dropDownVerticalOffset="46dp"
+                        android:paddingRight="36dp"
+                        android:spinnerMode="dropdown" />
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginEnd="12dp"
+                        android:src="@drawable/config_ic_arrow_down" />
+                </RelativeLayout>
+
+                <!-- 排序顺序胶囊（正序 / 倒序） -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/btn_pill_asc"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/config_pill_selected"
+                        android:gravity="center"
+                        android:text="正序 ↑"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/btn_pill_desc"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:background="@drawable/config_pill_unselected"
+                        android:gravity="center"
+                        android:text="倒序 ↓"
+                        android:textColor="@color/config_pill_text_unselected"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <!-- 4. 显示过滤卡片 -->
+                <LinearLayout
+                    android:id="@+id/layout_filter_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/config_spinner_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingLeft="14dp"
+                    android:paddingRight="14dp"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="隐藏已完成事项"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="小部件中仅展示未完成事项"
+                            android:textColor="@color/widget_text_secondary"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
+
+                    <CheckBox
+                        android:id="@+id/cb_hide_done"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/widget_primary" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/config_divider" />
+
+        <!-- 底部操作按钮 -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:gravity="end"
-            android:orientation="horizontal">
+            android:layout_height="62dp"
+            android:gravity="center_vertical|end"
+            android:orientation="horizontal"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp">
 
             <Button
                 android:id="@+id/btn_config_cancel"
-                style="?android:attr/borderlessButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="48dp"
-                android:layout_marginEnd="12dp"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="10dp"
+                android:layout_weight="1"
+                android:background="@drawable/config_btn_cancel"
                 android:text="取消"
-                android:textColor="@color/widget_text_secondary" />
+                android:textColor="@color/widget_text_primary"
+                android:textSize="14.5sp" />
 
             <Button
                 android:id="@+id/btn_config_save"
-                android:layout_width="wrap_content"
-                android:layout_height="48dp"
-                android:backgroundTint="@color/widget_primary"
-                android:paddingHorizontal="24dp"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/config_btn_primary"
                 android:text="保存并应用"
-                android:textColor="#FFFFFF" />
+                android:textColor="#FFFFFF"
+                android:textSize="14.5sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
     </LinearLayout>
-</ScrollView>
+
+</FrameLayout>

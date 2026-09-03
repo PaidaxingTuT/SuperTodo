@@ -591,7 +591,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.1-beta.3';
+const APP_VERSION='v1.7.1-beta.7';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 function openInfo(){ pushLayer(); $('#infoUpdate').textContent='点击检查'; $('#infoVer').textContent='SuperTodo · 版本 '+APP_VERSION.replace(/^v/,''); $('#infoMask').hidden=false; $('#infoModal').hidden=false; }
@@ -989,7 +989,7 @@ function pinWidget(size){
 function showWidgetHelp(){
   dlgShow({
     title:'桌面小部件使用指南',
-    msg:'【如何添加到桌面】\n• 小米 / Redmi（澎湃OS / MIUI）：桌面双指捏合 ->「小部件」-> 找到「超级清单」拖至桌面\n• OPPO / 一加 / realme（ColorOS）：桌面双指捏合或长按桌面空白处 ->「插件」或「卡片」-> 找到「超级清单」拖至桌面\n• vivo / iQOO（OriginOS）：桌面双指捏合或桌面滑出「原子组件库」-> 找到「超级清单」拖至桌面\n• 华为 / 荣耀 / 三星 / 原生 Android：桌面双指捏合 ->「微件/窗口小部件」-> 找到「超级清单」\n\n【功能特性】\n1. 切换分类与自定义排序：长按小部件点击「编辑小部件」，或点击小部件右上角 ⚙ 设置图标，可按场景/时间筛选指定分类并调整排序。\n2. 桌面快速打勾：直接点击列表左侧圆圈，即可在桌面标记完成/未完成，零延迟更新且无需打开 App。\n3. 日夜间自适应：深度契合澎湃OS、ColorOS、OriginOS 原生深色/浅色模式规范。',
+    msg:'【如何添加到桌面】\n• 小米 / Redmi（澎湃OS / MIUI）：桌面双指捏合 ->「小部件」-> 滑至最底部「安卓小部件」或搜索「超级清单」\n• OPPO / 一加 / realme（ColorOS）：桌面双指捏合或长按空白处 ->「卡片」-> 滑至底部「插件」-> 找到「超级清单」\n• vivo / iQOO（OriginOS）：桌面双指捏合或桌面划出「原子组件库」-> 底部「经典组件」或搜索「超级清单」\n• 华为 / 荣耀 / 三星 / 原生 Android：桌面双指捏合 ->「微件/窗口小部件」-> 找到「超级清单」\n\n【功能特性】\n1. 切换分类与自定义排序：长按小部件点击「编辑小部件」，或点击小部件右上角 ⚙ 设置图标，可按场景/时间筛选指定分类并调整排序。\n2. 桌面快速打勾：直接点击列表左侧圆圈，即可在桌面标记完成/未完成，零延迟更新且无需打开 App。\n3. 日夜间自适应：深度契合澎湃OS、ColorOS、OriginOS 原生深色/浅色模式规范。',
     type:'alert',
     okText:'知道了'
   });
