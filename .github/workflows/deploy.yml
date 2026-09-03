@@ -110,10 +110,11 @@ jobs:
         run: |
           VER="${NEW#v}"
           VCODE=$(python3 - "$VER" <<'PYEOF'
-          import sys
-          code=0
-          for p in [int(x) for x in sys.argv[1].split('.')]:
-              code = code*100 + p
+          import sys, re
+          nums = [int(x) for x in re.findall(r'\d+', sys.argv[1])] or [1, 0, 0]
+          code = 0
+          for p in nums:
+              code = code * 100 + p
           print(code)
           PYEOF
           )
@@ -187,5 +188,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$NEW" "SuperTodo-${NEW#v}.apk" --title "$NEW" --notes-file notes.md
-          echo "已发布 Release $NEW"
+          EXTRA_FLAG=""
+          if echo "$NEW" | grep -Eq -- '-(beta|alpha|rc)'; then
+            EXTRA_FLAG="--prerelease"
+          fi
+          gh release create "$NEW" "SuperTodo-${NEW#v}.apk" --title "$NEW" --notes-file notes.md $EXTRA_FLAG
+          echo "已发布 Release $NEW ($EXTRA_FLAG)"
