@@ -353,31 +353,55 @@ body.home-view .content{padding-top:calc(56px + var(--safe-t) + 54px)}
 :root[data-color-mode="dark"] .info-logo-dark{display:block}
 .info-name{font-size:20px;font-weight:700;letter-spacing:.5px}
 .info-ver{font-size:13px;color:var(--text3);margin-top:3px;cursor:pointer;user-select:none;-webkit-user-select:none}
-.info-meta{margin:0 2px 14px}
-.info-row{display:flex;justify-content:space-between;padding:9px 2px;border-bottom:1px solid var(--line);font-size:14px}
-.info-row:last-child{border-bottom:none}
-.info-k{color:var(--text3)}
-.info-v{color:var(--text);font-weight:500}
-.info-click{cursor:pointer}
-.info-click:active{background:var(--primary-faint)}
-.info-click .info-v{color:var(--primary-ink)}
-.info-repo{
-  margin:12px auto 0;
+.info-desc{font-size:12.5px;color:var(--text2);margin-top:7px;text-align:center;line-height:1.4}
+.info-author{font-size:12px;color:var(--text3);margin-top:5px;display:inline-flex;align-items:center;gap:4px}
+.info-author .heart{color:#ff4d4f;font-size:11px}
+.info-author strong{color:var(--text);font-weight:600}
+.info-actions{
   display:flex;
-  width:fit-content;
-  align-items:center;
   gap:8px;
-  padding:14px 22px;
-  border-radius:24px;
-  background:var(--primary);
-  color:#fff;
-  font-size:14px;
-  font-weight:500;
-  cursor:pointer;
-  box-shadow:var(--shadow);
+  margin-top:22px;
+  width:100%;
 }
-.info-repo svg{width:16px;height:16px;flex-shrink:0}
-.info-repo:active{background:var(--primary-deep)}
+.info-pill{
+  flex:1;
+  min-width:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  padding:10px 4px;
+  border-radius:22px;
+  border:1px solid var(--line);
+  background:var(--surface-alt);
+  color:var(--text);
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .2s ease;
+  white-space:nowrap;
+  user-select:none;
+}
+.info-pill svg{
+  width:14px;
+  height:14px;
+  flex-shrink:0;
+  stroke:currentColor;
+  opacity:.85;
+}
+.info-pill:active{
+  background:var(--primary-faint);
+  color:var(--primary-ink);
+  border-color:var(--primary);
+  transform:scale(.96);
+}
+@media(hover:hover){
+  .info-pill:hover{
+    background:var(--primary-faint);
+    color:var(--primary-ink);
+    border-color:var(--primary);
+  }
+}
 
 /* ===== 手动拖拽排序 ===== */
 .drag-handle{width:20px;height:20px;flex-shrink:0;opacity:.35;touch-action:none;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%235f6368"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>');background-repeat:no-repeat;background-position:center;background-size:contain}
@@ -386,3 +410,188 @@ body.home-view .content{padding-top:calc(56px + var(--safe-t) + 54px)}
 .sortable-drag{box-shadow:var(--shadow2);opacity:.95}
 
 .drawer-close::before,.df-theme::before,.df-info::before,.df-ic,.md-close::before,.sec-caret,.ci-arrow,.chev,.drag-handle,.dnav-item:not(.on) .dnav-ic{filter:var(--muted-icon-filter)}
+
+/* ===== 版本更新日志 ===== */
+.cl-modal{
+  width:min(92vw,560px);
+  max-height:82vh;
+  display:flex;
+  flex-direction:column;
+}
+.changelog-body{
+  padding:14px 16px;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  flex:1;
+}
+.cl-card{
+  background:var(--surface-alt);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px 14px;
+  margin-bottom:12px;
+}
+.cl-card:last-child{
+  margin-bottom:4px;
+}
+.cl-head{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+.cl-badge{
+  font-size:12.5px;
+  font-weight:700;
+  padding:2px 8px;
+  border-radius:6px;
+  letter-spacing:.2px;
+}
+.cl-badge.formal{
+  background:var(--primary);
+  color:var(--on-primary);
+}
+.cl-badge.pre{
+  background:var(--tag-bg);
+  color:var(--text2);
+  border:1px solid var(--line);
+}
+.cl-badge.cur{
+  background:var(--cost);
+  color:#fff;
+  font-size:11px;
+  padding:2px 6px;
+  border-radius:4px;
+}
+.cl-date{
+  font-size:12px;
+  color:var(--text3);
+  margin-left:auto;
+}
+.cl-list{
+  margin:0;
+  padding-left:18px;
+  color:var(--text);
+  font-size:13.5px;
+  line-height:1.65;
+}
+.cl-list li{
+  margin-bottom:6px;
+}
+.cl-list li:last-child{
+  margin-bottom:0;
+}
+.cl-code{
+  background:var(--primary-faint);
+  color:var(--primary-ink);
+  padding:1px 5px;
+  border-radius:4px;
+  font-size:12px;
+  font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+.cl-subhead{
+  font-size:13px;
+  font-weight:600;
+  color:var(--text2);
+  margin:8px 0 4px;
+}
+.cl-p{
+  font-size:13.5px;
+  line-height:1.6;
+  color:var(--text);
+  margin:4px 0;
+}
+.cl-loading, .cl-error{
+  text-align:center;
+  padding:40px 16px;
+  color:var(--text3);
+  font-size:14px;
+}
+
+/* ===== 新版本推送弹窗 ===== */
+.update-modal{
+  width:min(92vw,480px);
+  max-height:80vh;
+  display:flex;
+  flex-direction:column;
+}
+.update-body{
+  padding:14px 18px;
+  overflow-y:auto;
+  flex:1;
+}
+.update-ver-banner{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:12px;
+}
+.update-ver-tag{
+  background:var(--primary);
+  color:var(--on-primary);
+  font-size:13.5px;
+  font-weight:700;
+  padding:3px 10px;
+  border-radius:8px;
+  letter-spacing:.2px;
+}
+.update-ver-tag.pre{
+  background:var(--tag-bg);
+  color:var(--text2);
+  border:1px solid var(--line);
+}
+.update-ver-date{
+  font-size:12.5px;
+  color:var(--text3);
+}
+.update-notes-title{
+  font-size:13px;
+  font-weight:600;
+  color:var(--text2);
+  margin-bottom:8px;
+}
+.update-notes-box{
+  background:var(--surface-alt);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px 14px;
+  max-height:42vh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.update-notes-box ul{
+  margin:0;
+  padding-left:18px;
+  color:var(--text);
+  font-size:13.5px;
+  line-height:1.65;
+}
+.update-notes-box li{
+  margin-bottom:6px;
+}
+.update-notes-box li:last-child{
+  margin-bottom:0;
+}
+.update-notes-box code{
+  background:var(--primary-faint);
+  color:var(--primary-ink);
+  padding:1px 5px;
+  border-radius:4px;
+  font-size:12px;
+  font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+.update-notes-box p{
+  margin:4px 0;
+  font-size:13.5px;
+  color:var(--text);
+  line-height:1.6;
+}
+.cl-empty{
+  color:var(--text3);
+  font-size:13px;
+  padding:12px 0;
+  text-align:center;
+}
+
+

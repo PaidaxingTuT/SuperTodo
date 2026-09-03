@@ -244,6 +244,8 @@ function backHome(){ state.view={name:'home'}; state.sortKey='默认'; render() 
 function closeTopLayer(){
   backSuppress=true;
   if(!$('#dlgModal').hidden){ dlgClose(); backSuppress=false; return true; }
+  if(!$('#updateModal').hidden){ closeUpdateModal(); backSuppress=false; return true; }
+  if(!$('#clModal').hidden){ closeChangelog(); backSuppress=false; return true; }
   if(!$('#modal').hidden){ hideModal(); backSuppress=false; return true; }
   if(!$('#ctxModal').hidden){ closeCtx(); backSuppress=false; return true; }
   if(!$('#aiModal').hidden){ closeAi(); backSuppress=false; return true; }
@@ -767,15 +769,18 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.2';
+const APP_VERSION='v1.7.3';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
 function updateInfoVerText(){
   const verEl=$('#infoVer');
   if(!verEl) return;
-  const isDev=!!state.devMode;
-  verEl.textContent='SuperTodo · 版本 '+APP_VERSION.replace(/^v/,'')+(isDev?' (开发者模式)':'');
+  if(state.devMode){
+    verEl.innerHTML='SuperTodo · 版本 '+APP_VERSION.replace(/^v/,'')+' <span class="dev-badge">开发者模式</span>';
+  }else{
+    verEl.textContent='SuperTodo · 版本 '+APP_VERSION.replace(/^v/,'');
+  }
 }
 function handleVerClick(){
   devClickCount++;
@@ -786,21 +791,129 @@ function handleVerClick(){
     state.devMode=!state.devMode;
     save();
     updateInfoVerText();
-    if(state.devMode){
-      alertDlg('开发者模式已开启','已启用开发者功能！\n检查更新时将包含测试预发行版（Pre-release）。');
-    }else{
-      alertDlg('开发者模式已关闭','已恢复普通模式，仅检查正式发布版本。');
-    }
+    alertDlg('开发者模式', state.devMode?'已启用开发者模式！检查更新时将优先拉取最新的预发行测试版（Pre-release）。':'已退出开发者模式，仅检测正式版本。');
   }
 }
 function openInfo(){
   pushLayer();
-  $('#infoUpdate').textContent='点击检查';
+  $('#infoUpdate').textContent='检查更新';
   updateInfoVerText();
   $('#infoMask').hidden=false;
   $('#infoModal').hidden=false;
 }
 function closeInfo(){ $('#infoMask').hidden=true; $('#infoModal').hidden=true; if(!backSuppress)syncBack(); }
+
+/* ========== 更新日志 ========== */
+let changelogCache=null;
+
+function renderChangelog(md){
+  if(!md) return '<div class="cl-error">暂无更新日志</div>';
+  const lines=md.split('\n');
+  let html='';
+  let inList=false;
+  let hasCard=false;
+
+  function formatInline(text){
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/`([^`]+)`/g, '<code class="cl-code">$1</code>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  }
+
+  for(let line of lines){
+    line=line.trim();
+    if(!line || line.startsWith('# ')) continue;
+
+    const verMatch=line.match(/^##\s+(v[^\s（(]+)(?:[（(]([^）)]+)[）)])?/);
+    if(verMatch){
+      if(inList){ html+='</ul>'; inList=false; }
+      if(hasCard){ html+='</div>'; }
+      hasCard=true;
+      const ver=verMatch[1];
+      const date=verMatch[2]||'';
+      const isPre=/-(beta|alpha|rc|pre)/i.test(ver);
+      const isCur=ver===APP_VERSION;
+      const badgeCls=isPre?'cl-badge pre':'cl-badge formal';
+      html+='<div class="cl-card">';
+      html+='<div class="cl-head">';
+      html+='<span class="'+badgeCls+'">'+ver+'</span>';
+      if(isCur){
+        html+='<span class="cl-badge cur">当前版本</span>';
+      }
+      if(date){
+        html+='<span class="cl-date">'+date+'</span>';
+      }
+      html+='</div>';
+      continue;
+    }
+
+    const listMatch=line.match(/^[-*•]\s+(.*)$/);
+    if(listMatch){
+      if(!inList){ html+='<ul class="cl-list">'; inList=true; }
+      html+='<li>'+formatInline(listMatch[1])+'</li>';
+      continue;
+    }
+
+    const subMatch=line.match(/^###+\s+(.*)$/);
+    if(subMatch){
+      if(inList){ html+='</ul>'; inList=false; }
+      html+='<div class="cl-subhead">'+formatInline(subMatch[1])+'</div>';
+      continue;
+    }
+
+    if(inList){ html+='</ul>'; inList=false; }
+    if(line){
+      html+='<p class="cl-p">'+formatInline(line)+'</p>';
+    }
+  }
+
+  if(inList) html+='</ul>';
+  if(hasCard) html+='</div>';
+  return html || '<div class="cl-error">暂无更新日志内容</div>';
+}
+
+async function loadChangelog(){
+  const box=$('#clContent');
+  if(!box) return;
+  if(changelogCache){
+    box.innerHTML=changelogCache;
+    return;
+  }
+  box.innerHTML='<div class="cl-loading">正在加载更新日志…</div>';
+  try{
+    let mdText='';
+    try{
+      const res=await fetch('CHANGELOG.md');
+      if(res.ok) mdText=await res.text();
+    }catch(e){}
+
+    if(!mdText){
+      const res=await fetch('https://raw.githubusercontent.com/PaidaxingTuT/SuperTodo/main/CHANGELOG.md');
+      if(res.ok) mdText=await res.text();
+    }
+
+    if(!mdText) throw new Error('not found');
+    changelogCache=renderChangelog(mdText);
+    box.innerHTML=changelogCache;
+  }catch(err){
+    box.innerHTML='<div class="cl-error">加载更新日志失败，请检查网络连接</div>';
+  }
+}
+
+function openChangelog(){
+  pushLayer();
+  $('#clMask').hidden=false;
+  $('#clModal').hidden=false;
+  loadChangelog();
+}
+function closeChangelog(){
+  $('#clMask').hidden=true;
+  $('#clModal').hidden=true;
+  if(!backSuppress) syncBack();
+}
 function parseVerNums(v){
   const s=String(v||'').trim();
   const isPre=/-(beta|alpha|rc|pre)/i.test(s);
@@ -819,6 +932,82 @@ function verGt(a,b){
   }
   return false;
 }
+let updateTargetAsset=null;
+
+function renderReleaseNotes(md){
+  if(!md || !md.trim()) return '<div class="cl-empty">暂无详细更新说明</div>';
+  const lines=md.split('\n');
+  let html='';
+  let inList=false;
+
+  function formatInline(text){
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  }
+
+  for(let line of lines){
+    line=line.trim();
+    if(!line || line.startsWith('# ')) continue;
+
+    const listMatch=line.match(/^[-*•]\s+(.*)$/);
+    if(listMatch){
+      if(!inList){ html+='<ul>'; inList=true; }
+      html+='<li>'+formatInline(listMatch[1])+'</li>';
+      continue;
+    }
+
+    if(inList){ html+='</ul>'; inList=false; }
+    if(line){
+      html+='<p>'+formatInline(line)+'</p>';
+    }
+  }
+
+  if(inList) html+='</ul>';
+  return html || '<div class="cl-empty">暂无详细更新说明</div>';
+}
+
+function showUpdateModal(rel){
+  if(!rel) return;
+  const latest=rel.tag_name||'';
+  const isPre=!!rel.prerelease;
+  const asset=rel.assets&&rel.assets[0];
+  updateTargetAsset=asset||null;
+
+  const tagEl=$('#updateVerTag');
+  if(tagEl){
+    let label=latest;
+    if(state.devMode){
+      label += isPre ? ' (测试版)' : ' (正式版)';
+    }
+    tagEl.textContent=label;
+    tagEl.className='update-ver-tag'+(isPre?' pre':'');
+  }
+  const dateEl=$('#updateVerDate');
+  if(dateEl){
+    const d=rel.published_at?rel.published_at.slice(0,10):'';
+    dateEl.textContent=d?('发布日期：'+d):'';
+  }
+  const notesEl=$('#updateNotes');
+  if(notesEl){
+    notesEl.innerHTML=renderReleaseNotes(rel.body);
+  }
+
+  pushLayer();
+  $('#updateMask').hidden=false;
+  $('#updateModal').hidden=false;
+}
+
+function closeUpdateModal(){
+  $('#updateMask').hidden=true;
+  $('#updateModal').hidden=true;
+  if(!backSuppress) syncBack();
+}
+
 async function checkUpdate(silent){
   const el=$('#infoUpdate');
   if(el) el.textContent='正在检查…';
@@ -850,15 +1039,11 @@ async function checkUpdate(silent){
     const latest=targetRel.tag_name;
     const isPre=!!targetRel.prerelease;
     if(verGt(latest,APP_VERSION)){
-      const tagLabel=latest+(isPre?' (预发行版)':'');
+      const tagLabel=latest+(state.devMode?(isPre?' (测试版)':' (正式版)'):'');
       if(el) el.textContent='发现新版本 '+tagLabel;
-      const asset=targetRel.assets&&targetRel.assets[0];
-      confirmDlg('发现新版本', '有新版本 '+latest.replace(/^v/,'')+(isPre?'（测试预发行版）':'')+'，是否立即下载更新？', ()=>{
-        if(asset&&asset.browser_download_url){ downloadFile(asset.browser_download_url, asset.name); }
-        else window.open(REPO_URL+'/releases','_blank');
-      }, '下载');
+      showUpdateModal(targetRel);
     }else{
-      if(el) el.textContent='已是最新版本'+(state.devMode?' (含预发行)':'');
+      if(el) el.textContent='已是最新版本'+(state.devMode?' (开发者模式)':'');
     }
   }catch(e){
     if(el) el.textContent='检查失败';
@@ -1159,8 +1344,28 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#infoClose').addEventListener('click',closeInfo);
   $('#infoMask').addEventListener('click',closeInfo);
   $('#infoVer').addEventListener('click',handleVerClick);
-  $('#infoUpdateRow').addEventListener('click',()=>checkUpdate());
+  $('#infoUpdateBtn').addEventListener('click',()=>checkUpdate());
+  $('#infoChangelogBtn').addEventListener('click',openChangelog);
   $('#infoRepo').addEventListener('click',()=>window.open(REPO_URL,'_blank'));
+
+  /* 更新日志 */
+  $('#clClose').addEventListener('click',closeChangelog);
+  $('#clMask').addEventListener('click',closeChangelog);
+  $('#clOk').addEventListener('click',closeChangelog);
+
+  /* 新版本推送弹窗 */
+  $('#updateClose').addEventListener('click',closeUpdateModal);
+  $('#updateCancel').addEventListener('click',closeUpdateModal);
+  $('#updateMask').addEventListener('click',closeUpdateModal);
+  $('#updateDownload').addEventListener('click',()=>{
+    const asset=updateTargetAsset;
+    if(asset&&asset.browser_download_url){
+      downloadFile(asset.browser_download_url, asset.name);
+    }else{
+      window.open(REPO_URL+'/releases','_blank');
+    }
+    closeUpdateModal();
+  });
 
   /* 通用对话框 */
   $('#dlgOk').addEventListener('click',()=>{
@@ -1202,3 +1407,4 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(el)saveAiField(el.dataset.aifield);
   });
 });
+window.showUpdateModal = showUpdateModal;
