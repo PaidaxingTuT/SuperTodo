@@ -224,13 +224,39 @@ try{
     <div class="set-divide"></div>
 
     <div class="set-section">
-      <h3>桌面小部件（澎湃OS / ColorOS / OriginOS）</h3>
-      <p class="set-tip">已全面适配小米澎湃OS、OPPO ColorOS、vivo OriginOS 及原生 Android 桌面小部件（4×2 与 4×4）。支持桌面直接打勾、按场景/时间筛选以及自定义排序。</p>
-      <div class="set-btns">
-        <button class="btn-line" id="pinWidget4x2Btn">添加 4×2 小部件</button>
-        <button class="btn-line" id="pinWidget4x4Btn">添加 4×4 小部件</button>
+      <h3>列表布局 · 自定义间距与字号</h3>
+      <p class="set-tip">支持快捷预设或自由拖动滑块自定义卡片间距、内边距与字号，完美适应不同屏幕尺寸。</p>
+      <div class="db-seg" id="spacingPresetSeg" style="margin: 8px 0 10px;">
+        <button class="seg" data-preset="compact">紧凑</button>
+        <button class="seg" data-preset="standard">标准</button>
+        <button class="seg" data-preset="spacious">宽松</button>
       </div>
-      <button class="btn-line" id="widgetHelpBtn">小部件添加指引</button>
+
+      <div class="custom-spacing-box">
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>卡片间距（外部间隙）</span>
+            <span class="slider-val" id="valItemGap">10px</span>
+          </div>
+          <input type="range" class="density-slider" id="sliderItemGap" min="4" max="22" step="1" value="10">
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>卡片内边距（内部留白）</span>
+            <span class="slider-val" id="valItemPad">13px</span>
+          </div>
+          <input type="range" class="density-slider" id="sliderItemPad" min="6" max="22" step="1" value="13">
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>标题字号大小</span>
+            <span class="slider-val" id="valItemFont">15px</span>
+          </div>
+          <input type="range" class="density-slider" id="sliderItemFont" min="12" max="19" step="0.5" value="15">
+        </div>
+      </div>
     </div>
 
     <div class="set-divide"></div>
@@ -276,7 +302,7 @@ try{
         <img class="info-logo-dark" src="app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.1-beta.11</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.1</div>
     </div>
     <div class="info-meta">
       <div class="info-row"><span class="info-k">作者</span><span class="info-v">派大星TuT</span></div>

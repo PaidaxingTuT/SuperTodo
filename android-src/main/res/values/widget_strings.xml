@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="widget_4x2_name">超级清单 (4x2)</string>
-    <string name="widget_4x4_name">超级清单 (4x4)</string>
+    <string name="widget_4x2_name">超级清单</string>
+    <string name="widget_4x4_name">超级清单</string>
     <string name="widget_config_title">小部件设置</string>
     <string name="widget_empty_text">暂无待办事项，点击打开超级清单</string>
 </resources>

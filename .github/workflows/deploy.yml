@@ -113,6 +113,8 @@ jobs:
           VCODE=$(python3 - "$VER" <<'PYEOF'
           import sys, re
           nums = [int(x) for x in re.findall(r'\d+', sys.argv[1])] or [1, 0, 0]
+          if len(nums) == 3:
+              nums.append(99)
           code = 0
           for p in nums:
               code = code * 100 + p

@@ -13,6 +13,7 @@ let state={
   search:'',
   theme:'#0b57d0',
   colorMode:'system',
+  spacing:{preset:'standard',gap:10,pad:13,font:15},
   devMode:false,
   ai:{enabled:false,base:'',key:'',model:''}
 };
@@ -41,6 +42,9 @@ function load(){
     if(d.groupBy)state.groupBy=d.groupBy;
     if(d.theme)state.theme=d.theme;
     if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode;
+    if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing);
+    else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5};
+    else state.spacing={preset:'standard',gap:10,pad:13,font:15};
     if(d.devMode!==undefined)state.devMode=!!d.devMode;
     state.sortKey=d.sortKey||'默认'; state.sortAsc=d.sortAsc!==false;
     if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
@@ -441,10 +445,49 @@ function renderEmptyText(){
   $('#emptySub').textContent = state.search?'换个关键词试试':'点击右下角的 + 添加';
 }
 
-/* ========== 事件 ========== */
+/* ========== 列表间距与排版尺寸 ========== */
+const SPACING_PRESETS={
+  compact: {gap:6, pad:8, font:13.5},
+  standard:{gap:10,pad:13,font:15},
+  spacious:{gap:16,pad:17,font:16.5}
+};
+function applySpacing(){
+  const s=state.spacing||SPACING_PRESETS.standard;
+  const root=document.documentElement;
+  root.style.setProperty('--item-gap', s.gap+'px');
+  root.style.setProperty('--item-pad-y', s.pad+'px');
+  root.style.setProperty('--item-pad-x', Math.round(s.pad*1.1)+'px');
+  root.style.setProperty('--item-font', s.font+'px');
+  root.style.setProperty('--sec-gap', Math.round(s.gap*1.6)+'px');
+}
+function renderSpacingControls(){
+  const s=state.spacing||SPACING_PRESETS.standard;
+  const gVal=$('#valItemGap'), pVal=$('#valItemPad'), fVal=$('#valItemFont');
+  const gSld=$('#sliderItemGap'), pSld=$('#sliderItemPad'), fSld=$('#sliderItemFont');
+  if(gVal) gVal.textContent=s.gap+'px';
+  if(pVal) pVal.textContent=s.pad+'px';
+  if(fVal) fVal.textContent=s.font+'px';
+  if(gSld) gSld.value=s.gap;
+  if(pSld) pSld.value=s.pad;
+  if(fSld) fSld.value=s.font;
+
+  const box=$('#spacingPresetSeg');
+  if(box){
+    let activePreset=s.preset||'';
+    if(!activePreset||activePreset==='custom'){
+      for(const [k,p] of Object.entries(SPACING_PRESETS)){
+        if(s.gap===p.gap&&s.pad===p.pad&&s.font===p.font){ activePreset=k; break; }
+      }
+    }
+    box.querySelectorAll('.seg').forEach(btn=>{
+      btn.classList.toggle('on',btn.dataset.preset===activePreset);
+    });
+  }
+}
 function init(){
   load();
   applyColorMode();
+  applySpacing();
   buildStars();
   render();
   setTimeout(setupNativeBack,300);
@@ -491,6 +534,47 @@ document.addEventListener('DOMContentLoaded',()=>{
       applyColorMode();
     });
   }
+  const pSeg=$('#spacingPresetSeg');
+  if(pSeg){
+    pSeg.addEventListener('click',e=>{
+      const seg=e.target.closest('.seg');
+      if(!seg)return;
+      const preset=seg.dataset.preset;
+      if(!preset||!SPACING_PRESETS[preset])return;
+      state.spacing=Object.assign({preset},SPACING_PRESETS[preset]);
+      save();
+      applySpacing();
+      renderSpacingControls();
+    });
+  }
+  const onSliderInput=()=>{
+    const gap=parseFloat($('#sliderItemGap').value)||10;
+    const pad=parseFloat($('#sliderItemPad').value)||13;
+    const font=parseFloat($('#sliderItemFont').value)||15;
+    let preset='custom';
+    for(const [k,p] of Object.entries(SPACING_PRESETS)){
+      if(gap===p.gap&&pad===p.pad&&font===p.font){ preset=k; break; }
+    }
+    state.spacing={preset,gap,pad,font};
+    applySpacing();
+    const gVal=$('#valItemGap'), pVal=$('#valItemPad'), fVal=$('#valItemFont');
+    if(gVal)gVal.textContent=gap+'px';
+    if(pVal)pVal.textContent=pad+'px';
+    if(fVal)fVal.textContent=font+'px';
+    const box=$('#spacingPresetSeg');
+    if(box){
+      box.querySelectorAll('.seg').forEach(btn=>{
+        btn.classList.toggle('on',btn.dataset.preset===preset);
+      });
+    }
+  };
+  ['sliderItemGap','sliderItemPad','sliderItemFont'].forEach(id=>{
+    const el=$('#'+id);
+    if(el){
+      el.addEventListener('input',onSliderInput);
+      el.addEventListener('change',()=>{ save(); });
+    }
+  });
   $('#drawerInfo').addEventListener('click',()=>{ closeDrawer(); openInfo(); });
   const onSystemColorChange=()=>{ if(state.colorMode==='system')applyColorMode(); };
   if(colorModeQuery.addEventListener)colorModeQuery.addEventListener('change',onSystemColorChange); else colorModeQuery.addListener(onSystemColorChange);
@@ -676,13 +760,14 @@ function closeSort(){ $('#sortMask').hidden=true; $('#sortModal').hidden=true; i
 function openSettings(){
   pushLayer();
   renderColorModeSeg();
+  renderSpacingControls();
   renderPalette();
   renderSetGroups(); renderAiCfg(); $('#setMask').hidden=false; $('#setModal').hidden=false;
 }
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.1-beta.11';
+const APP_VERSION='v1.7.1';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -717,7 +802,13 @@ function openInfo(){
 }
 function closeInfo(){ $('#infoMask').hidden=true; $('#infoModal').hidden=true; if(!backSuppress)syncBack(); }
 function parseVerNums(v){
-  return (String(v||'').match(/\d+/g)||[]).map(Number);
+  const s=String(v||'').trim();
+  const isBeta=/beta/i.test(s);
+  const nums=(s.match(/\d+/g)||[]).map(Number);
+  if(nums.length===3&&!isBeta){
+    nums.push(99);
+  }
+  return nums;
 }
 function verGt(a,b){
   const pa=parseVerNums(a);
@@ -1012,14 +1103,14 @@ function initSortable(){
 
 /* ========== 导出/导入/清空 ========== */
 function exportData(){
-  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,ai:state.ai},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,spacing:state.spacing,ai:state.ai},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   const d=new Date(), p=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   a.download=`超级清单备份_${p}.json`; a.click(); URL.revokeObjectURL(a.href);
 }
 function importData(e){
   const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=d.items||[]; if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); save(); applyColorMode(); render(); renderSetGroups(); renderPalette(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
+  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=d.items||[]; if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode; if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing); else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5}; else state.spacing={preset:'standard',gap:10,pad:13,font:15}; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); save(); applyColorMode(); applySpacing(); render(); renderSetGroups(); renderPalette(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
 }
 function clearAll(){ confirmDlg('清空数据','确定清空全部数据？此操作不可撤销。',()=>{ state.items=[]; save(); render(); },'清空','delete'); }
 
@@ -1110,33 +1201,4 @@ document.addEventListener('DOMContentLoaded',()=>{
     const el=e.target.closest('[data-aifield]');
     if(el)saveAiField(el.dataset.aifield);
   });
-
-  /* 桌面小部件 */
-  const btn4x2=$('#pinWidget4x2Btn'), btn4x4=$('#pinWidget4x4Btn'), btnHelp=$('#widgetHelpBtn');
-  if(btn4x2) btn4x2.addEventListener('click',()=>pinWidget('4x2'));
-  if(btn4x4) btn4x4.addEventListener('click',()=>pinWidget('4x4'));
-  if(btnHelp) btnHelp.addEventListener('click',showWidgetHelp);
 });
-
-function pinWidget(size){
-  const name=size==='4x4'?'4×4':'4×2';
-  if(window.AndroidWidgetBridge&&window.AndroidWidgetBridge.requestPinWidget){
-    const ok=window.AndroidWidgetBridge.requestPinWidget(size);
-    if(ok){
-      alertDlg('已发送添加请求', '已向桌面发起添加 ' + name + ' 小部件请求。\n\n如您的手机（如 OPPO ColorOS / vivo OriginOS / 小米澎湃OS）未弹出确认框，说明系统拦截了应用自动添加，请直接在手机桌面「双指捏合 -> 小部件/插件/原子组件 -> 超级清单」拖动添加。');
-    }else{
-      confirmDlg('添加小部件', '当前桌面启动器拦截了直接添加请求。\n\n请在手机桌面「双指捏合」或长按空白处，点击「小部件/插件/原子组件」，找到「超级清单」选择 ' + name + ' 拖拽到桌面即可。', null, '知道了', 'info');
-    }
-  }else{
-    alertDlg('小部件说明', '桌面小部件需在 Android APK 安装包内使用。\n\n已适配小米澎湃OS、OPPO ColorOS、vivo OriginOS 及各大安卓桌面：\n• 支持 4×2 与 4×4 标准尺寸\n• 桌面直接打勾完成状态\n• 按场景/时间筛选与自定义排序\n• 日夜间模式自动跟随');
-  }
-}
-
-function showWidgetHelp(){
-  dlgShow({
-    title:'桌面小部件使用指南',
-    msg:'【如何添加到桌面】\n• 小米 / Redmi（澎湃OS / MIUI）：\n  ① 长按桌面「超级清单」应用图标 -> 点击弹出菜单的「小部件」直接添加；\n  ② 或在手机「设置 -> 应用管理 -> 超级清单 -> 权限管理」开启「桌面快捷方式」权限，即可在上方直接一键添加；\n  ③ 或桌面双指捏合 ->「小部件」-> 滑至最底部「安卓小部件」-> 展开「超级清单」。\n• OPPO / 一加 / realme（ColorOS）：桌面双指捏合或长按空白处 ->「卡片」-> 滑至底部「插件」-> 找到「超级清单」拖至桌面\n• vivo / iQOO（OriginOS）：桌面双指捏合或桌面划出「原子组件库」-> 底部「经典组件」或搜索「超级清单」\n• 华为 / 荣耀 / 三星 / 原生 Android：桌面双指捏合 ->「微件/窗口小部件」-> 找到「超级清单」\n\n【功能特性】\n1. 切换分类与自定义排序：长按小部件点击「编辑小部件」，或点击小部件右上角 ⚙ 设置图标，可按场景/时间筛选指定分类并调整排序。\n2. 桌面快速打勾：直接点击列表左侧圆圈，即可在桌面标记完成/未完成，零延迟更新且无需打开 App。\n3. 日夜间自适应：深度契合澎湃OS、ColorOS、OriginOS 原生深色/浅色模式规范。',
-    type:'alert',
-    okText:'知道了'
-  });
-}

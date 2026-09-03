@@ -13,5 +13,4 @@
     android:widgetFeatures="reconfigurable|configuration_optional"
     android:previewImage="@drawable/widget_4x4_preview"
     android:previewLayout="@layout/widget_4x4"
-    android:description="@string/widget_4x4_name"
     android:resizeMode="horizontal|vertical" />
