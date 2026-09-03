@@ -5,22 +5,21 @@
     android:background="@drawable/widget_item_bg"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingLeft="8dp"
-    android:paddingRight="8dp"
-    android:paddingTop="7dp"
-    android:paddingBottom="7dp">
+    android:paddingLeft="12dp"
+    android:paddingRight="12dp"
+    android:paddingTop="15dp"
+    android:paddingBottom="15dp">
 
-    <!-- 勾选框（点击直接打勾完成或取消完成，不打开 App） -->
+    <!-- 勾选框（3个事项堆叠） -->
     <ImageView
         android:id="@+id/item_checkbox"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
-        android:layout_marginEnd="8dp"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginEnd="10dp"
         android:contentDescription="完成状态"
         android:scaleType="fitCenter"
         android:src="@drawable/widget_ic_check_box_unchecked" />
 
-    <!-- 事项文字与信息主体（点击打开 App 查看该事项） -->
     <LinearLayout
         android:id="@+id/item_body"
         android:layout_width="0dp"
@@ -29,7 +28,6 @@
         android:gravity="center_vertical"
         android:orientation="vertical">
 
-        <!-- 未完成事项文字：纯 XML 关联日夜自适应主色，彻底消除硬编码颜色导致的滞后 -->
         <TextView
             android:id="@+id/item_title"
             android:layout_width="match_parent"
@@ -37,9 +35,9 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp" />
+            android:textSize="15sp"
+            android:textStyle="bold" />
 
-        <!-- 已完成事项文字：纯 XML 关联日夜自适应完成色，支持横线与灰显 -->
         <TextView
             android:id="@+id/item_title_done"
             android:layout_width="match_parent"
@@ -47,13 +45,14 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/widget_text_done"
-            android:textSize="13sp"
+            android:textSize="15sp"
+            android:textStyle="bold"
             android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="4dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -63,12 +62,12 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/widget_tag_bg"
-                android:paddingLeft="4dp"
-                android:paddingRight="4dp"
-                android:paddingTop="1dp"
-                android:paddingBottom="1dp"
+                android:paddingLeft="5dp"
+                android:paddingRight="5dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
                 android:textColor="@color/widget_badge_text"
-                android:textSize="9sp"
+                android:textSize="10sp"
                 android:visibility="gone" />
 
             <TextView
@@ -90,14 +89,14 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 价格显示（事项右侧展示，无价格则自动隐藏） -->
+    <!-- 价格 -->
     <TextView
         android:id="@+id/item_cost"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:textColor="@color/widget_cost_color"
-        android:textSize="12sp"
+        android:textSize="14sp"
         android:textStyle="bold"
         android:visibility="gone" />
 

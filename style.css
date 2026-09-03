@@ -303,7 +303,7 @@ body.home-view .content{padding-top:calc(56px + var(--safe-t) + 54px)}
 :root[data-color-mode="dark"] .info-logo-light{display:none}
 :root[data-color-mode="dark"] .info-logo-dark{display:block}
 .info-name{font-size:20px;font-weight:700;letter-spacing:.5px}
-.info-ver{font-size:13px;color:var(--text3);margin-top:3px}
+.info-ver{font-size:13px;color:var(--text3);margin-top:3px;cursor:pointer;user-select:none;-webkit-user-select:none}
 .info-meta{margin:0 2px 14px}
 .info-row{display:flex;justify-content:space-between;padding:9px 2px;border-bottom:1px solid var(--line);font-size:14px}
 .info-row:last-child{border-bottom:none}

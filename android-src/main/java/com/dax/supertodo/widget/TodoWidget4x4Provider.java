@@ -38,9 +38,10 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
         }
         views.setTextViewText(R.id.widget_count_text, activeCount + " 项待办 · " + doneCount + " 项已完成");
 
-        // 绑定列表数据源 Service
+        // 绑定列表数据源 Service（标记 is_4x4=true 启用 1~5 动态比例自适应分配）
         Intent serviceIntent = new Intent(context, TodoWidgetService.class);
         serviceIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+        serviceIntent.putExtra("is_4x4", true);
         serviceIntent.setData(Uri.parse(serviceIntent.toUri(Intent.URI_INTENT_SCHEME)));
         views.setRemoteAdapter(R.id.widget_list, serviceIntent);
         views.setEmptyView(R.id.widget_list, R.id.widget_empty_view);
@@ -129,17 +130,17 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
                 mainIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 context.startActivity(mainIntent);
             }
-        } else if (WidgetDataManager.ACTION_REFRESH_WIDGET.equals(action)) {
-            // 手动刷新或数据变更刷新
+        } else if (WidgetDataManager.ACTION_REFRESH_WIDGET.equals(action) || Intent.ACTION_CONFIGURATION_CHANGED.equals(action)) {
+            // 手动刷新、数据变更刷新或系统日夜模式变更刷新
             AppWidgetManager mgr = AppWidgetManager.getInstance(context);
             if (mgr != null) {
                 ComponentName cn = new ComponentName(context, TodoWidget4x4Provider.class);
                 int[] ids = mgr.getAppWidgetIds(cn);
                 if (ids != null && ids.length > 0) {
-                    mgr.notifyAppWidgetViewDataChanged(ids, R.id.widget_list);
                     for (int id : ids) {
                         updateAppWidget(context, mgr, id);
                     }
+                    mgr.notifyAppWidgetViewDataChanged(ids, R.id.widget_list);
                 }
             }
         }

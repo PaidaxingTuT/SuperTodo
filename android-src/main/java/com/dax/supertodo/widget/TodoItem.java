@@ -10,6 +10,7 @@ public class TodoItem {
     public String scene = "";
     public String time = "";
     public boolean done = false;
+    public boolean hasCost = false;
     public double cost = 0;
     public int star = 0;
     public String due = "";
@@ -26,7 +27,12 @@ public class TodoItem {
         item.scene = obj.optString("scene", "");
         item.time = obj.optString("time", "");
         item.done = obj.optBoolean("done", false);
-        item.cost = obj.optDouble("cost", 0);
+        if (obj.has("cost") && !obj.isNull("cost")) {
+            try {
+                item.cost = obj.getDouble("cost");
+                item.hasCost = true;
+            } catch (Exception ignore) {}
+        }
         item.star = obj.optInt("star", 0);
         item.due = obj.optString("due", "");
         item.created = obj.optLong("created", 0);

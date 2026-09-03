@@ -5,22 +5,21 @@
     android:background="@drawable/widget_item_bg"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingLeft="8dp"
-    android:paddingRight="8dp"
-    android:paddingTop="7dp"
-    android:paddingBottom="7dp">
+    android:paddingLeft="16dp"
+    android:paddingRight="16dp"
+    android:paddingTop="36dp"
+    android:paddingBottom="36dp">
 
-    <!-- 勾选框（点击直接打勾完成或取消完成，不打开 App） -->
+    <!-- 勾选框（1个事项：4*4全展尺寸，超大打勾手感） -->
     <ImageView
         android:id="@+id/item_checkbox"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
-        android:layout_marginEnd="8dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginEnd="14dp"
         android:contentDescription="完成状态"
         android:scaleType="fitCenter"
         android:src="@drawable/widget_ic_check_box_unchecked" />
 
-    <!-- 事项文字与信息主体（点击打开 App 查看该事项） -->
     <LinearLayout
         android:id="@+id/item_body"
         android:layout_width="0dp"
@@ -29,31 +28,42 @@
         android:gravity="center_vertical"
         android:orientation="vertical">
 
-        <!-- 未完成事项文字：纯 XML 关联日夜自适应主色，彻底消除硬编码颜色导致的滞后 -->
         <TextView
             android:id="@+id/item_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:maxLines="1"
+            android:maxLines="3"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp" />
+            android:textSize="19sp"
+            android:textStyle="bold" />
 
-        <!-- 已完成事项文字：纯 XML 关联日夜自适应完成色，支持横线与灰显 -->
         <TextView
             android:id="@+id/item_title_done"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:maxLines="1"
+            android:maxLines="3"
             android:textColor="@color/widget_text_done"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/item_note"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="13sp"
             android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -61,23 +71,24 @@
                 android:id="@+id/item_tag"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/widget_tag_bg"
-                android:paddingLeft="4dp"
-                android:paddingRight="4dp"
-                android:paddingTop="1dp"
-                android:paddingBottom="1dp"
+                android:paddingLeft="7dp"
+                android:paddingRight="7dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
                 android:textColor="@color/widget_badge_text"
-                android:textSize="9sp"
+                android:textSize="11sp"
+                android:textStyle="bold"
                 android:visibility="gone" />
 
             <TextView
                 android:id="@+id/item_due"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
+                android:layout_marginEnd="8dp"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="10sp"
+                android:textSize="12sp"
                 android:visibility="gone" />
 
             <TextView
@@ -85,19 +96,19 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/widget_star_color"
-                android:textSize="10sp"
+                android:textSize="13sp"
                 android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 价格显示（事项右侧展示，无价格则自动隐藏） -->
+    <!-- 价格 -->
     <TextView
         android:id="@+id/item_cost"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="10dp"
         android:textColor="@color/widget_cost_color"
-        android:textSize="12sp"
+        android:textSize="18sp"
         android:textStyle="bold"
         android:visibility="gone" />
 

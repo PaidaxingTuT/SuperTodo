@@ -12,6 +12,7 @@
     <color name="widget_item_bg">#F8F9FA</color>
     <color name="widget_btn_tint">#5F6368</color>
     <color name="widget_star_color">#F59E0B</color>
+    <color name="widget_cost_color">#188038</color>
 
     <!-- 配置页面 SuperTodo 风格配色 -->
     <color name="config_card_bg">#FFFFFF</color>

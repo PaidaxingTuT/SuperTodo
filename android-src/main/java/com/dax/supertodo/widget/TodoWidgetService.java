@@ -9,14 +9,13 @@ import android.text.style.StrikethroughSpan;
 import android.view.View;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
-
 import com.dax.supertodo.R;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 提供 RemoteViewsFactory 绑定待办事项列表数据（适配所有标准 Android / ColorOS / OriginOS / HyperOS 启动器）
+ * 桌面小部件列表数据源服务（支持 4x2 基础小组件与 4x4 大组件动态自适应布局）
  */
 public class TodoWidgetService extends RemoteViewsService {
 
@@ -28,11 +27,13 @@ public class TodoWidgetService extends RemoteViewsService {
     static class TodoRemoteViewsFactory implements RemoteViewsFactory {
         private final Context context;
         private final int appWidgetId;
+        private final boolean is4x4;
         private final List<TodoItem> items = new ArrayList<>();
 
         public TodoRemoteViewsFactory(Context context, Intent intent) {
             this.context = context;
             this.appWidgetId = intent != null ? intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID) : AppWidgetManager.INVALID_APPWIDGET_ID;
+            this.is4x4 = intent != null && intent.getBooleanExtra("is_4x4", false);
         }
 
         @Override
@@ -61,13 +62,29 @@ public class TodoWidgetService extends RemoteViewsService {
             return items.size();
         }
 
-        private boolean isNightMode() {
-            try {
-                // 桌面小部件严格跟随系统桌面全局日夜模式，确保桌面图标、小布建议与小部件视觉风格绝对统一
-                int sysMode = android.content.res.Resources.getSystem().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
-                return sysMode == android.content.res.Configuration.UI_MODE_NIGHT_YES;
-            } catch (Throwable t) {
-                return false;
+        @Override
+        public int getViewTypeCount() {
+            // 支持 6 种布局：标准版(6+或4x2) + 4x4独享的5种动态自适应规格(1/2/3/4/5)
+            return 6;
+        }
+
+        private int selectLayoutRes(int totalCount) {
+            if (!is4x4) {
+                return R.layout.widget_item;
+            }
+            switch (totalCount) {
+                case 1:
+                    return R.layout.widget_item_4x4_1;
+                case 2:
+                    return R.layout.widget_item_4x4_2;
+                case 3:
+                    return R.layout.widget_item_4x4_3;
+                case 4:
+                    return R.layout.widget_item_4x4_4;
+                case 5:
+                    return R.layout.widget_item_4x4_5;
+                default:
+                    return R.layout.widget_item;
             }
         }
 
@@ -76,22 +93,36 @@ public class TodoWidgetService extends RemoteViewsService {
             if (position < 0 || position >= items.size()) return null;
             try {
                 TodoItem item = items.get(position);
-                RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.widget_item);
+                int layoutRes = selectLayoutRes(items.size());
+                RemoteViews rv = new RemoteViews(context.getPackageName(), layoutRes);
 
                 String title = item.title != null ? item.title : "";
-                boolean night = isNightMode();
 
-                // 标题与完成状态（带划线与灰显，针对暗色模式精准匹配高对比度文字）
+                // 标题与完成状态（绝不在 Java 层调用 rv.setTextColor 强行写入整型值，保证 Launcher 随系统日夜切换时毫秒级自动变色！）
                 if (item.done) {
                     SpannableString ss = new SpannableString(title);
                     ss.setSpan(new StrikethroughSpan(), 0, ss.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    rv.setTextViewText(R.id.item_title, ss);
-                    rv.setTextColor(R.id.item_title, night ? 0xFF6B7280 : 0xFF8F959E);
+                    rv.setViewVisibility(R.id.item_title, View.GONE);
+                    rv.setViewVisibility(R.id.item_title_done, View.VISIBLE);
+                    rv.setTextViewText(R.id.item_title_done, ss);
                     rv.setImageViewResource(R.id.item_checkbox, R.drawable.widget_ic_check_box_checked);
                 } else {
+                    rv.setViewVisibility(R.id.item_title_done, View.GONE);
+                    rv.setViewVisibility(R.id.item_title, View.VISIBLE);
                     rv.setTextViewText(R.id.item_title, title);
-                    rv.setTextColor(R.id.item_title, night ? 0xFFF1F3F4 : 0xFF1F2329);
                     rv.setImageViewResource(R.id.item_checkbox, R.drawable.widget_ic_check_box_unchecked);
+                }
+
+                // 备注（仅在 4x4 单项卡片中显示）
+                if (item.note != null && !item.note.isEmpty()) {
+                    try {
+                        rv.setViewVisibility(R.id.item_note, View.VISIBLE);
+                        rv.setTextViewText(R.id.item_note, item.note);
+                    } catch (Throwable ignore) {}
+                } else {
+                    try {
+                        rv.setViewVisibility(R.id.item_note, View.GONE);
+                    } catch (Throwable ignore) {}
                 }
 
                 // 标签（优先显示当前场景或时间）
@@ -129,6 +160,20 @@ public class TodoWidgetService extends RemoteViewsService {
                     rv.setViewVisibility(R.id.item_star, View.GONE);
                 }
 
+                // 价格（右侧展示，有价格才显示）
+                if (item.hasCost && item.cost > 0) {
+                    String costStr;
+                    if (item.cost == (long) item.cost) {
+                        costStr = "¥" + ((long) item.cost);
+                    } else {
+                        costStr = String.format(java.util.Locale.CHINA, "¥%.2f", item.cost);
+                    }
+                    rv.setViewVisibility(R.id.item_cost, View.VISIBLE);
+                    rv.setTextViewText(R.id.item_cost, costStr);
+                } else {
+                    rv.setViewVisibility(R.id.item_cost, View.GONE);
+                }
+
                 // 1. 点击左侧勾选框：原地切换完成状态
                 Intent toggleIntent = new Intent();
                 toggleIntent.putExtra("extra_action", "toggle_done");
@@ -140,6 +185,8 @@ public class TodoWidgetService extends RemoteViewsService {
                 openIntent.putExtra("extra_action", "open_item");
                 openIntent.putExtra("extra_item_id", item.id);
                 rv.setOnClickFillInIntent(R.id.item_body, openIntent);
+                rv.setOnClickFillInIntent(R.id.item_title, openIntent);
+                rv.setOnClickFillInIntent(R.id.item_title_done, openIntent);
 
                 return rv;
             } catch (Throwable t) {
@@ -153,18 +200,13 @@ public class TodoWidgetService extends RemoteViewsService {
         }
 
         @Override
-        public int getViewTypeCount() {
-            return 1;
-        }
-
-        @Override
         public long getItemId(int position) {
             return position;
         }
 
         @Override
         public boolean hasStableIds() {
-            return false;
+            return true;
         }
     }
 }
