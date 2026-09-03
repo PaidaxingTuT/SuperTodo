@@ -105,6 +105,7 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
         views.setOnClickPendingIntent(R.id.widget_empty_view, mainPI);
 
         appWidgetManager.updateAppWidget(appWidgetId, views);
+        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.widget_list);
     }
 
     @Override

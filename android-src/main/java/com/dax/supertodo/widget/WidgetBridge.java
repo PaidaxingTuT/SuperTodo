@@ -35,6 +35,33 @@ public class WidgetBridge {
     }
 
     @JavascriptInterface
+    public int getStatusBarHeightDp() {
+        if (activity == null) return 0;
+        try {
+            int resId = activity.getResources().getIdentifier("status_bar_height", "dimen", "android");
+            if (resId > 0) {
+                int px = activity.getResources().getDimensionPixelSize(resId);
+                float density = activity.getResources().getDisplayMetrics().density;
+                return Math.round(px / density);
+            }
+        } catch (Throwable ignore) {}
+        return 0;
+    }
+
+    @JavascriptInterface
+    public boolean isSystemNightMode() {
+        try {
+            int sysMode = android.content.res.Resources.getSystem().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+            if (sysMode == android.content.res.Configuration.UI_MODE_NIGHT_YES) return true;
+            if (activity != null) {
+                int appMode = activity.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+                return appMode == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+            }
+        } catch (Throwable ignore) {}
+        return false;
+    }
+
+    @JavascriptInterface
     public boolean requestPinWidget(String size) {
         if (activity == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return false;

@@ -15,11 +15,20 @@ def inject_widget_manifest():
         print("Widget components already injected in AndroidManifest.xml")
         return
 
+    # 1. 注入桌面快捷方式与小部件创建权限（小米澎湃OS / ColorOS 必备）
+    perms = """
+    <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
+    <uses-permission android:name="com.miui.home.launcher.permission.INSTALL_SHORTCUT" />
+"""
+    if "INSTALL_SHORTCUT" not in content:
+        content = content.replace("<application", perms + "\n    <application")
+
     widget_entries = """
         <!-- Android 原生桌面小部件 4x2（全面兼容小米澎湃OS / OPPO ColorOS / vivo OriginOS / 华为 / 荣耀等全部安卓系统，免应用商店审核） -->
         <receiver
             android:name="com.dax.supertodo.widget.TodoWidget4x2Provider"
             android:exported="true"
+            android:icon="@mipmap/ic_launcher"
             android:label="@string/widget_4x2_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -35,6 +44,7 @@ def inject_widget_manifest():
         <receiver
             android:name="com.dax.supertodo.widget.TodoWidget4x4Provider"
             android:exported="true"
+            android:icon="@mipmap/ic_launcher"
             android:label="@string/widget_4x4_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -70,7 +80,7 @@ def inject_widget_manifest():
     content = content.replace(app_end, widget_entries + "\n    " + app_end)
     with open(manifest_path, "w", encoding="utf-8") as f:
         f.write(content)
-    print("Successfully injected widget components into AndroidManifest.xml")
+    print("Successfully injected widget components and permissions into AndroidManifest.xml")
 
 if __name__ == "__main__":
     inject_widget_manifest()

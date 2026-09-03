@@ -42,6 +42,7 @@ jobs:
           cp index.html style.css app.js Sortable.min.js icon.svg app-icon.png app-icon-dark.png app-icon-foreground.png dist/
           sed -i "s/const APP_VERSION='[^']*'/const APP_VERSION='$NEW'/" dist/app.js
           npx cap init "超级清单" com.dax.supertodo --web-dir dist
+          python3 -c "import json; f=open('capacitor.config.json'); c=json.load(f); f.close(); c.setdefault('android', {})['adjustMarginsForEdgeToEdge']='force'; open('capacitor.config.json','w').write(json.dumps(c, indent=2))"
           npx cap add android
           npx cap sync android
       - name: 注入澎湃OS桌面小组件源码与配置

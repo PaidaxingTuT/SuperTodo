@@ -33,6 +33,24 @@ public class MainActivity extends BridgeActivity {
                 widgetBridge = new WidgetBridge(this, getBridge().getWebView());
                 getBridge().getWebView().addJavascriptInterface(widgetBridge, "AndroidWidgetBridge");
             }
+
+            // 解决 Android 15 (Target SDK 35) / 小米澎湃 3 (HyperOS 2/3) 强制 Edge-to-Edge 导致状态栏与顶部栏重叠遮挡
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(getWindow().getDecorView(), (v, insets) -> {
+                androidx.core.graphics.Insets sb = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars());
+                if (sb.top > 0) {
+                    float density = getResources().getDisplayMetrics().density;
+                    int topDp = Math.round(sb.top / density);
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        getBridge().getWebView().post(() -> {
+                            getBridge().getWebView().evaluateJavascript(
+                                "document.documentElement.style.setProperty('--safe-t', '" + topDp + "px');",
+                                null
+                            );
+                        });
+                    }
+                }
+                return insets;
+            });
         } catch (Exception ignore) {}
 
         handleIntent(getIntent());
@@ -51,6 +69,23 @@ public class MainActivity extends BridgeActivity {
         if (widgetBridge != null) {
             widgetBridge.notifyAppResumed();
         }
+    }
+
+    @Override
+    public void onConfigurationChanged(android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        try {
+            int nightMode = newConfig.uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+            boolean isNight = (nightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES);
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                getBridge().getWebView().post(() -> {
+                    getBridge().getWebView().evaluateJavascript(
+                        "if(window.onNativeSystemThemeChanged) window.onNativeSystemThemeChanged(" + isNight + ");",
+                        null
+                    );
+                });
+            }
+        } catch (Throwable ignore) {}
     }
 
     private void handleIntent(Intent intent) {

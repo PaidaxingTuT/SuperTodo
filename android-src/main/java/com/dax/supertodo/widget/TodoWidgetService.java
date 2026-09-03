@@ -61,11 +61,13 @@ public class TodoWidgetService extends RemoteViewsService {
             return items.size();
         }
 
-        private int safeGetColor(int resId, int fallback) {
+        private boolean isNightMode() {
             try {
-                return context.getColor(resId);
+                // 桌面小部件严格跟随系统桌面全局日夜模式，确保桌面图标、小布建议与小部件视觉风格绝对统一
+                int sysMode = android.content.res.Resources.getSystem().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+                return sysMode == android.content.res.Configuration.UI_MODE_NIGHT_YES;
             } catch (Throwable t) {
-                return fallback;
+                return false;
             }
         }
 
@@ -77,17 +79,18 @@ public class TodoWidgetService extends RemoteViewsService {
                 RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.widget_item);
 
                 String title = item.title != null ? item.title : "";
+                boolean night = isNightMode();
 
-                // 标题与完成状态（带划线与灰显）
+                // 标题与完成状态（带划线与灰显，针对暗色模式精准匹配高对比度文字）
                 if (item.done) {
                     SpannableString ss = new SpannableString(title);
                     ss.setSpan(new StrikethroughSpan(), 0, ss.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     rv.setTextViewText(R.id.item_title, ss);
-                    rv.setTextColor(R.id.item_title, safeGetColor(R.color.widget_text_done, 0xFF8F959E));
+                    rv.setTextColor(R.id.item_title, night ? 0xFF6B7280 : 0xFF8F959E);
                     rv.setImageViewResource(R.id.item_checkbox, R.drawable.widget_ic_check_box_checked);
                 } else {
                     rv.setTextViewText(R.id.item_title, title);
-                    rv.setTextColor(R.id.item_title, safeGetColor(R.color.widget_text_primary, 0xFF1F2329));
+                    rv.setTextColor(R.id.item_title, night ? 0xFFF1F3F4 : 0xFF1F2329);
                     rv.setImageViewResource(R.id.item_checkbox, R.drawable.widget_ic_check_box_unchecked);
                 }
 

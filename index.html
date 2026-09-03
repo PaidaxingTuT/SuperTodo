@@ -11,7 +11,19 @@
 <link rel="apple-touch-icon" href="app-icon-dark.png" media="(prefers-color-scheme: dark)">
 <title>超级清单 · SuperTodo</title>
 <script>
-try{const d=JSON.parse(localStorage.getItem('listapp.data.v2')),m=d&&d.colorMode,dark=m==='dark'||(m!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.colorMode=dark?'dark':'light'}catch(e){}
+try{
+  const d=JSON.parse(localStorage.getItem('listapp.data.v2')),m=d&&d.colorMode;
+  let sysDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  if(window.AndroidWidgetBridge&&window.AndroidWidgetBridge.isSystemNightMode){
+    sysDark = window.AndroidWidgetBridge.isSystemNightMode();
+  }
+  const dark = m==='dark'||(m!=='light'&&sysDark);
+  document.documentElement.dataset.colorMode=dark?'dark':'light';
+  if(window.AndroidWidgetBridge&&window.AndroidWidgetBridge.getStatusBarHeightDp){
+    const sb=window.AndroidWidgetBridge.getStatusBarHeightDp();
+    if(sb>0)document.documentElement.style.setProperty('--safe-t',sb+'px');
+  }
+}catch(e){}
 </script>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -174,6 +186,14 @@ try{const d=JSON.parse(localStorage.getItem('listapp.data.v2')),m=d&&d.colorMode
   <div class="modal-body">
 
     <div class="set-section">
+      <h3>外观 · 日夜模式</h3>
+      <p class="set-tip">默认跟随系统深色/浅色模式自动切换，亦可手动常驻指定模式。</p>
+      <div class="db-seg" id="colorModeSeg" style="margin: 8px 0 16px;">
+        <button class="seg" data-mode="system">跟随系统</button>
+        <button class="seg" data-mode="light">日间浅色</button>
+        <button class="seg" data-mode="dark">夜间深色</button>
+      </div>
+
       <h3>外观 · 主色</h3>
       <p class="set-tip">选择主色调，界面配色会整体跟随。</p>
       <div class="palette" id="palette"></div>
@@ -256,7 +276,7 @@ try{const d=JSON.parse(localStorage.getItem('listapp.data.v2')),m=d&&d.colorMode
         <img class="info-logo-dark" src="app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.1-beta.7</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.1-beta.8</div>
     </div>
     <div class="info-meta">
       <div class="info-row"><span class="info-k">作者</span><span class="info-v">派大星TuT</span></div>

@@ -77,13 +77,46 @@ function syncFromNativeWidget(){
     }
   }catch(e){}
 }
-window.onNativeWidgetResume=function(){ syncFromNativeWidget(); };
-window.onNativeWidgetAction=function(action,itemId){
+function applySystemSafeArea(){
+  try {
+    if(window.AndroidWidgetBridge&&window.AndroidWidgetBridge.getStatusBarHeightDp){
+      const sb=window.AndroidWidgetBridge.getStatusBarHeightDp();
+      if(sb>0)document.documentElement.style.setProperty('--safe-t',sb+'px');
+    }
+  }catch(e){}
+}
+applySystemSafeArea();
+
+window.onNativeSystemThemeChanged=function(isNight){
+  if(state.colorMode==='system'){
+    applyColorMode();
+  }
+};
+window.onNativeWidgetResume=function(){
+  applySystemSafeArea();
   syncFromNativeWidget();
+  if(state.colorMode==='system'){
+    applyColorMode();
+  }
+};
+window.onNativeWidgetAction=function(action,itemId){
+  applySystemSafeArea();
+  syncFromNativeWidget();
+  if(state.colorMode==='system'){
+    applyColorMode();
+  }
   if(action==='add_item'){ if(typeof openAdd==='function') openAdd(); }
   else if(action==='open_item'&&itemId){ const it=state.items.find(x=>x.id===itemId); if(it&&typeof openEdit==='function') openEdit(it); }
 };
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') syncFromNativeWidget(); });
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+    applySystemSafeArea();
+    syncFromNativeWidget();
+    if(state.colorMode==='system'){
+      applyColorMode();
+    }
+  }
+});
 
 /* ========== 主题 ========== */
 function hexToHsl(hex){
@@ -95,7 +128,20 @@ function hexToHsl(hex){
 }
 function hslToCss(h,s,l){ return 'hsl('+h+','+s+'%,'+l+'%)' }
 const colorModeQuery=window.matchMedia('(prefers-color-scheme: dark)');
-function isDarkMode(){ return state.colorMode==='dark'||(state.colorMode==='system'&&colorModeQuery.matches) }
+
+function getSystemDark(){
+  if(window.AndroidWidgetBridge&&typeof window.AndroidWidgetBridge.isSystemNightMode==='function'){
+    try{ return window.AndroidWidgetBridge.isSystemNightMode(); }catch(e){}
+  }
+  return colorModeQuery.matches;
+}
+
+function isDarkMode(){
+  if(state.colorMode==='dark') return true;
+  if(state.colorMode==='light') return false;
+  return getSystemDark();
+}
+
 function applyTheme(hex){
   var h=hexToHsl(hex);
   var dark=isDarkMode();
@@ -111,13 +157,39 @@ function applyTheme(hex){
   document.documentElement.style.setProperty('--on-primary','#fff');
   var m=document.querySelector('meta[name=theme-color]'); if(m)m.setAttribute('content',dark?'#111318':hex);
 }
+
+function renderColorModeSeg(){
+  const box=$('#colorModeSeg');
+  if(!box) return;
+  box.querySelectorAll('.seg').forEach(btn=>{
+    btn.classList.toggle('on', (state.colorMode||'system')===btn.dataset.mode);
+  });
+}
+
 function applyColorMode(){
   const dark=isDarkMode(),root=document.documentElement,btn=$('#drawerTheme');
   root.dataset.colorMode=dark?'dark':'light';
   applyTheme(state.theme);
-  if(btn){ const label=dark?'切换到日间模式':'切换到夜间模式'; btn.setAttribute('aria-label',label); btn.title=label; }
+  if(btn){
+    let tip = state.colorMode==='system' ? ('跟随系统 (' + (dark?'夜间':'日间') + ')') : (state.colorMode==='dark'?'夜间深色':'日间浅色');
+    btn.setAttribute('aria-label','日夜模式：'+tip);
+    btn.title='当前：'+tip+'，点击切换';
+  }
+  renderColorModeSeg();
 }
-function toggleColorMode(){ state.colorMode=isDarkMode()?'light':'dark'; save(); applyColorMode(); }
+
+function toggleColorMode(){
+  // 循环顺序：跟随系统 -> 日间浅色 -> 夜间深色 -> 跟随系统
+  if(state.colorMode==='system'){
+    state.colorMode = isDarkMode() ? 'light' : 'dark';
+  }else if(state.colorMode==='light'){
+    state.colorMode = 'dark';
+  }else{
+    state.colorMode = 'system';
+  }
+  save();
+  applyColorMode();
+}
 
 /* ========== 分组逻辑 ========== */
 function groupKey(it){ return state.groupBy==='scene' ? (it.scene||'未分组') : (it.time||'未分组') }
@@ -401,6 +473,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   $('#drawerSettings').addEventListener('click',()=>{ closeDrawer(); openSettings(); });
   $('#drawerTheme').addEventListener('click',toggleColorMode);
+  const cms=$('#colorModeSeg');
+  if(cms){
+    cms.addEventListener('click',e=>{
+      const seg=e.target.closest('.seg');
+      if(!seg)return;
+      const mode=seg.dataset.mode;
+      if(!mode)return;
+      state.colorMode=mode;
+      save();
+      applyColorMode();
+    });
+  }
   $('#drawerInfo').addEventListener('click',()=>{ closeDrawer(); openInfo(); });
   const onSystemColorChange=()=>{ if(state.colorMode==='system')applyColorMode(); };
   if(colorModeQuery.addEventListener)colorModeQuery.addEventListener('change',onSystemColorChange); else colorModeQuery.addListener(onSystemColorChange);
@@ -585,13 +669,14 @@ function openSort(){
 function closeSort(){ $('#sortMask').hidden=true; $('#sortModal').hidden=true; if(!backSuppress)syncBack(); }
 function openSettings(){
   pushLayer();
+  renderColorModeSeg();
   renderPalette();
   renderSetGroups(); renderAiCfg(); $('#setMask').hidden=false; $('#setModal').hidden=false;
 }
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.1-beta.7';
+const APP_VERSION='v1.7.1-beta.8';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 function openInfo(){ pushLayer(); $('#infoUpdate').textContent='点击检查'; $('#infoVer').textContent='SuperTodo · 版本 '+APP_VERSION.replace(/^v/,''); $('#infoMask').hidden=false; $('#infoModal').hidden=false; }
@@ -989,7 +1074,7 @@ function pinWidget(size){
 function showWidgetHelp(){
   dlgShow({
     title:'桌面小部件使用指南',
-    msg:'【如何添加到桌面】\n• 小米 / Redmi（澎湃OS / MIUI）：桌面双指捏合 ->「小部件」-> 滑至最底部「安卓小部件」或搜索「超级清单」\n• OPPO / 一加 / realme（ColorOS）：桌面双指捏合或长按空白处 ->「卡片」-> 滑至底部「插件」-> 找到「超级清单」\n• vivo / iQOO（OriginOS）：桌面双指捏合或桌面划出「原子组件库」-> 底部「经典组件」或搜索「超级清单」\n• 华为 / 荣耀 / 三星 / 原生 Android：桌面双指捏合 ->「微件/窗口小部件」-> 找到「超级清单」\n\n【功能特性】\n1. 切换分类与自定义排序：长按小部件点击「编辑小部件」，或点击小部件右上角 ⚙ 设置图标，可按场景/时间筛选指定分类并调整排序。\n2. 桌面快速打勾：直接点击列表左侧圆圈，即可在桌面标记完成/未完成，零延迟更新且无需打开 App。\n3. 日夜间自适应：深度契合澎湃OS、ColorOS、OriginOS 原生深色/浅色模式规范。',
+    msg:'【如何添加到桌面】\n• 小米 / Redmi（澎湃OS / MIUI）：\n  ① 长按桌面「超级清单」应用图标 -> 点击弹出菜单的「小部件」直接添加；\n  ② 或在手机「设置 -> 应用管理 -> 超级清单 -> 权限管理」开启「桌面快捷方式」权限，即可在上方直接一键添加；\n  ③ 或桌面双指捏合 ->「小部件」-> 滑至最底部「安卓小部件」-> 展开「超级清单」。\n• OPPO / 一加 / realme（ColorOS）：桌面双指捏合或长按空白处 ->「卡片」-> 滑至底部「插件」-> 找到「超级清单」拖至桌面\n• vivo / iQOO（OriginOS）：桌面双指捏合或桌面划出「原子组件库」-> 底部「经典组件」或搜索「超级清单」\n• 华为 / 荣耀 / 三星 / 原生 Android：桌面双指捏合 ->「微件/窗口小部件」-> 找到「超级清单」\n\n【功能特性】\n1. 切换分类与自定义排序：长按小部件点击「编辑小部件」，或点击小部件右上角 ⚙ 设置图标，可按场景/时间筛选指定分类并调整排序。\n2. 桌面快速打勾：直接点击列表左侧圆圈，即可在桌面标记完成/未完成，零延迟更新且无需打开 App。\n3. 日夜间自适应：深度契合澎湃OS、ColorOS、OriginOS 原生深色/浅色模式规范。',
     type:'alert',
     okText:'知道了'
   });
