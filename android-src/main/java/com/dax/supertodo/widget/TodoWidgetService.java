@@ -3,7 +3,6 @@ package com.dax.supertodo.widget;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.StrikethroughSpan;
@@ -33,7 +32,7 @@ public class TodoWidgetService extends RemoteViewsService {
 
         public TodoRemoteViewsFactory(Context context, Intent intent) {
             this.context = context;
-            this.appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
+            this.appWidgetId = intent != null ? intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID) : AppWidgetManager.INVALID_APPWIDGET_ID;
         }
 
         @Override
@@ -128,19 +127,15 @@ public class TodoWidgetService extends RemoteViewsService {
                 }
 
                 // 1. 点击左侧勾选框：原地切换完成状态
-                Bundle toggleBundle = new Bundle();
-                toggleBundle.putString(TodoWidget4x2Provider.EXTRA_ACTION, TodoWidget4x2Provider.ACTION_TOGGLE_DONE);
-                toggleBundle.putString(TodoWidget4x2Provider.EXTRA_ITEM_ID, item.id);
                 Intent toggleIntent = new Intent();
-                toggleIntent.putExtras(toggleBundle);
+                toggleIntent.putExtra("extra_action", "toggle_done");
+                toggleIntent.putExtra("extra_item_id", item.id);
                 rv.setOnClickFillInIntent(R.id.item_checkbox, toggleIntent);
 
                 // 2. 点击右侧文字信息主体：打开 App 并定位编辑
-                Bundle openBundle = new Bundle();
-                openBundle.putString(TodoWidget4x2Provider.EXTRA_ACTION, TodoWidget4x2Provider.ACTION_OPEN_ITEM);
-                openBundle.putString(TodoWidget4x2Provider.EXTRA_ITEM_ID, item.id);
                 Intent openIntent = new Intent();
-                openIntent.putExtras(openBundle);
+                openIntent.putExtra("extra_action", "open_item");
+                openIntent.putExtra("extra_item_id", item.id);
                 rv.setOnClickFillInIntent(R.id.item_body, openIntent);
 
                 return rv;
@@ -161,17 +156,12 @@ public class TodoWidgetService extends RemoteViewsService {
 
         @Override
         public long getItemId(int position) {
-            if (position < 0 || position >= items.size()) return position;
-            try {
-                return items.get(position).id.hashCode();
-            } catch (Exception e) {
-                return position;
-            }
+            return position;
         }
 
         @Override
         public boolean hasStableIds() {
-            return true;
+            return false;
         }
     }
 }
