@@ -682,7 +682,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.1-beta.10';
+const APP_VERSION='v1.7.1-beta.11';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -740,7 +740,8 @@ async function checkUpdate(silent){
       if(!res.ok) throw new Error('net');
       const list=await res.json();
       if(Array.isArray(list) && list.length>0){
-        targetRel=list[0];
+        // 遍历所有 release，取版本号最大的那个（GitHub API 按创建时间排序，beta.10 可能排在 beta.2 之后）
+        targetRel=list.reduce((best,r)=>(!best||verGt(r.tag_name,best.tag_name))?r:best,null);
       }
     }else{
       // 普通模式：仅拉取最新正式 Release
