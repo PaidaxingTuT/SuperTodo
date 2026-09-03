@@ -118,8 +118,8 @@ public class TodoWidget4x2Provider extends AppWidgetProvider {
                 mainIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 context.startActivity(mainIntent);
             }
-        } else if (WidgetDataManager.ACTION_REFRESH_WIDGET.equals(action) || Intent.ACTION_CONFIGURATION_CHANGED.equals(action)) {
-            // 手动刷新、数据变更刷新或系统日夜模式变更刷新
+        } else if (WidgetDataManager.ACTION_REFRESH_WIDGET.equals(action)) {
+            // 手动刷新或数据变更刷新
             AppWidgetManager mgr = AppWidgetManager.getInstance(context);
             if (mgr != null) {
                 ComponentName cn = new ComponentName(context, TodoWidget4x2Provider.class);

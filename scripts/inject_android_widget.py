@@ -34,7 +34,6 @@ def inject_widget_manifest():
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.dax.supertodo.ACTION_WIDGET_CLICK" />
                 <action android:name="com.dax.supertodo.ACTION_REFRESH_WIDGET" />
-                <action android:name="android.intent.action.CONFIGURATION_CHANGED" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -51,7 +50,6 @@ def inject_widget_manifest():
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.dax.supertodo.ACTION_WIDGET_CLICK" />
                 <action android:name="com.dax.supertodo.ACTION_REFRESH_WIDGET" />
-                <action android:name="android.intent.action.CONFIGURATION_CHANGED" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

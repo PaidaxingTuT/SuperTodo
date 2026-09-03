@@ -49,12 +49,16 @@ function load(){
 }
 
 /* ========== 桌面小部件桥接（小米澎湃OS / Android） ========== */
+let syncWidgetTimer=null;
 function syncToNativeWidget(){
-  try{
-    if(window.AndroidWidgetBridge&&window.AndroidWidgetBridge.syncData){
-      window.AndroidWidgetBridge.syncData(JSON.stringify(state));
-    }
-  }catch(e){}
+  clearTimeout(syncWidgetTimer);
+  syncWidgetTimer=setTimeout(()=>{
+    try{
+      if(window.AndroidWidgetBridge&&window.AndroidWidgetBridge.syncData){
+        window.AndroidWidgetBridge.syncData(JSON.stringify(state));
+      }
+    }catch(e){}
+  },100);
 }
 function syncFromNativeWidget(){
   try{
@@ -678,7 +682,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.1-beta.9';
+const APP_VERSION='v1.7.1-beta.10';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;

@@ -64,28 +64,7 @@ public class TodoWidgetService extends RemoteViewsService {
 
         @Override
         public int getViewTypeCount() {
-            // 支持 6 种布局：标准版(6+或4x2) + 4x4独享的5种动态自适应规格(1/2/3/4/5)
-            return 6;
-        }
-
-        private int selectLayoutRes(int totalCount) {
-            if (!is4x4) {
-                return R.layout.widget_item;
-            }
-            switch (totalCount) {
-                case 1:
-                    return R.layout.widget_item_4x4_1;
-                case 2:
-                    return R.layout.widget_item_4x4_2;
-                case 3:
-                    return R.layout.widget_item_4x4_3;
-                case 4:
-                    return R.layout.widget_item_4x4_4;
-                case 5:
-                    return R.layout.widget_item_4x4_5;
-                default:
-                    return R.layout.widget_item;
-            }
+            return 1;
         }
 
         @Override
@@ -93,8 +72,7 @@ public class TodoWidgetService extends RemoteViewsService {
             if (position < 0 || position >= items.size()) return null;
             try {
                 TodoItem item = items.get(position);
-                int layoutRes = selectLayoutRes(items.size());
-                RemoteViews rv = new RemoteViews(context.getPackageName(), layoutRes);
+                RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.widget_item);
 
                 String title = item.title != null ? item.title : "";
 
@@ -111,18 +89,6 @@ public class TodoWidgetService extends RemoteViewsService {
                     rv.setViewVisibility(R.id.item_title, View.VISIBLE);
                     rv.setTextViewText(R.id.item_title, title);
                     rv.setImageViewResource(R.id.item_checkbox, R.drawable.widget_ic_check_box_unchecked);
-                }
-
-                // 备注（仅在 4x4 单项卡片中显示）
-                if (item.note != null && !item.note.isEmpty()) {
-                    try {
-                        rv.setViewVisibility(R.id.item_note, View.VISIBLE);
-                        rv.setTextViewText(R.id.item_note, item.note);
-                    } catch (Throwable ignore) {}
-                } else {
-                    try {
-                        rv.setViewVisibility(R.id.item_note, View.GONE);
-                    } catch (Throwable ignore) {}
                 }
 
                 // 标签（优先显示当前场景或时间）

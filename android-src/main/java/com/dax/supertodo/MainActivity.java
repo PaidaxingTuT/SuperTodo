@@ -10,6 +10,7 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     private WidgetBridge widgetBridge;
+    private int lastTopDp = -1;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -34,19 +35,22 @@ public class MainActivity extends BridgeActivity {
                 getBridge().getWebView().addJavascriptInterface(widgetBridge, "AndroidWidgetBridge");
             }
 
-            // 解决 Android 15 (Target SDK 35) / 小米澎湃 3 (HyperOS 2/3) 强制 Edge-to-Edge 导致状态栏与顶部栏重叠遮挡
+            // 解决 Android 15 (Target SDK 35) / 小米澎湃 3 (HyperOS 2/3) 强制 Edge-to-Edge 导致状态栏与顶部栏重叠遮挡（防高频调用与内存卡顿）
             androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(getWindow().getDecorView(), (v, insets) -> {
                 androidx.core.graphics.Insets sb = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars());
                 if (sb.top > 0) {
                     float density = getResources().getDisplayMetrics().density;
                     int topDp = Math.round(sb.top / density);
-                    if (getBridge() != null && getBridge().getWebView() != null) {
-                        getBridge().getWebView().post(() -> {
-                            getBridge().getWebView().evaluateJavascript(
-                                "document.documentElement.style.setProperty('--safe-t', '" + topDp + "px');",
-                                null
-                            );
-                        });
+                    if (topDp != lastTopDp) {
+                        lastTopDp = topDp;
+                        if (getBridge() != null && getBridge().getWebView() != null) {
+                            getBridge().getWebView().post(() -> {
+                                getBridge().getWebView().evaluateJavascript(
+                                    "document.documentElement.style.setProperty('--safe-t', '" + topDp + "px');",
+                                    null
+                                );
+                            });
+                        }
                     }
                 }
                 return insets;

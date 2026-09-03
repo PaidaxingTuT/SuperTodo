@@ -36,23 +36,33 @@ public class WidgetDataManager {
     public static final String SORT_COST = "cost";
     public static final String SORT_UNDONE_FIRST = "undone_first";
 
+    private static volatile String sCachedJson = null;
+    private static final java.util.concurrent.ExecutorService sIoExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
+
     public static synchronized void saveWidgetData(Context context, String json) {
         if (context == null || json == null) return;
-        File dir = context.getFilesDir();
-        File file = new File(dir, FILE_NAME);
-        File tempFile = new File(dir, FILE_NAME + ".tmp");
-        try {
-            FileOutputStream fos = new FileOutputStream(tempFile);
-            fos.write(json.getBytes(StandardCharsets.UTF_8));
-            fos.flush();
-            fos.close();
-            if (tempFile.exists()) {
-                tempFile.renameTo(file);
-            }
-        } catch (Exception ignore) {}
+        sCachedJson = json;
+        final Context appContext = context.getApplicationContext();
+        sIoExecutor.execute(() -> {
+            try {
+                File dir = appContext.getFilesDir();
+                File file = new File(dir, FILE_NAME);
+                File tempFile = new File(dir, FILE_NAME + ".tmp");
+                FileOutputStream fos = new FileOutputStream(tempFile);
+                fos.write(json.getBytes(StandardCharsets.UTF_8));
+                fos.flush();
+                fos.close();
+                if (tempFile.exists()) {
+                    tempFile.renameTo(file);
+                }
+            } catch (Exception ignore) {}
+        });
     }
 
     public static synchronized String getWidgetData(Context context) {
+        if (sCachedJson != null && !sCachedJson.isEmpty()) {
+            return sCachedJson;
+        }
         if (context == null) return "";
         File file = new File(context.getFilesDir(), FILE_NAME);
         if (!file.exists()) return "";
@@ -62,8 +72,9 @@ public class WidgetDataManager {
             while ((line = reader.readLine()) != null) {
                 sb.append(line);
             }
+            sCachedJson = sb.toString();
         } catch (Exception ignore) {}
-        return sb.toString();
+        return sCachedJson != null ? sCachedJson : "";
     }
 
     public static List<TodoItem> loadAllItems(Context context) {
