@@ -803,9 +803,9 @@ function openInfo(){
 function closeInfo(){ $('#infoMask').hidden=true; $('#infoModal').hidden=true; if(!backSuppress)syncBack(); }
 function parseVerNums(v){
   const s=String(v||'').trim();
-  const isBeta=/beta/i.test(s);
+  const isPre=/-(beta|alpha|rc|pre)/i.test(s);
   const nums=(s.match(/\d+/g)||[]).map(Number);
-  if(nums.length===3&&!isBeta){
+  if(nums.length===3&&!isPre){
     nums.push(99);
   }
   return nums;
