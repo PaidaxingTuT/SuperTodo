@@ -769,7 +769,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.3';
+const APP_VERSION='v1.7.4';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -796,7 +796,6 @@ function handleVerClick(){
 }
 function openInfo(){
   pushLayer();
-  $('#infoUpdate').textContent='检查更新';
   updateInfoVerText();
   $('#infoMask').hidden=false;
   $('#infoModal').hidden=false;
@@ -1009,14 +1008,17 @@ function closeUpdateModal(){
 }
 
 async function checkUpdate(silent){
-  const el=$('#infoUpdate');
-  if(el) el.textContent='正在检查…';
+  const btn=$('#infoUpdateBtn');
+  if(!silent && btn){ btn.disabled=true; btn.style.opacity='0.6'; }
   try{
     let targetRel=null;
     if(state.devMode){
       // 开发者模式：拉取全部发布（包含预发行版 Pre-release）
       const res=await fetch(REPO_API+'/releases?per_page=10');
-      if(res.status===404){ if(el)el.textContent='暂无发布版本'; return }
+      if(res.status===404){
+        if(!silent) alertDlg('检查更新', '暂未查询到任何发布版本。');
+        return;
+      }
       if(!res.ok) throw new Error('net');
       const list=await res.json();
       if(Array.isArray(list) && list.length>0){
@@ -1026,28 +1028,29 @@ async function checkUpdate(silent){
     }else{
       // 普通模式：仅拉取最新正式 Release
       const res=await fetch(REPO_API+'/releases/latest');
-      if(res.status===404){ if(el)el.textContent='暂无已发布版本'; return }
+      if(res.status===404){
+        if(!silent) alertDlg('检查更新', '暂未查询到已发布版本。');
+        return;
+      }
       if(!res.ok) throw new Error('net');
       targetRel=await res.json();
     }
 
     if(!targetRel){
-      if(el) el.textContent='已是最新版本';
+      if(!silent) alertDlg('检查更新', '当前已是最新版本（'+APP_VERSION+'）！'+(state.devMode?'\n（已开启开发者选项，已检索全部测试预发行版）':''));
       return;
     }
 
     const latest=targetRel.tag_name;
-    const isPre=!!targetRel.prerelease;
     if(verGt(latest,APP_VERSION)){
-      const tagLabel=latest+(state.devMode?(isPre?' (测试版)':' (正式版)'):'');
-      if(el) el.textContent='发现新版本 '+tagLabel;
       showUpdateModal(targetRel);
     }else{
-      if(el) el.textContent='已是最新版本'+(state.devMode?' (开发者模式)':'');
+      if(!silent) alertDlg('检查更新', '当前已是最新版本（'+APP_VERSION+'）！'+(state.devMode?'\n（已开启开发者选项，已检索全部测试预发行版）':''));
     }
   }catch(e){
-    if(el) el.textContent='检查失败';
-    if(!silent) alertDlg('检查失败','无法连接更新服务器，请稍后再试');
+    if(!silent) alertDlg('检查更新', '检查更新失败，无法连接到更新服务器，请检查网络连接后重试。');
+  }finally{
+    if(btn){ btn.disabled=false; btn.style.opacity=''; }
   }
 }
 function downloadFile(url,name){
