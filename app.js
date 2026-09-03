@@ -27,9 +27,12 @@ const money=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:2});
 const isOverdue=d=>d&&new Date(d+'T23:59:59')<new Date();
 const fmtDue=d=>d?d.split('-')[1]+'/'+d.split('-')[2]:'';
 
-function save(){ localStorage.setItem(KEY,JSON.stringify(state)) }
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(state));
+  syncToNativeWidget();
+}
 function load(){
-  try{const d=JSON.parse(localStorage.getItem(KEY));if(!d)return;
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d){
     state.items=d.items||[];
     if(Array.isArray(d.types)&&d.types.length)state.types=d.types;
     if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes;
@@ -39,8 +42,48 @@ function load(){
     if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode;
     state.sortKey=d.sortKey||'默认'; state.sortAsc=d.sortAsc!==false;
     if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
+  }}catch(e){}
+  syncFromNativeWidget();
+}
+
+/* ========== 桌面小部件桥接（小米澎湃OS / Android） ========== */
+function syncToNativeWidget(){
+  try{
+    if(window.AndroidWidgetBridge&&window.AndroidWidgetBridge.syncData){
+      window.AndroidWidgetBridge.syncData(JSON.stringify(state));
+    }
   }catch(e){}
 }
+function syncFromNativeWidget(){
+  try{
+    if(window.AndroidWidgetBridge&&window.AndroidWidgetBridge.getData){
+      const raw=window.AndroidWidgetBridge.getData();
+      if(!raw)return;
+      const d=JSON.parse(raw);
+      if(d&&Array.isArray(d.items)){
+        let changed=false;
+        d.items.forEach(natIt=>{
+          const localIt=state.items.find(x=>x.id===natIt.id);
+          if(localIt&&localIt.done!==natIt.done){
+            localIt.done=natIt.done;
+            changed=true;
+          }
+        });
+        if(changed){
+          localStorage.setItem(KEY,JSON.stringify(state));
+          if(typeof render==='function') render();
+        }
+      }
+    }
+  }catch(e){}
+}
+window.onNativeWidgetResume=function(){ syncFromNativeWidget(); };
+window.onNativeWidgetAction=function(action,itemId){
+  syncFromNativeWidget();
+  if(action==='add_item'){ if(typeof openAdd==='function') openAdd(); }
+  else if(action==='open_item'&&itemId){ const it=state.items.find(x=>x.id===itemId); if(it&&typeof openEdit==='function') openEdit(it); }
+};
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') syncFromNativeWidget(); });
 
 /* ========== 主题 ========== */
 function hexToHsl(hex){
@@ -548,7 +591,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.0';
+const APP_VERSION='v1.8.0';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 function openInfo(){ pushLayer(); $('#infoUpdate').textContent='点击检查'; $('#infoVer').textContent='SuperTodo · 版本 '+APP_VERSION.replace(/^v/,''); $('#infoMask').hidden=false; $('#infoModal').hidden=false; }
@@ -921,4 +964,33 @@ document.addEventListener('DOMContentLoaded',()=>{
     const el=e.target.closest('[data-aifield]');
     if(el)saveAiField(el.dataset.aifield);
   });
+
+  /* 桌面小部件 */
+  const btn4x2=$('#pinWidget4x2Btn'), btn4x4=$('#pinWidget4x4Btn'), btnHelp=$('#widgetHelpBtn');
+  if(btn4x2) btn4x2.addEventListener('click',()=>pinWidget('4x2'));
+  if(btn4x4) btn4x4.addEventListener('click',()=>pinWidget('4x4'));
+  if(btnHelp) btnHelp.addEventListener('click',showWidgetHelp);
 });
+
+function pinWidget(size){
+  const name=size==='4x4'?'4×4':'4×2';
+  if(window.AndroidWidgetBridge&&window.AndroidWidgetBridge.requestPinWidget){
+    const ok=window.AndroidWidgetBridge.requestPinWidget(size);
+    if(ok){
+      alertDlg('已发送添加请求', '已向系统发起添加 ' + name + ' 小部件请求。\n\n如您的手机（如小米/Redmi 澎湃OS）未弹出确认弹窗，请在手机桌面「双指捏合 -> 小部件 -> 超级清单」手动拖动添加，或在系统权限中允许超级清单「桌面快捷方式」。');
+    }else{
+      confirmDlg('添加小部件', '当前系统暂不支持直接添加或已被系统拦截。\n\n请在手机桌面「双指捏合 -> 小部件 -> 找到超级清单」选择 ' + name + ' 拖拽到桌面即可。', null, '知道了', 'info');
+    }
+  }else{
+    alertDlg('小部件说明', '桌面小部件功能需在 Android APK 安装包内使用。\n\n安装后可在桌面「双指捏合 -> 小部件 -> 超级清单」选择 4×2 或 4×4 放置到桌面，支持按场景/时间筛选、自定义排序及直接打勾已完成。');
+  }
+}
+
+function showWidgetHelp(){
+  dlgShow({
+    title:'桌面小部件使用指南',
+    msg:'1. 添加小部件：在手机桌面「双指捏合」或长按空白处，点击「小部件」/「添加小部件」，找到「超级清单」，拖动 4×2 或 4×4 到桌面即可。\n\n2. 切换分类与排序：长按小部件点击「编辑小部件」，或点击小部件右上角 ⚙ 设置图标，即可选择按场景或按时间展示，指定具体分类，并自定义排序规则与方向。\n\n3. 桌面快速打勾：直接点击小部件上的圆圈，即可在桌面标记事项完成/未完成，无需打开 App。\n\n4. 澎湃OS专属优化：小部件采用独立低功耗后台进程，支持小米澎湃OS曝光刷新与夜间模式自动跟随。',
+    type:'alert',
+    okText:'知道了'
+  });
+}

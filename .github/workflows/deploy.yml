@@ -44,40 +44,10 @@ jobs:
           npx cap init "超级清单" com.dax.supertodo --web-dir dist
           npx cap add android
           npx cap sync android
-      - name: 内置下载（原生 DownloadManager，不跳浏览器）
+      - name: 注入澎湃OS桌面小组件源码与配置
         run: |
-          MAIN=$(find android/app/src/main/java -name "MainActivity.java" | head -1)
-          cat > "$MAIN" <<'JAVAEOF'
-          package com.dax.supertodo;
-
-          import android.app.DownloadManager;
-          import android.net.Uri;
-          import android.os.Bundle;
-          import android.webkit.DownloadListener;
-          import com.getcapacitor.BridgeActivity;
-
-          public class MainActivity extends BridgeActivity {
-              @Override
-              public void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  try {
-                      if (getBridge() != null && getBridge().getWebView() != null) {
-                          getBridge().getWebView().setDownloadListener(new DownloadListener() {
-                              @Override
-                              public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
-                                  try {
-                                      DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
-                                      req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                                      req.setTitle("SuperTodo 更新");
-                                      ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).enqueue(req);
-                                  } catch (Exception ignore) {}
-                              }
-                          });
-                      }
-                  } catch (Exception ignore) {}
-              }
-          }
-          JAVAEOF
+          cp -r android-src/main/* android/app/src/main/
+          python3 scripts/inject_android_widget.py
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
