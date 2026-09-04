@@ -709,6 +709,108 @@ body.home-view .content{padding-top:calc(56px + var(--safe-t) + 54px)}
   text-align:center;
 }
 
+/* 下载中与成功状态样式 */
+.update-progress-stage{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:32px 20px 24px;
+  text-align:center;
+}
+.up-progress-icon{
+  width:52px;
+  height:52px;
+  color:var(--primary);
+  margin-bottom:14px;
+  animation:floatUpDown 2s ease-in-out infinite alternate;
+}
+.up-progress-icon svg{
+  width:100%;
+  height:100%;
+}
+@keyframes floatUpDown{
+  from{ transform:translateY(-2px); }
+  to{ transform:translateY(4px); }
+}
+.up-progress-status{
+  font-size:15px;
+  font-weight:600;
+  color:var(--text);
+  margin-bottom:18px;
+}
+.up-bar-track{
+  width:100%;
+  max-width:340px;
+  height:10px;
+  background:var(--line);
+  border-radius:9999px;
+  overflow:hidden;
+  position:relative;
+  margin-bottom:10px;
+}
+.up-bar-fill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg, var(--primary) 0%, var(--primary-ink) 100%);
+  border-radius:9999px;
+  transition:width .25s ease-out;
+}
+.up-progress-meta{
+  width:100%;
+  max-width:340px;
+  display:flex;
+  justify-content:space-between;
+  font-size:12.5px;
+  color:var(--text3);
+  font-variant-numeric:tabular-nums;
+}
+
+/* 下载完成成功页面 */
+.update-success-stage{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:28px 20px 20px;
+  text-align:center;
+}
+.up-success-icon{
+  width:58px;
+  height:58px;
+  color:#188038;
+  margin-bottom:14px;
+  animation:popSuccess .3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.up-success-icon svg{
+  width:100%;
+  height:100%;
+}
+@keyframes popSuccess{
+  0%{ transform:scale(0.5); opacity:0; }
+  100%{ transform:scale(1); opacity:1; }
+}
+.up-success-title{
+  font-size:16px;
+  font-weight:600;
+  color:var(--text);
+  margin-bottom:6px;
+}
+.up-success-desc{
+  font-size:13px;
+  color:var(--text3);
+  max-width:300px;
+  line-height:1.5;
+}
+
+/* 胶囊按钮包裹（与立即更新等主按钮圆角矩形完全一致） */
+.btn-capsule{
+  border-radius:10px !important;
+  padding:10px 22px !important;
+  font-size:14.5px !important;
+  font-weight:500 !important;
+}
+
 /* ===== 四象限桌面小部件 (4×4) ===== */
 .quadrant-modal{
   width:min(96vw,640px);
@@ -1099,8 +1201,8 @@ body.home-view .content{padding-top:calc(56px + var(--safe-t) + 54px)}
   color:var(--text3);
 }
 .qw-grid-editors{
-  display:grid;
-  grid-template-columns:1fr 1fr;
+  display:flex;
+  flex-direction:column;
   gap:12px;
 }
 .qe-card{

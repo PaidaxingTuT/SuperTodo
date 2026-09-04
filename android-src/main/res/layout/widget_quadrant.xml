@@ -894,24 +894,28 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 十字深色坐标轴（位于四象限网格正中央） -->
-    <!-- X 轴（水平分界线，使用 RemoteViews 允许的 ImageView 避免 InflateException） -->
+    <!-- 十字深色坐标轴（位于四象限网格正中央，两端内缩避免穿透文字） -->
+    <!-- X 轴（水平分界线） -->
     <ImageView
         android:id="@+id/qw_axis_x"
         android:layout_width="match_parent"
         android:layout_height="2dp"
         android:layout_centerVertical="true"
+        android:layout_marginLeft="36dp"
+        android:layout_marginRight="36dp"
         android:background="@color/qw_axis_line" />
 
-    <!-- Y 轴（垂直分界线，使用 RemoteViews 允许的 ImageView 避免 InflateException） -->
+    <!-- Y 轴（垂直分界线） -->
     <ImageView
         android:id="@+id/qw_axis_y"
         android:layout_width="2dp"
         android:layout_height="match_parent"
         android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="20dp"
         android:background="@color/qw_axis_line" />
 
-    <!-- 四周方向提示纯文字（去掉胶囊背景） -->
+    <!-- 四周方向提示纯文字（背景覆盖坐标轴底线，彻底杜绝穿透） -->
     <!-- 上方：紧急 -->
     <TextView
         android:id="@+id/qw_pill_top"
@@ -919,9 +923,10 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
+        android:background="@color/widget_bg"
         android:gravity="center"
-        android:paddingLeft="4dp"
-        android:paddingRight="4dp"
+        android:paddingLeft="6dp"
+        android:paddingRight="6dp"
         android:paddingTop="2dp"
         android:paddingBottom="2dp"
         android:text="紧急"
@@ -936,9 +941,10 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
+        android:background="@color/widget_bg"
         android:gravity="center"
-        android:paddingLeft="4dp"
-        android:paddingRight="4dp"
+        android:paddingLeft="6dp"
+        android:paddingRight="6dp"
         android:paddingTop="2dp"
         android:paddingBottom="2dp"
         android:text="不紧急"
@@ -953,11 +959,12 @@
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_centerVertical="true"
+        android:background="@color/widget_bg"
         android:gravity="center"
-        android:paddingLeft="3dp"
-        android:paddingRight="3dp"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
+        android:paddingLeft="4dp"
+        android:paddingRight="4dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
         android:text="不重要"
         android:textColor="@color/qw_pill_text"
         android:textSize="10.5sp"
@@ -970,11 +977,12 @@
         android:layout_height="wrap_content"
         android:layout_alignParentRight="true"
         android:layout_centerVertical="true"
+        android:background="@color/widget_bg"
         android:gravity="center"
-        android:paddingLeft="3dp"
-        android:paddingRight="3dp"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
+        android:paddingLeft="4dp"
+        android:paddingRight="4dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
         android:text="重要"
         android:textColor="@color/qw_pill_text"
         android:textSize="10.5sp"

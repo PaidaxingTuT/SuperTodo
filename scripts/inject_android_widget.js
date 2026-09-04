@@ -16,10 +16,11 @@ function injectWidgetManifest() {
     return;
   }
 
-  // 1. 注入桌面快捷方式与小部件创建权限（小米澎湃OS / ColorOS 必备）
+  // 1. 注入桌面快捷方式与小部件创建权限及安装包安装权限
   const perms = `
     <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
     <uses-permission android:name="com.miui.home.launcher.permission.INSTALL_SHORTCUT" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 `;
   if (!content.includes('INSTALL_SHORTCUT')) {
     content = content.replace('<application', perms + '\n    <application');

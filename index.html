@@ -276,6 +276,14 @@ try{
       </label>
     </div>
 
+    <div class="set-divide"></div>
+
+    <div class="set-section">
+      <h3>更新与安装</h3>
+      <p class="set-tip">管理应用更新检测行为以及更新包下载完成后的处理方式。</p>
+      <label class="switch"><input type="checkbox" id="autoCheckUpdate"><span></span><em>启动时自动检查更新</em></label>
+      <label class="switch" style="margin-top:8px;"><input type="checkbox" id="autoInstallUpdate"><span></span><em>更新包下载完成后自动安装</em></label>
+    </div>
 
     <div class="set-divide"></div>
 
@@ -303,7 +311,7 @@ try{
         <img class="info-logo-dark" src="app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.6-beta.4</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.6-beta.5</div>
       <div class="info-desc">轻量 · 优雅 · 丝滑的待办与清单管理</div>
       <div class="info-author">Crafted with <span class="heart">♥</span> by <strong>派大星TuT</strong></div>
     </div>
@@ -347,12 +355,7 @@ try{
     <button class="md-close" id="quadrantClose" aria-label="关闭"></button>
   </div>
   <div class="modal-body quadrant-body">
-    <!-- 4x4 实时小部件预览 -->
-    <div class="qw-preview-section">
-      <div class="qw-preview-card" id="qwWidgetPreview"></div>
-    </div>
-
-    <!-- 底部各象限内容配置 -->
+    <!-- 各象限内容配置（按 1、2、3、4 顺序排列） -->
     <div class="qw-editors-section">
       <div class="qw-grid-editors" id="qwEditorsList"></div>
     </div>
@@ -384,10 +387,12 @@ try{
 <div class="modal-mask" id="updateMask" hidden></div>
 <div class="modal update-modal" id="updateModal" hidden>
   <div class="modal-head">
-    <h2>发现新版本</h2>
+    <h2 id="updateModalTitle">发现新版本</h2>
     <button class="md-close" id="updateClose" aria-label="关闭"></button>
   </div>
-  <div class="modal-body update-body">
+  
+  <!-- 阶段一：版本信息与更新日志 -->
+  <div class="modal-body update-body" id="updateInfoStage">
     <div class="update-ver-banner">
       <div class="update-ver-tag" id="updateVerTag">v1.7.3</div>
       <div class="update-ver-date" id="updateVerDate"></div>
@@ -395,10 +400,43 @@ try{
     <div class="update-notes-title">本次更新内容：</div>
     <div class="update-notes-box" id="updateNotes"></div>
   </div>
-  <div class="modal-foot">
+  <div class="modal-foot" id="updateInfoFoot">
     <button class="btn-text" id="updateCancel">稍后提醒</button>
     <div class="spacer"></div>
-    <button class="btn-filled" id="updateDownload">立即下载更新</button>
+    <button class="btn-filled" id="updateDownload">立即更新</button>
+  </div>
+
+  <!-- 阶段二：应用内下载中（带进度条） -->
+  <div class="modal-body update-body update-progress-stage" id="updateProgressStage" hidden>
+    <div class="up-progress-icon">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+    </div>
+    <div class="up-progress-status" id="updateProgressStatus">正在下载新版本安装包…</div>
+    <div class="up-bar-track">
+      <div class="up-bar-fill" id="updateBarFill" style="width: 0%;"></div>
+    </div>
+    <div class="up-progress-meta">
+      <span id="updateProgressPercent">0%</span>
+      <span id="updateProgressSize">准备中…</span>
+    </div>
+  </div>
+  <div class="modal-foot" id="updateProgressFoot" hidden>
+    <button class="btn-text" id="updateProgressCancel">取消下载</button>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- 阶段三：下载完成（成功页面，取消与右下角胶囊包裹安装） -->
+  <div class="modal-body update-body update-success-stage" id="updateSuccessStage" hidden>
+    <div class="up-success-icon">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+    </div>
+    <div class="up-success-title">新版本安装包下载完成！</div>
+    <div class="up-success-desc" id="updateSuccessDesc">安装包已就绪，立即安装体验最新功能。</div>
+  </div>
+  <div class="modal-foot" id="updateSuccessFoot" hidden>
+    <button class="btn-text" id="updateSuccessCancel">取消</button>
+    <div class="spacer"></div>
+    <button class="btn-filled" id="updateInstallBtn">立即安装</button>
   </div>
 </div>
 

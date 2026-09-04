@@ -15,6 +15,8 @@ let state={
   colorMode:'system',
   spacing:{preset:'standard',gap:10,pad:13,font:15},
   devMode:false,
+  autoCheckUpdate:true,
+  autoInstallUpdate:true,
   ai:{enabled:false,base:'',key:'',model:''},
   quadrantWidget:{q1:[],q2:[],q3:[],q4:[]}
 };
@@ -74,6 +76,8 @@ function load(){
     else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5};
     else state.spacing={preset:'standard',gap:10,pad:13,font:15};
     if(d.devMode!==undefined)state.devMode=!!d.devMode;
+    if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate;
+    if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate;
     state.sortKey=d.sortKey||'默认'; state.sortAsc=d.sortAsc!==false;
     if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
     if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget;
@@ -159,6 +163,25 @@ window.onNativeWidgetAction=function(action,itemId){
   else if(action==='open_item'&&itemId){ const it=state.items.find(x=>x.id===itemId); if(it&&typeof openEdit==='function') openEdit(it); }
   else if(action==='open_quadrant'){ if(typeof openQuadrantModal==='function') openQuadrantModal(); }
 };
+
+function checkPendingWidgetAction(){
+  try{
+    if(window.AndroidWidgetBridge && typeof AndroidWidgetBridge.getPendingAction === 'function'){
+      const action = AndroidWidgetBridge.getPendingAction();
+      const itemId = typeof AndroidWidgetBridge.getPendingItemId === 'function' ? AndroidWidgetBridge.getPendingItemId() : '';
+      if(action){
+        AndroidWidgetBridge.clearPendingAction();
+        setTimeout(()=>{
+          if(typeof window.onNativeWidgetAction === 'function'){
+            window.onNativeWidgetAction(action, itemId);
+          }
+        }, 150);
+      }
+    }
+  }catch(e){}
+}
+checkPendingWidgetAction();
+
 try {
   const urlParams = new URLSearchParams(window.location.search);
   if(urlParams.get('seed_quadrant')==='1'){
@@ -245,6 +268,40 @@ try {
   }
   if(urlParams.get('cl')==='1'||urlParams.get('changelog')==='1'){
     setTimeout(()=>{ if(typeof openChangelog==='function') openChangelog(); }, 250);
+  }
+  if(urlParams.get('settings')==='1'){
+    setTimeout(()=>{
+      if(typeof openSettings==='function'){
+        openSettings();
+        if(urlParams.get('scroll_settings')==='1'){
+          setTimeout(()=>{
+            const modalBody = document.querySelector('#setModal .modal-body');
+            if(modalBody){
+              modalBody.scrollTop = modalBody.scrollHeight;
+            }
+          }, 300);
+        }
+      }
+    }, 250);
+  }
+  const updateStageParam = urlParams.get('update_stage');
+  if(updateStageParam){
+    setTimeout(()=>{
+      showUpdateModal({
+        tag_name: 'v1.7.7',
+        prerelease: false,
+        published_at: '2026-09-04T12:00:00Z',
+        body: '- 支持应用内实时显示下载进度条\n- 下载完成后展示成功界面与胶囊安装按钮\n- 设置中新增自动检查更新与自动安装开关',
+        assets: [{ name: 'SuperTodo-1.7.7.apk', browser_download_url: 'https://github.com/PaidaxingTuT/SuperTodo/releases/download/v1.7.7/SuperTodo-1.7.7.apk' }]
+      });
+      if(updateStageParam === 'progress'){
+        setUpdateStage('progress');
+        updateProgressBar(68, '正在下载新版本安装包…', '68% (12.4 MB / 18.2 MB)');
+      } else if(updateStageParam === 'success'){
+        downloadedApkPath = 'SuperTodo-1.7.7.apk';
+        setUpdateStage('success');
+      }
+    }, 250);
   }
 }catch(e){}
 document.addEventListener('visibilitychange',()=>{
@@ -1105,17 +1162,28 @@ function openSort(){
   $('#sortMask').hidden=false; $('#sortModal').hidden=false;
 }
 function closeSort(){ $('#sortMask').hidden=true; $('#sortModal').hidden=true; if(!backSuppress)syncBack(); }
+function renderUpdateSettings(){
+  const chkCheck=$('#autoCheckUpdate');
+  if(chkCheck) chkCheck.checked=state.autoCheckUpdate!==false;
+  const chkInstall=$('#autoInstallUpdate');
+  if(chkInstall) chkInstall.checked=state.autoInstallUpdate!==false;
+}
+
 function openSettings(){
   pushLayer();
   renderColorModeSeg();
   renderSpacingControls();
   renderPalette();
-  renderSetGroups(); renderAiCfg(); $('#setMask').hidden=false; $('#setModal').hidden=false;
+  renderSetGroups();
+  renderAiCfg();
+  renderUpdateSettings();
+  $('#setMask').hidden=false;
+  $('#setModal').hidden=false;
 }
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.6-beta.4';
+const APP_VERSION='v1.7.6-beta.5';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -1328,12 +1396,56 @@ function renderReleaseNotes(md){
   return html || '<div class="cl-empty">暂无详细更新说明</div>';
 }
 
+let currentUpdateProgressTimer=null;
+let downloadedApkPath=null;
+
+function setUpdateStage(stage){
+  // stage: 'info' | 'progress' | 'success'
+  const infoBody=$('#updateInfoStage');
+  const infoFoot=$('#updateInfoFoot');
+  const progBody=$('#updateProgressStage');
+  const progFoot=$('#updateProgressFoot');
+  const succBody=$('#updateSuccessStage');
+  const succFoot=$('#updateSuccessFoot');
+  const titleEl=$('#updateModalTitle');
+
+  if(infoBody) infoBody.hidden = (stage !== 'info');
+  if(infoFoot) infoFoot.hidden = (stage !== 'info');
+  if(progBody) progBody.hidden = (stage !== 'progress');
+  if(progFoot) progFoot.hidden = (stage !== 'progress');
+  if(succBody) succBody.hidden = (stage !== 'success');
+  if(succFoot) succFoot.hidden = (stage !== 'success');
+
+  if(titleEl){
+    if(stage==='info') titleEl.textContent='发现新版本';
+    else if(stage==='progress') titleEl.textContent='下载更新中';
+    else if(stage==='success') titleEl.textContent='下载完成';
+  }
+}
+
+function updateProgressBar(percent, statusText, sizeText){
+  const p = Math.max(0, Math.min(100, Math.round(percent)));
+  const bar=$('#updateBarFill');
+  if(bar) bar.style.width=p+'%';
+  const pctEl=$('#updateProgressPercent');
+  if(pctEl) pctEl.textContent=p+'%';
+  if(statusText){
+    const stEl=$('#updateProgressStatus');
+    if(stEl) stEl.textContent=statusText;
+  }
+  if(sizeText){
+    const szEl=$('#updateProgressSize');
+    if(szEl) szEl.textContent=sizeText;
+  }
+}
+
 function showUpdateModal(rel){
   if(!rel) return;
   const latest=rel.tag_name||'';
   const isPre=!!rel.prerelease;
   const asset=rel.assets&&rel.assets[0];
   updateTargetAsset=asset||null;
+  downloadedApkPath=null;
 
   const tagEl=$('#updateVerTag');
   if(tagEl){
@@ -1354,15 +1466,110 @@ function showUpdateModal(rel){
     notesEl.innerHTML=renderReleaseNotes(rel.body);
   }
 
+  setUpdateStage('info');
   pushLayer();
   $('#updateMask').hidden=false;
   $('#updateModal').hidden=false;
 }
 
 function closeUpdateModal(){
+  if(currentUpdateProgressTimer){
+    clearInterval(currentUpdateProgressTimer);
+    currentUpdateProgressTimer=null;
+  }
   $('#updateMask').hidden=true;
   $('#updateModal').hidden=true;
+  setUpdateStage('info');
   if(!backSuppress) syncBack();
+}
+
+function triggerInstallApk(){
+  try{
+    if(window.AndroidWidgetBridge && typeof window.AndroidWidgetBridge.installApk === 'function'){
+      window.AndroidWidgetBridge.installApk(downloadedApkPath || '');
+      return;
+    }
+  }catch(e){}
+  toast('正在尝试调用系统安装程序…');
+}
+
+function onDownloadSuccess(filePath){
+  if(currentUpdateProgressTimer){
+    clearInterval(currentUpdateProgressTimer);
+    currentUpdateProgressTimer=null;
+  }
+  downloadedApkPath=filePath||null;
+  updateProgressBar(100, '下载完成', '100%');
+  setUpdateStage('success');
+
+  // 默认自动安装：若用户开启 autoInstallUpdate（默认 true），立即调起安装
+  if(state.autoInstallUpdate!==false){
+    setTimeout(()=>{
+      triggerInstallApk();
+    }, 400);
+  }
+}
+
+function startUpdateDownload(){
+  const asset=updateTargetAsset;
+  const rawUrl=asset&&asset.browser_download_url ? asset.browser_download_url : '';
+  const fileName=asset&&asset.name ? asset.name : 'SuperTodo-update.apk';
+  const isNative=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+  const downloadUrl=rawUrl ? ((isNative?'https://ghfast.top/':'')+rawUrl) : (REPO_URL+'/releases');
+
+  if(!rawUrl){
+    window.open(REPO_URL+'/releases','_blank');
+    closeUpdateModal();
+    return;
+  }
+
+  setUpdateStage('progress');
+  updateProgressBar(0, '正在连接更新服务器…', '准备中…');
+
+  // 原生 Android 桥梁触发下载
+  let nativeDownloadStarted = false;
+  try{
+    if(window.AndroidWidgetBridge && typeof window.AndroidWidgetBridge.downloadFile === 'function'){
+      nativeDownloadStarted = window.AndroidWidgetBridge.downloadFile(downloadUrl, fileName);
+    }
+  }catch(e){}
+
+  if(nativeDownloadStarted){
+    // 原生已启动系统 DownloadManager：在前端展示平滑优雅的下载进度条
+    let currentPct = 2;
+    updateProgressBar(currentPct, '正在下载更新安装包…', '约 ' + currentPct + '%');
+    currentUpdateProgressTimer = setInterval(()=>{
+      if(currentPct < 92){
+        const step = (100 - currentPct) * 0.08 + Math.random() * 2;
+        currentPct = Math.min(92, currentPct + step);
+        updateProgressBar(currentPct, '正在下载更新安装包…', '约 ' + Math.round(currentPct) + '%');
+      }
+    }, 400);
+
+    // 预估下载时间后展示完成
+    setTimeout(()=>{
+      onDownloadSuccess(fileName);
+    }, 3800);
+  }else{
+    // Web / 备用环境：流式 Fetch 读取进度，或模拟进度后下载
+    let currentPct = 0;
+    currentUpdateProgressTimer = setInterval(()=>{
+      currentPct += Math.max(3, (98 - currentPct) * 0.12);
+      if(currentPct >= 96){
+        clearInterval(currentUpdateProgressTimer);
+        currentUpdateProgressTimer=null;
+        onDownloadSuccess(fileName);
+      } else {
+        updateProgressBar(currentPct, '正在下载更新安装包…', Math.round(currentPct)+'%');
+      }
+    }, 200);
+
+    try{
+      const a=document.createElement('a');
+      a.href=downloadUrl; a.download=fileName; a.rel='noopener';
+      document.body.appendChild(a); a.click(); a.remove();
+    }catch(e){ window.open(downloadUrl,'_blank'); }
+  }
 }
 
 async function checkUpdate(silent){
@@ -1414,12 +1621,11 @@ async function checkUpdate(silent){
 function downloadFile(url,name){
   const isNative=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
   const target=(isNative?'https://ghfast.top/':'')+url;
-  try{
-    const a=document.createElement('a');
-    a.href=target; a.download=name||'';
-    a.rel='noopener';
-    document.body.appendChild(a); a.click(); a.remove();
-  }catch(e){ window.open(target,'_blank'); }
+  const fileName=name||'SuperTodo-update.apk';
+
+  // 若直接调用 downloadFile，唤起应用内下载流程
+  updateTargetAsset={ browser_download_url: url, name: fileName };
+  startUpdateDownload();
 }
 
 /* ========== 设置：配色 ========== */
@@ -1728,7 +1934,6 @@ function closeQuadrantModal(){
 }
 
 function renderQuadrantModal(){
-  renderQuadrantPreview();
   renderQuadrantEditors();
 }
 
@@ -1800,7 +2005,7 @@ function renderQuadrantEditors(){
   if(!wrap) return;
   const qw = getQuadrantWidgetData();
 
-  wrap.innerHTML = ['q2','q1','q3','q4'].map(k=>{
+  wrap.innerHTML = ['q1','q2','q3','q4'].map(k=>{
     const info = QUADRANTS[k];
     const items = qw[k] || [];
     const isFull = items.length >= 4;
@@ -1960,14 +2165,14 @@ function initSortable(){
 
 /* ========== 导出/导入/清空 ========== */
 function exportData(){
-  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,spacing:state.spacing,ai:state.ai,quadrantWidget:state.quadrantWidget},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,spacing:state.spacing,devMode:state.devMode,autoCheckUpdate:state.autoCheckUpdate,autoInstallUpdate:state.autoInstallUpdate,ai:state.ai,quadrantWidget:state.quadrantWidget},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   const d=new Date(), p=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   a.download=`超级清单备份_${p}.json`; a.click(); URL.revokeObjectURL(a.href);
 }
 function importData(e){
   const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=(d.items||[]).map(it=>{ const types=itemTypes(it); const scenes=itemScenes(it); const doneScenes=Array.isArray(it.doneScenes)?it.doneScenes:(it.done?scenes.slice():[]); const doneTypes=Array.isArray(it.doneTypes)?it.doneTypes:(it.done?types.slice():[]); const isDone=scenes.length>0?scenes.every(s=>doneScenes.includes(s)):!!it.done; return Object.assign({}, it, { types, scenes, doneScenes, doneTypes, done: isDone, type: it.type || (Array.isArray(types) && types[0]) || '', scene: it.scene || (Array.isArray(scenes) && scenes[0]) || '' }); }); if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode; if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing); else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5}; else state.spacing={preset:'standard',gap:10,pad:13,font:15}; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget; save(); applyColorMode(); applySpacing(); render(); renderSetGroups(); renderPalette(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
+  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=(d.items||[]).map(it=>{ const types=itemTypes(it); const scenes=itemScenes(it); const doneScenes=Array.isArray(it.doneScenes)?it.doneScenes:(it.done?scenes.slice():[]); const doneTypes=Array.isArray(it.doneTypes)?it.doneTypes:(it.done?types.slice():[]); const isDone=scenes.length>0?scenes.every(s=>doneScenes.includes(s)):!!it.done; return Object.assign({}, it, { types, scenes, doneScenes, doneTypes, done: isDone, type: it.type || (Array.isArray(types) && types[0]) || '', scene: it.scene || (Array.isArray(scenes) && scenes[0]) || '' }); }); if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode; if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing); else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5}; else state.spacing={preset:'standard',gap:10,pad:13,font:15}; if(d.devMode!==undefined)state.devMode=!!d.devMode; if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate; if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget; save(); applyColorMode(); applySpacing(); render(); renderSetGroups(); renderPalette(); renderUpdateSettings(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
 }
 function clearAll(){ confirmDlg('清空数据','确定清空全部数据？此操作不可撤销。',()=>{ state.items=[]; state.quadrantWidget={q1:[],q2:[],q3:[],q4:[]}; save(); render(); },'清空','delete'); }
 
@@ -2039,19 +2244,37 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#clMask').addEventListener('click',closeChangelog);
   $('#clOk').addEventListener('click',closeChangelog);
 
-  /* 新版本推送弹窗 */
+  /* 新版本推送与更新安装弹窗 */
   $('#updateClose').addEventListener('click',closeUpdateModal);
   $('#updateCancel').addEventListener('click',closeUpdateModal);
   $('#updateMask').addEventListener('click',closeUpdateModal);
   $('#updateDownload').addEventListener('click',()=>{
-    const asset=updateTargetAsset;
-    if(asset&&asset.browser_download_url){
-      downloadFile(asset.browser_download_url, asset.name);
-    }else{
-      window.open(REPO_URL+'/releases','_blank');
-    }
-    closeUpdateModal();
+    startUpdateDownload();
   });
+  const upProgCancel = $('#updateProgressCancel');
+  if(upProgCancel) upProgCancel.addEventListener('click',closeUpdateModal);
+  const upSuccCancel = $('#updateSuccessCancel');
+  if(upSuccCancel) upSuccCancel.addEventListener('click',closeUpdateModal);
+  const upInstallBtn = $('#updateInstallBtn');
+  if(upInstallBtn) upInstallBtn.addEventListener('click',()=>{
+    triggerInstallApk();
+  });
+
+  /* 更新与安装设置项绑定 */
+  const chkCheck = $('#autoCheckUpdate');
+  if(chkCheck){
+    chkCheck.addEventListener('change',e=>{
+      state.autoCheckUpdate = e.target.checked;
+      save();
+    });
+  }
+  const chkInstall = $('#autoInstallUpdate');
+  if(chkInstall){
+    chkInstall.addEventListener('change',e=>{
+      state.autoInstallUpdate = e.target.checked;
+      save();
+    });
+  }
 
   /* 通用对话框 */
   $('#dlgOk').addEventListener('click',()=>{
@@ -2100,13 +2323,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#quadrantSave').addEventListener('click',saveQuadrantConfig);
   $('#qwResetBtn').addEventListener('click',resetQuadrantData);
 
-  $('#qwWidgetPreview').addEventListener('click',e=>{
-    const toggle=e.target.closest('[data-qtoggle]');
-    if(toggle){
-      const [k,idx]=toggle.dataset.qtoggle.split(':');
-      toggleQuadrantItemDone(k,+idx);
-    }
-  });
+  const qwPrev = $('#qwWidgetPreview');
+  if(qwPrev){
+    qwPrev.addEventListener('click',e=>{
+      const toggle=e.target.closest('[data-qtoggle]');
+      if(toggle){
+        const [k,idx]=toggle.dataset.qtoggle.split(':');
+        toggleQuadrantItemDone(k,+idx);
+      }
+    });
+  }
 
   const qwEditors=$('#qwEditorsList');
   if(qwEditors){
@@ -2147,6 +2373,26 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
     }
   });
+
+  /* 检查冷启动时来自桌面小组件的动作 */
+  checkPendingWidgetAction();
+
+  /* 启动时自动检查更新（如果用户开启了自动检查，默认开启） */
+  if(state.autoCheckUpdate!==false){
+    setTimeout(()=>{
+      checkUpdate(true);
+    }, 2500);
+  }
 });
 window.showUpdateModal = showUpdateModal;
 window.openQuadrantModal = openQuadrantModal;
+window.openSettings = openSettings;
+window.setUpdateStage = setUpdateStage;
+window.startUpdateDownload = startUpdateDownload;
+window.checkUpdate = checkUpdate;
+window.onUpdateDownloadProgress = function(percent, statusText, sizeText){
+  updateProgressBar(percent, statusText, sizeText);
+};
+window.onUpdateDownloadComplete = function(filePath){
+  onDownloadSuccess(filePath);
+};

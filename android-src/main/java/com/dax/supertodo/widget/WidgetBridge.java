@@ -62,6 +62,79 @@ public class WidgetBridge {
     }
 
     @JavascriptInterface
+    public boolean downloadFile(String url, String filename) {
+        if (activity == null || url == null || url.isEmpty()) return false;
+        try {
+            android.app.DownloadManager dm = (android.app.DownloadManager) activity.getSystemService(android.content.Context.DOWNLOAD_SERVICE);
+            if (dm == null) return false;
+            android.net.Uri uri = android.net.Uri.parse(url);
+            android.app.DownloadManager.Request req = new android.app.DownloadManager.Request(uri);
+            req.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            String title = (filename != null && !filename.isEmpty()) ? filename : "SuperTodo 更新";
+            req.setTitle(title);
+            req.setDescription("正在下载更新安装包…");
+            if (filename != null && !filename.isEmpty()) {
+                req.setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, filename);
+            }
+            req.setMimeType("application/vnd.android.package-archive");
+            dm.enqueue(req);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    @JavascriptInterface
+    public boolean installApk(String filePath) {
+        if (activity == null) return false;
+        try {
+            java.io.File apkFile = null;
+            if (filePath != null && !filePath.trim().isEmpty()) {
+                apkFile = new java.io.File(filePath);
+            }
+            if (apkFile == null || !apkFile.exists()) {
+                java.io.File downloads = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+                if (downloads != null && downloads.exists()) {
+                    java.io.File[] files = downloads.listFiles((dir, name) -> name.toLowerCase().endsWith(".apk") && name.toLowerCase().contains("supertodo"));
+                    if (files != null && files.length > 0) {
+                        java.util.Arrays.sort(files, (f1, f2) -> Long.compare(f2.lastModified(), f1.lastModified()));
+                        apkFile = files[0];
+                    }
+                }
+            }
+            if (apkFile == null || !apkFile.exists()) {
+                android.content.Intent openDownloads = new android.content.Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS);
+                openDownloads.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.startActivity(openDownloads);
+                return true;
+            }
+
+            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            android.net.Uri contentUri;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                String authority = activity.getPackageName() + ".fileprovider";
+                contentUri = androidx.core.content.FileProvider.getUriForFile(activity, authority, apkFile);
+            } else {
+                contentUri = android.net.Uri.fromFile(apkFile);
+            }
+            intent.setDataAndType(contentUri, "application/vnd.android.package-archive");
+            activity.startActivity(intent);
+            return true;
+        } catch (Throwable t) {
+            try {
+                android.content.Intent openDownloads = new android.content.Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS);
+                openDownloads.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.startActivity(openDownloads);
+                return true;
+            } catch (Throwable ignore) {}
+            return false;
+        }
+    }
+
+    @JavascriptInterface
     public boolean requestPinWidget(String size) {
         if (activity == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return false;
@@ -86,6 +159,30 @@ public class WidgetBridge {
         }
     }
 
+    private String pendingAction = null;
+    private String pendingItemId = null;
+
+    public synchronized void setPendingAction(String action, String itemId) {
+        this.pendingAction = action;
+        this.pendingItemId = itemId;
+    }
+
+    @JavascriptInterface
+    public synchronized String getPendingAction() {
+        return pendingAction != null ? pendingAction : "";
+    }
+
+    @JavascriptInterface
+    public synchronized String getPendingItemId() {
+        return pendingItemId != null ? pendingItemId : "";
+    }
+
+    @JavascriptInterface
+    public synchronized void clearPendingAction() {
+        this.pendingAction = null;
+        this.pendingItemId = null;
+    }
+
     public void notifyAppResumed() {
         if (activity == null || webView == null) return;
         activity.runOnUiThread(new Runnable() {
@@ -99,6 +196,7 @@ public class WidgetBridge {
     }
 
     public void dispatchAction(final String action, final String itemId) {
+        setPendingAction(action, itemId);
         if (activity == null || webView == null) return;
         activity.runOnUiThread(new Runnable() {
             @Override
@@ -106,7 +204,7 @@ public class WidgetBridge {
                 try {
                     String safeAction = action != null ? action : "";
                     String safeItemId = itemId != null ? itemId : "";
-                    String script = "if(window.onNativeWidgetAction) window.onNativeWidgetAction('" + safeAction + "', '" + safeItemId + "');";
+                    String script = "if(window.onNativeWidgetAction){ window.onNativeWidgetAction('" + safeAction + "', '" + safeItemId + "'); if(window.AndroidWidgetBridge) window.AndroidWidgetBridge.clearPendingAction(); }";
                     webView.evaluateJavascript(script, null);
                 } catch (Exception ignore) {}
             }

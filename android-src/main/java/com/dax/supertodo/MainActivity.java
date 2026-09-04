@@ -22,10 +22,19 @@ public class MainActivity extends BridgeActivity {
                     @Override
                     public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
                         try {
-                            DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
-                            req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                            req.setTitle("SuperTodo 更新");
-                            ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).enqueue(req);
+                            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+                            if (dm != null && url != null && !url.isEmpty()) {
+                                DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
+                                req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                                String fileName = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimeType);
+                                req.setTitle(fileName != null && !fileName.isEmpty() ? fileName : "SuperTodo 更新");
+                                req.setDescription("正在下载更新安装包…");
+                                if (fileName != null && !fileName.isEmpty()) {
+                                    req.setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, fileName);
+                                }
+                                req.setMimeType("application/vnd.android.package-archive");
+                                dm.enqueue(req);
+                            }
                         } catch (Exception ignore) {}
                     }
                 });
@@ -96,6 +105,18 @@ public class MainActivity extends BridgeActivity {
         if (intent == null) return;
         String action = intent.getStringExtra("widget_action");
         String itemId = intent.getStringExtra("widget_item_id");
+        if (action == null && intent.getData() != null) {
+            Uri data = intent.getData();
+            if ("supertodo".equalsIgnoreCase(data.getScheme())) {
+                String host = data.getHost();
+                if ("quadrant".equalsIgnoreCase(host)) {
+                    action = "open_quadrant";
+                } else if ("item".equalsIgnoreCase(host)) {
+                    action = "open_item";
+                    itemId = data.getQueryParameter("id");
+                }
+            }
+        }
         if (widgetBridge != null && action != null) {
             widgetBridge.dispatchAction(action, itemId);
         }
