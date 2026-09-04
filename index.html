@@ -302,7 +302,7 @@ try{
         <img class="info-logo-dark" src="app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.4</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.5</div>
       <div class="info-desc">轻量 · 优雅 · 丝滑的待办与清单管理</div>
       <div class="info-author">Crafted with <span class="heart">♥</span> by <strong>派大星TuT</strong></div>
     </div>
@@ -378,11 +378,38 @@ try{
 
 <!-- ===== 长按操作菜单 ===== -->
 <div class="modal-mask" id="ctxMask" hidden></div>
-<div class="modal modal-sm" id="ctxModal" hidden>
-  <div class="modal-head"><h2 id="ctxTitle">操作</h2><button class="md-close" id="ctxClose" aria-label="关闭"></button></div>
-  <div class="modal-body">
-    <button class="ctx-row" id="ctxRename">✎ 重命名</button>
-    <button class="ctx-row" id="ctxDelete">🗑 删除</button>
+<div class="modal modal-sm ctx-modal" id="ctxModal" hidden>
+  <div class="modal-head">
+    <div class="ctx-head-info">
+      <h2 id="ctxTitle">管理类型</h2>
+      <span class="ctx-tag-pill" id="ctxTagName">标签</span>
+    </div>
+    <button class="md-close" id="ctxClose" aria-label="关闭"></button>
+  </div>
+  <div class="modal-body ctx-body">
+    <button class="ctx-action-item" id="ctxRename">
+      <div class="ctx-action-icon edit">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+      </div>
+      <div class="ctx-action-text">
+        <div class="ctx-action-title">重命名</div>
+        <div class="ctx-action-desc">修改当前标签的名称</div>
+      </div>
+      <span class="ctx-action-arrow"></span>
+    </button>
+    <button class="ctx-action-item danger" id="ctxDelete">
+      <div class="ctx-action-icon delete">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+      </div>
+      <div class="ctx-action-text">
+        <div class="ctx-action-title">删除标签</div>
+        <div class="ctx-action-desc">从应用中移除此标签</div>
+      </div>
+      <span class="ctx-action-arrow"></span>
+    </button>
+  </div>
+  <div class="modal-foot ctx-foot">
+    <button class="btn-line ctx-cancel-btn" id="ctxCancelBtn">取消</button>
   </div>
 </div>
 

@@ -28,6 +28,18 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const money=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:2});
 const isOverdue=d=>d&&new Date(d+'T23:59:59')<new Date();
 const fmtDue=d=>d?d.split('-')[1]+'/'+d.split('-')[2]:'';
+function itemTypes(it){
+  if(!it) return [];
+  if(Array.isArray(it.types)) return it.types.filter(Boolean);
+  if(typeof it.type==='string' && it.type.trim()) return [it.type.trim()];
+  return [];
+}
+function itemScenes(it){
+  if(!it) return [];
+  if(Array.isArray(it.scenes)) return it.scenes.filter(Boolean);
+  if(typeof it.scene==='string' && it.scene.trim()) return [it.scene.trim()];
+  return [];
+}
 
 function save(){
   localStorage.setItem(KEY,JSON.stringify(state));
@@ -35,7 +47,22 @@ function save(){
 }
 function load(){
   try{const d=JSON.parse(localStorage.getItem(KEY));if(d){
-    state.items=d.items||[];
+    state.items=(d.items||[]).map(it=>{
+      const types=itemTypes(it);
+      const scenes=itemScenes(it);
+      const doneScenes=Array.isArray(it.doneScenes)?it.doneScenes:(it.done?scenes.slice():[]);
+      const doneTypes=Array.isArray(it.doneTypes)?it.doneTypes:(it.done?types.slice():[]);
+      const isDone=scenes.length>0?scenes.every(s=>doneScenes.includes(s)):!!it.done;
+      return Object.assign({}, it, {
+        types,
+        scenes,
+        doneScenes,
+        doneTypes,
+        done: isDone,
+        type: it.type || (Array.isArray(types) && types[0]) || '',
+        scene: it.scene || (Array.isArray(scenes) && scenes[0]) || ''
+      });
+    });
     if(Array.isArray(d.types)&&d.types.length)state.types=d.types;
     if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes;
     if(Array.isArray(d.times)&&d.times.length)state.times=d.times;
@@ -76,6 +103,13 @@ function syncFromNativeWidget(){
           const localIt=state.items.find(x=>x.id===natIt.id);
           if(localIt&&localIt.done!==natIt.done){
             localIt.done=natIt.done;
+            if(natIt.done){
+              localIt.doneScenes=itemScenes(localIt).slice();
+              localIt.doneTypes=itemTypes(localIt).slice();
+            }else{
+              localIt.doneScenes=[];
+              localIt.doneTypes=[];
+            }
             changed=true;
           }
         });
@@ -211,8 +245,14 @@ function groupOrder(){
 }
 function currentItems(){
   let list=state.items.slice();
-  if(state.type!=='全部') list=list.filter(i=>i.type===state.type);
-  if(state.search){const q=state.search.toLowerCase();list=list.filter(i=>(i.title+(i.note||'')).toLowerCase().includes(q))}
+  if(state.type!=='全部') list=list.filter(i=>itemTypes(i).includes(state.type));
+  if(state.search){
+    const q=state.search.toLowerCase();
+    list=list.filter(i=>{
+      const allText=(i.title+' '+(i.note||'')+' '+itemTypes(i).join(' ')+' '+itemScenes(i).join(' ')+' '+(i.time||'')).toLowerCase();
+      return allText.includes(q);
+    });
+  }
   return list;
 }
 function sortItems(list){
@@ -227,12 +267,55 @@ function sortItems(list){
   });
   return list;
 }
+function isItemDoneIn(it, kind, key){
+  if(!it) return false;
+  if(kind==='scene' && key && key!=='未分组'){
+    const scenes=itemScenes(it);
+    if(scenes.includes(key)){
+      if(Array.isArray(it.doneScenes)) return it.doneScenes.includes(key);
+      return !!it.done;
+    }
+  }
+  if(kind==='type' && key && key!=='全部'){
+    const types=itemTypes(it);
+    if(types.includes(key)){
+      if(Array.isArray(it.doneTypes)) return it.doneTypes.includes(key);
+      return !!it.done;
+    }
+  }
+  return !!it.done;
+}
+
 function sectionGroups(){
   const items=currentItems();
   const map={};
-  items.forEach(it=>{const k=groupKey(it);(map[k]=map[k]||[]).push(it)});
+  items.forEach(it=>{
+    if(state.groupBy==='scene'){
+      const scenes=itemScenes(it);
+      if(!scenes.length){
+        (map['未分组']=map['未分组']||[]).push(it);
+      }else{
+        scenes.forEach(s=>{
+          (map[s]=map[s]||[]).push(it);
+        });
+      }
+    }else{
+      const k=it.time||'未分组';
+      (map[k]=map[k]||[]).push(it);
+    }
+  });
   const out=[];
-  groupOrder().forEach(k=>{if(map[k]) out.push({key:k,items:map[k],done:map[k].filter(i=>i.done).length,active:map[k].filter(i=>!i.done).length})});
+  groupOrder().forEach(k=>{
+    if(map[k]){
+      const isDone = i => isItemDoneIn(i, state.groupBy, k);
+      out.push({
+        key: k,
+        items: map[k],
+        done: map[k].filter(isDone).length,
+        active: map[k].filter(i => !isDone(i)).length
+      });
+    }
+  });
   return out;
 }
 
@@ -342,7 +425,13 @@ function renderTitle(){
 function renderDrawer(){
   const nav=$('#drawerNav');
   const counts={};
-  state.items.forEach(i=>counts[i.type]=(counts[i.type]||0)+(i.done?0:1));
+  state.items.forEach(i=>{
+    itemTypes(i).forEach(t=>{
+      if(!isItemDoneIn(i, 'type', t) && !i.done){
+        counts[t]=(counts[t]||0)+1;
+      }
+    });
+  });
   const totalActive=state.items.filter(i=>!i.done).length;
   let html=`<div class="dnav-title">类型</div>`;
   html+=`<button class="dnav-item dnav-all ${state.type==='全部'?'on':''}" data-t="全部"><span class="dnav-ic"></span>全部<span class="dnav-count">${totalActive}</span></button>`;
@@ -368,7 +457,7 @@ function renderHome(wrap,empty){
   empty.hidden=true;
   let html='';
   groups.forEach(g=>{
-    const undone=g.items.filter(i=>!i.done).slice().sort((a,b)=>(a.order??Infinity)-(b.order??Infinity)||a.created-b.created);
+    const undone=g.items.filter(i=>!isItemDoneIn(i,state.groupBy,g.key)).slice().sort((a,b)=>(a.order??Infinity)-(b.order??Infinity)||a.created-b.created);
     const preview=undone.slice(0,3);
     html+=`<div class="section">
       <div class="section-head" data-open="${esc(g.key)}">
@@ -378,18 +467,19 @@ function renderHome(wrap,empty){
         <span class="sec-right">${undone.length?'未完成 '+undone.length:'全完成'}</span>
       </div>
       <div class="section-card" data-open="${esc(g.key)}">
-        ${preview.map(it=>secItemHTML(it)).join('')}
+        ${preview.map(it=>secItemHTML(it,g.key)).join('')}
         <div class="sec-more" data-open2="${esc(g.key)}">查看全部 ${g.items.length} 项 <span class="ci-arrow" style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%235f6368%22><path d=%22M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z/%22/></svg>') center/contain no-repeat;width:14px;height:14px"></span></div>
       </div>
     </div>`;
   });
   wrap.innerHTML=html;
 }
-function secItemHTML(it){
+function secItemHTML(it,groupKey){
+  const done=isItemDoneIn(it,state.groupBy,groupKey);
   return `<div class="sec-item" data-item="${it.id}">
-    <span class="card-check ${it.done?'done':''}" data-done="${it.id}"></span>
+    <span class="card-check ${done?'done':''}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(groupKey||'')}"></span>
     <div class="card-body">
-      <div class="card-title ${it.done?'done':''}">${esc(it.title)}</div>
+      <div class="card-title ${done?'done':''}">${esc(it.title)}</div>
       <div class="card-meta">${secMeta(it)}</div>
     </div>
   </div>`;
@@ -399,8 +489,12 @@ function secMeta(it){
   if(it.cost) h+=`<span class="cost">¥${money(it.cost)}</span>`;
   if(it.star) h+=`<span class="star">${'★'.repeat(it.star)}</span>`;
   if(it.due) h+=`<span class="tag ${isOverdue(it.due)&&!it.done?'over':''}">${fmtDue(it.due)}</span>`;
-  // 在分组内显示被分组的那一维之外的标签
-  if(state.groupBy!=='scene' && it.scene) h+=`<span class="tag">${esc(it.scene)}</span>`;
+  if(state.type==='全部'){
+    itemTypes(it).forEach(t=>{ h+=`<span class="tag type-blue">${esc(t)}</span>`; });
+  }
+  if(state.groupBy!=='scene'){
+    itemScenes(it).forEach(s=>{ h+=`<span class="tag">${esc(s)}</span>`; });
+  }
   if(state.groupBy!=='time' && it.time) h+=`<span class="tag">${esc(it.time)}</span>`;
   return h;
 }
@@ -409,21 +503,24 @@ function renderList(wrap,empty){
   if(!g){ empty.hidden=false; renderEmptyText(); wrap.innerHTML=''; return }
   if(!g.items.length){ empty.hidden=false; renderEmptyText(); wrap.innerHTML=''; return }
   empty.hidden=true;
-  const undone=g.items.filter(i=>!i.done);
+  const isDone=i=>isItemDoneIn(i,state.groupBy,g.key);
+  const undone=g.items.filter(i=>!isDone(i));
+  const doneList=g.items.filter(isDone);
   let list;
   if(state.sortKey==='默认'){
-    list=undone.slice().sort((a,b)=>(a.order??Infinity)-(b.order??Infinity)||a.created-b.created).concat(g.items.filter(i=>i.done));
+    list=undone.slice().sort((a,b)=>(a.order??Infinity)-(b.order??Infinity)||a.created-b.created).concat(doneList);
   } else {
-    list=sortItems(undone.concat(g.items.filter(i=>i.done)));
+    list=sortItems(undone.concat(doneList));
   }
   const draggable = state.sortKey==='默认';
   let html='';
   list.forEach(it=>{
-    const drag = draggable&&!it.done ? `<span class="drag-handle" data-drag="${it.id}"></span>` : '';
+    const itemDone=isDone(it);
+    const drag = draggable&&!itemDone ? `<span class="drag-handle" data-drag="${it.id}"></span>` : '';
     html+=`<div class="item-row" data-item="${it.id}">
-      <span class="card-check ${it.done?'done':''}" data-done="${it.id}"></span>
+      <span class="card-check ${itemDone?'done':''}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(g.key)}"></span>
       <div class="card-body">
-        <div class="card-title ${it.done?'done':''}">${esc(it.title)}</div>
+        <div class="card-title ${itemDone?'done':''}">${esc(it.title)}</div>
         <div class="card-meta">${fullMeta(it)}</div>
       </div>
       ${drag}
@@ -434,9 +531,11 @@ function renderList(wrap,empty){
 }
 function fullMeta(it){
   let h='';
-  if(it.type) h+=`<span class="tag type-blue">${esc(it.type)}</span>`;
-  if(it.scene&&state.groupBy!=='scene') h+=`<span class="tag">${esc(it.scene)}</span>`;
-  if(it.time&&state.groupBy!=='time') h+=`<span class="tag">${esc(it.time)}</span>`;
+  itemTypes(it).forEach(t=>{ h+=`<span class="tag type-blue">${esc(t)}</span>`; });
+  if(state.groupBy!=='scene'){
+    itemScenes(it).forEach(s=>{ h+=`<span class="tag">${esc(s)}</span>`; });
+  }
+  if(state.groupBy!=='time' && it.time) h+=`<span class="tag">${esc(it.time)}</span>`;
   if(it.cost) h+=`<span class="cost">¥${money(it.cost)}</span>`;
   if(it.star) h+=`<span class="star">${'★'.repeat(it.star)}</span>`;
   if(it.due) h+=`<span class="tag ${isOverdue(it.due)&&!it.done?'over':''}">${fmtDue(it.due)}</span>`;
@@ -585,7 +684,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#content').addEventListener('click',e=>{
     if(e.target.closest('.drag-handle'))return;
     const done=e.target.closest('[data-done]');
-    if(done){ e.stopPropagation(); toggleDone(done.dataset.done); return }
+    if(done){
+      e.stopPropagation();
+      toggleDone(done.dataset.done, done.dataset.doneKind, done.dataset.doneKey);
+      return;
+    }
     const item=e.target.closest('[data-item]');
     if(item){ e.stopPropagation(); const it=state.items.find(x=>x.id===item.dataset.item); if(it)openEdit(it); return }
     const open=e.target.closest('[data-open]');
@@ -633,23 +736,51 @@ let ctxKind=null, ctxIdx=null, ctxName=null;
 function openCtxMenu(item){
   pushLayer();
   ctxKind=item.dataset.kind; ctxIdx=+item.dataset.idx; ctxName=item.dataset.t;
-  $('#ctxTitle').textContent='「'+ctxName+'」';
+  const kindNames={type:'类型',scene:'场景',time:'时间'};
+  const kn=kindNames[ctxKind]||'标签';
+  const titleEl=$('#ctxTitle');
+  if(titleEl) titleEl.textContent='管理'+kn;
+  const nameEl=$('#ctxTagName');
+  if(nameEl) nameEl.textContent=ctxName;
   $('#ctxMask').hidden=false; $('#ctxModal').hidden=false;
 }
 function closeCtx(){ $('#ctxMask').hidden=true; $('#ctxModal').hidden=true; if(!backSuppress)syncBack(); }
 function ctxRename(){
-  const arr = ctxKind==='type'?state.types:ctxKind==='scene'?state.scenes:state.times;
-  const cur=arr[ctxIdx];
+  const kind=ctxKind, idx=ctxIdx;
+  const arr = kind==='type'?state.types:kind==='scene'?state.scenes:state.times;
+  const cur=arr[idx];
+  closeCtx();
   inputDlg('重命名', '输入新名称', cur, (nm)=>{
     if(nm&&nm!==cur){
       const old=cur, name=nm;
-      arr[ctxIdx]=name;
-      state.items.forEach(it=>{ if(ctxKind==='type'&&it.type===old)it.type=name; });
+      arr[idx]=name;
+      state.items.forEach(it=>{
+        if(kind==='type'){
+          if(Array.isArray(it.types)){
+            it.types=it.types.map(t=>t===old?name:t);
+            it.type=it.types[0]||'';
+          } else if(it.type===old){
+            it.type=name; it.types=[name];
+          }
+          if(Array.isArray(it.doneTypes)){
+            it.doneTypes=it.doneTypes.map(t=>t===old?name:t);
+          }
+        } else if(kind==='scene'){
+          if(Array.isArray(it.scenes)){
+            it.scenes=it.scenes.map(s=>s===old?name:s);
+            it.scene=it.scenes[0]||'';
+          } else if(it.scene===old){
+            it.scene=name; it.scenes=[name];
+          }
+          if(Array.isArray(it.doneScenes)){
+            it.doneScenes=it.doneScenes.map(s=>s===old?name:s);
+          }
+        }
+      });
       if(state.type===old)state.type=name;
       save(); render(); renderSetGroups();
     }
-    closeCtx();
-  }, closeCtx);
+  });
 }
 function ctxDelete(){ closeCtx(); deleteTag(ctxKind,ctxIdx); }
 function deleteTag(kind,idx){
@@ -659,9 +790,29 @@ function deleteTag(kind,idx){
   const rem=arr[idx];
   confirmDlg('删除标签', `确定删除「${rem}」？相关事项中的该标签会被清空。`, ()=>{    arr.splice(idx,1);
     state.items.forEach(it=>{
-      if(kind==='type'&&it.type===rem)it.type=state.types[0];
-      else if(kind==='scene'&&it.scene===rem)it.scene='';
-      else if(kind==='time'&&it.time===rem)it.time='';
+      if(kind==='type'){
+        if(Array.isArray(it.types)){
+          it.types=it.types.filter(t=>t!==rem);
+          it.type=it.types[0]||'';
+        } else if(it.type===rem){
+          it.type=''; it.types=[];
+        }
+        if(Array.isArray(it.doneTypes)){
+          it.doneTypes=it.doneTypes.filter(t=>t!==rem);
+        }
+      } else if(kind==='scene'){
+        if(Array.isArray(it.scenes)){
+          it.scenes=it.scenes.filter(s=>s!==rem);
+          it.scene=it.scenes[0]||'';
+        } else if(it.scene===rem){
+          it.scene=''; it.scenes=[];
+        }
+        if(Array.isArray(it.doneScenes)){
+          it.doneScenes=it.doneScenes.filter(s=>s!==rem);
+        }
+      } else if(kind==='time'&&it.time===rem){
+        it.time='';
+      }
     });
     if(state.type===rem)state.type='全部';
     save(); render(); renderSetGroups();
@@ -677,7 +828,50 @@ function addType(){
 }
 
 function enterGroup(key){ pushLayer(); state.view={name:'list',group:key}; state.sortKey='默认'; render(); }
-function toggleDone(id){ const it=state.items.find(x=>x.id===id); if(!it)return; it.done=!it.done; save(); render(); }
+function toggleDone(id, kind, key){
+  const it=state.items.find(x=>x.id===id);
+  if(!it) return;
+  if(!Array.isArray(it.doneScenes)) it.doneScenes=it.done?itemScenes(it).slice():[];
+  if(!Array.isArray(it.doneTypes)) it.doneTypes=it.done?itemTypes(it).slice():[];
+
+  if(kind==='scene' && key && key!=='未分组'){
+    const scenes=itemScenes(it);
+    if(scenes.includes(key)){
+      const idx=it.doneScenes.indexOf(key);
+      if(idx>=0){
+        it.doneScenes.splice(idx,1);
+      }else{
+        it.doneScenes.push(key);
+      }
+      it.done = scenes.length>0 && scenes.every(s=>it.doneScenes.includes(s));
+      save(); render(); return;
+    }
+  }
+
+  if(kind==='type' && key && key!=='全部'){
+    const types=itemTypes(it);
+    if(types.includes(key)){
+      const idx=it.doneTypes.indexOf(key);
+      if(idx>=0){
+        it.doneTypes.splice(idx,1);
+      }else{
+        it.doneTypes.push(key);
+      }
+      it.done = types.length>0 && types.every(t=>it.doneTypes.includes(t));
+      save(); render(); return;
+    }
+  }
+
+  it.done=!it.done;
+  if(it.done){
+    it.doneScenes=itemScenes(it).slice();
+    it.doneTypes=itemTypes(it).slice();
+  }else{
+    it.doneScenes=[];
+    it.doneTypes=[];
+  }
+  save(); render();
+}
 
 /* ========== 添加/编辑弹窗 ========== */
 let editId=null, editStar=0, modalOpen=false;
@@ -699,7 +893,7 @@ function openAdd(pref){
   $('#fTypeSeg').innerHTML=segHTML('type'); $('#fSceneSeg').innerHTML=segHTML('scene'); $('#fTimeSeg').innerHTML=segHTML('time');
   $$('#fTypeSeg .seg-chip, #fSceneSeg .seg-chip, #fTimeSeg .seg-chip').forEach(c=>c.classList.remove('on'));
   // 预选当前类型
-  if(state.type!=='全部'){ const tc=$('#fTypeSeg .seg-chip[data-v="'+state.type+'"]'); if(tc)tc.classList.add('on'); }
+  if(state.type!=='全部'){ const tc=$('#fTypeSeg .seg-chip[data-v="'+esc(state.type)+'"]'); if(tc)tc.classList.add('on'); }
   // 预选当前所在分组
   if(state.view.name==='list' && state.view.group && state.view.group!=='未分组'){
     const kind=state.groupBy==='scene'?'Scene':'Time';
@@ -708,9 +902,9 @@ function openAdd(pref){
   }
   // AI 预填覆盖默认预选
   if(pref){
-    if(pref.type) setSeg('type',pref.type);
-    if(pref.scene) setSeg('scene',pref.scene);
-    if(pref.time) setSeg('time',pref.time);
+    if(pref.types || pref.type) setSeg('type', pref.types || pref.type);
+    if(pref.scenes || pref.scene) setSeg('scene', pref.scenes || pref.scene);
+    if(pref.time) setSeg('time', pref.time);
   }
   renderSuggest(pref?pref.suggest:null);
   $$('.star-b').forEach((s,i)=>s.classList.toggle('on',i<editStar));
@@ -723,30 +917,81 @@ function openEdit(it){
   $('#fTitle').value=it.title; $('#fNote').value=it.note||'';
   $('#fCost').value=(it.cost!==null&&it.cost!==undefined)?it.cost:''; $('#fDue').value=it.due||'';
   $('#fTypeSeg').innerHTML=segHTML('type'); $('#fSceneSeg').innerHTML=segHTML('scene'); $('#fTimeSeg').innerHTML=segHTML('time');
-  setSeg('type',it.type); setSeg('scene',it.scene||''); setSeg('time',it.time||'');
+  setSeg('type',itemTypes(it)); setSeg('scene',itemScenes(it)); setSeg('time',it.time||'');
   $$('.star-b').forEach((s,i)=>s.classList.toggle('on',i<editStar));
   $('#modalDelete').hidden=false;
   showModal();
 }
-function setSeg(kind,val){ const el=$('#f'+kind.charAt(0).toUpperCase()+kind.slice(1)+'Seg .seg-chip[data-v="'+val+'"]'); if(el)el.classList.add('on'); }
+function setSeg(kind,val){
+  const vals = Array.isArray(val) ? val : (val ? [val] : []);
+  const cap = kind.charAt(0).toUpperCase() + kind.slice(1);
+  vals.forEach(v=>{
+    const el = $('#f' + cap + 'Seg .seg-chip[data-v="' + esc(v) + '"]');
+    if(el) el.classList.add('on');
+  });
+}
 function showModal(){ pushLayer(); $('#modalMask').hidden=false; $('#modal').hidden=false; $('#fTitle').focus(); }
 function hideModal(){ $('#modal').hidden=true; $('#modalMask').hidden=true; modalOpen=false; if(!backSuppress)syncBack(); }
 
-function segSel(kind){ const el=document.querySelector('#f'+kind.charAt(0).toUpperCase()+kind.slice(1)+'Seg .seg-chip.on'); return el?el.dataset.v:''; }
+function segSelAll(kind){
+  const cap = kind.charAt(0).toUpperCase() + kind.slice(1);
+  const els = $$('#f' + cap + 'Seg .seg-chip.on');
+  return els.map(el=>el.dataset.v).filter(Boolean);
+}
+function segSel(kind){
+  const cap = kind.charAt(0).toUpperCase() + kind.slice(1);
+  const el = document.querySelector('#f' + cap + 'Seg .seg-chip.on');
+  return el ? el.dataset.v : '';
+}
 function gather(){
   const title=$('#fTitle').value.trim(); if(!title){ $('#fTitle').focus(); return null }
-  return { title, note:$('#fNote').value.trim(), type:segSel('type')||state.types[0], scene:segSel('scene'), time:segSel('time'),
-    cost:isNaN(parseFloat($('#fCost').value))?null:parseFloat($('#fCost').value), due:$('#fDue').value||'', star:editStar };
+  const types=segSelAll('type');
+  const scenes=segSelAll('scene');
+  const time=segSel('time');
+  return {
+    title,
+    note: $('#fNote').value.trim(),
+    types,
+    type: types[0] || '',
+    scenes,
+    scene: scenes[0] || '',
+    time,
+    cost: isNaN(parseFloat($('#fCost').value)) ? null : parseFloat($('#fCost').value),
+    due: $('#fDue').value || '',
+    star: editStar
+  };
 }
 function saveForm(){
   const g=gather(); if(!g)return;
   $$('#aiSuggestBox input:checked').forEach(cb=>{
     const kind=cb.dataset.kind, name=cb.value;
     addTagSilent(kind,name);
-    if(kind==='type')g.type=name; else if(kind==='scene')g.scene=name; else g.time=name;
+    if(kind==='type'){
+      if(!g.types.includes(name)) g.types.push(name);
+      if(!g.type) g.type=name;
+    } else if(kind==='scene'){
+      if(!g.scenes.includes(name)) g.scenes.push(name);
+      if(!g.scene) g.scene=name;
+    } else {
+      g.time=name;
+    }
   });
-  if(editId){ const it=state.items.find(x=>x.id===editId); if(it)Object.assign(it,g); }
-  else state.items.push(Object.assign({id:uid(),done:false,created:Date.now()},g));
+  if(editId){
+    const it=state.items.find(x=>x.id===editId);
+    if(it){
+      Object.assign(it,g);
+      if(Array.isArray(it.doneScenes)){
+        it.doneScenes=it.doneScenes.filter(s=>it.scenes.includes(s));
+      }
+      if(Array.isArray(it.doneTypes)){
+        it.doneTypes=it.doneTypes.filter(t=>it.types.includes(t));
+      }
+      if(it.scenes.length>0){
+        it.done=it.scenes.every(s=>(it.doneScenes||[]).includes(s));
+      }
+    }
+  }
+  else state.items.push(Object.assign({id:uid(),done:false,doneScenes:[],doneTypes:[],created:Date.now()},g));
   save(); render(); hideModal();
 }
 
@@ -769,7 +1014,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.4';
+const APP_VERSION='v1.7.5';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -1090,9 +1335,14 @@ function addTag(kind){
       const cap=kind.charAt(0).toUpperCase()+kind.slice(1);
       const el=$('#f'+cap+'Seg');
       if(el){
+        const prevOn = $$('#f'+cap+'Seg .seg-chip.on').map(c=>c.dataset.v);
         el.innerHTML=segHTML(kind);
-        const chip=el.querySelector('.seg-chip[data-v="'+name+'"]');
-        if(chip)chip.classList.add('on');
+        prevOn.forEach(v=>{
+          const c=el.querySelector('.seg-chip[data-v="'+esc(v)+'"]');
+          if(c) c.classList.add('on');
+        });
+        const chip=el.querySelector('.seg-chip[data-v="'+esc(name)+'"]');
+        if(chip) chip.classList.add('on');
       }
     }
   });
@@ -1104,8 +1354,33 @@ function renameTag(kind,idx){
     if(nm&&nm!==old){
       if(arr.includes(nm)){ alertDlg('提示','该名称已存在'); return }
       arr[idx]=nm;
-      if(kind==='type'){ state.items.forEach(it=>{if(it.type===old)it.type=nm}); if(state.type===old)state.type=nm; }
-      else if(kind==='scene'){ state.items.forEach(it=>{if(it.scene===old)it.scene=nm}); }
+      if(kind==='type'){
+        state.items.forEach(it=>{
+          if(Array.isArray(it.types)){
+            it.types=it.types.map(t=>t===old?nm:t);
+            it.type=it.types[0]||'';
+          } else if(it.type===old){
+            it.type=nm; it.types=[nm];
+          }
+          if(Array.isArray(it.doneTypes)){
+            it.doneTypes=it.doneTypes.map(t=>t===old?nm:t);
+          }
+        });
+        if(state.type===old)state.type=nm;
+      }
+      else if(kind==='scene'){
+        state.items.forEach(it=>{
+          if(Array.isArray(it.scenes)){
+            it.scenes=it.scenes.map(s=>s===old?nm:s);
+            it.scene=it.scenes[0]||'';
+          } else if(it.scene===old){
+            it.scene=nm; it.scenes=[nm];
+          }
+          if(Array.isArray(it.doneScenes)){
+            it.doneScenes=it.doneScenes.map(s=>s===old?nm:s);
+          }
+        });
+      }
       else if(kind==='time'){ state.items.forEach(it=>{if(it.time===old)it.time=nm}); }
       save(); render(); renderSetGroups();
     }
@@ -1283,7 +1558,7 @@ function initSortable(){
     easing:'cubic-bezier(.2,.7,.2,1)',
     ghostClass:'sortable-ghost',
     onEnd(){
-      $$('#content .item-row').forEach((r,i)=>{ const it=state.items.find(x=>x.id===r.dataset.item); if(it&&!it.done)it.order=i; });
+      $$('#content .item-row').forEach((r,i)=>{ const it=state.items.find(x=>x.id===r.dataset.item); if(it&&!isItemDoneIn(it,state.groupBy,state.view.group))it.order=i; });
       save();
     }
   });
@@ -1298,7 +1573,7 @@ function exportData(){
 }
 function importData(e){
   const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=d.items||[]; if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode; if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing); else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5}; else state.spacing={preset:'standard',gap:10,pad:13,font:15}; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); save(); applyColorMode(); applySpacing(); render(); renderSetGroups(); renderPalette(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
+  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=(d.items||[]).map(it=>{ const types=itemTypes(it); const scenes=itemScenes(it); const doneScenes=Array.isArray(it.doneScenes)?it.doneScenes:(it.done?scenes.slice():[]); const doneTypes=Array.isArray(it.doneTypes)?it.doneTypes:(it.done?types.slice():[]); const isDone=scenes.length>0?scenes.every(s=>doneScenes.includes(s)):!!it.done; return Object.assign({}, it, { types, scenes, doneScenes, doneTypes, done: isDone, type: it.type || (Array.isArray(types) && types[0]) || '', scene: it.scene || (Array.isArray(scenes) && scenes[0]) || '' }); }); if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode; if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing); else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5}; else state.spacing={preset:'standard',gap:10,pad:13,font:15}; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); save(); applyColorMode(); applySpacing(); render(); renderSetGroups(); renderPalette(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
 }
 function clearAll(){ confirmDlg('清空数据','确定清空全部数据？此操作不可撤销。',()=>{ state.items=[]; save(); render(); },'清空','delete'); }
 
@@ -1313,7 +1588,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     const add=e.target.closest('.seg-chip.mini');
     if(add){ addTag(add.dataset.add); return }
     const seg=e.target.closest('#fTypeSeg .seg-chip, #fSceneSeg .seg-chip, #fTimeSeg .seg-chip');
-    if(seg){ $$('#f'+seg.dataset.k.charAt(0).toUpperCase()+seg.dataset.k.slice(1)+'Seg .seg-chip').forEach(c=>{ if(!c.classList.contains('mini'))c.classList.toggle('on',c===seg); }); return }
+    if(seg){
+      const kind=seg.dataset.k;
+      if(kind==='type'||kind==='scene'){
+        // 类型与场景：多选，再次点击当前项可取消选中
+        seg.classList.toggle('on');
+      } else {
+        // 时间：单选，再次点击当前项可取消选中
+        const wasOn=seg.classList.contains('on');
+        $$('#fTimeSeg .seg-chip').forEach(c=>{ if(!c.classList.contains('mini')) c.classList.remove('on'); });
+        if(!wasOn) seg.classList.add('on');
+      }
+      return;
+    }
   });
   $('#fTitle').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();$('#fNote').focus()} });
   $('#fNote').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();saveForm()} });
@@ -1340,6 +1627,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   /* 上下文菜单 */
   $('#ctxClose').addEventListener('click',closeCtx);
   $('#ctxMask').addEventListener('click',closeCtx);
+  const ctxCancel=$('#ctxCancelBtn');
+  if(ctxCancel) ctxCancel.addEventListener('click',closeCtx);
   $('#ctxRename').addEventListener('click',ctxRename);
   $('#ctxDelete').addEventListener('click',ctxDelete);
 
