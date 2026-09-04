@@ -4,6 +4,8 @@ import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
+import android.os.Bundle;
 import com.dax.supertodo.R;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -129,22 +131,62 @@ public class WidgetDataManager {
         return loadTags(context, "times");
     }
 
+    public static boolean isWidgetRemoveDone(Context context) {
+        if (context == null) return false;
+        String json = getWidgetData(context);
+        if (json.isEmpty()) return false;
+        try {
+            JSONObject root = new JSONObject(json);
+            return isWidgetRemoveDone(root);
+        } catch (Exception ignore) {
+            return false;
+        }
+    }
+
+    public static boolean isWidgetRemoveDone(JSONObject root) {
+        if (root == null) return false;
+        return root.optBoolean("widgetRemoveDone", false);
+    }
+
     public static synchronized boolean toggleItemDone(Context context, String itemId) {
         if (context == null || itemId == null || itemId.isEmpty()) return false;
         String json = getWidgetData(context);
         if (json.isEmpty()) return false;
         try {
             JSONObject root = new JSONObject(json);
+            boolean removeDone = isWidgetRemoveDone(root);
             JSONArray items = root.optJSONArray("items");
             if (items == null) return false;
             boolean updated = false;
+            boolean nextState = false;
             for (int i = 0; i < items.length(); i++) {
                 JSONObject obj = items.optJSONObject(i);
                 if (obj != null && itemId.equals(obj.optString("id"))) {
                     boolean cur = obj.optBoolean("done", false);
-                    obj.put("done", !cur);
+                    nextState = !cur;
+                    obj.put("done", nextState);
                     updated = true;
                     break;
+                }
+            }
+            // 同步更新四象限中包含的同 ID 事项状态
+            JSONObject qw = root.optJSONObject("quadrantWidget");
+            if (qw != null) {
+                String[] qKeys = new String[] { "q1", "q2", "q3", "q4" };
+                for (String qKey : qKeys) {
+                    JSONArray arr = qw.optJSONArray(qKey);
+                    if (arr == null) continue;
+                    for (int j = arr.length() - 1; j >= 0; j--) {
+                        JSONObject qObj = arr.optJSONObject(j);
+                        if (qObj != null && itemId.equals(qObj.optString("id"))) {
+                            if (removeDone && nextState) {
+                                arr.remove(j);
+                            } else {
+                                qObj.put("done", nextState);
+                            }
+                            updated = true;
+                        }
+                    }
                 }
             }
             if (updated) {
@@ -220,7 +262,8 @@ public class WidgetDataManager {
         String category = getWidgetCategory(context, widgetId);
         String sortKey = getWidgetSortKey(context, widgetId);
         final boolean sortAsc = getWidgetSortAsc(context, widgetId);
-        boolean hideDone = getWidgetHideDone(context, widgetId);
+        boolean removeDone = isWidgetRemoveDone(context);
+        boolean hideDone = getWidgetHideDone(context, widgetId) || removeDone;
 
         List<TodoItem> filtered = new ArrayList<>();
         for (TodoItem it : all) {
@@ -283,6 +326,7 @@ public class WidgetDataManager {
         if (json.isEmpty()) return list;
         try {
             JSONObject root = new JSONObject(json);
+            boolean removeDone = isWidgetRemoveDone(root);
             JSONObject qw = root.optJSONObject("quadrantWidget");
             if (qw != null) {
                 JSONArray arr = qw.optJSONArray(qKey);
@@ -290,7 +334,11 @@ public class WidgetDataManager {
                     for (int i = 0; i < arr.length(); i++) {
                         JSONObject obj = arr.optJSONObject(i);
                         if (obj != null) {
-                            list.add(TodoItem.fromJson(obj));
+                            TodoItem it = TodoItem.fromJson(obj);
+                            if (removeDone && it.done) {
+                                continue;
+                            }
+                            list.add(it);
                         }
                     }
                 }
@@ -305,34 +353,56 @@ public class WidgetDataManager {
         if (json.isEmpty()) return false;
         try {
             JSONObject root = new JSONObject(json);
+            boolean removeDone = isWidgetRemoveDone(root);
             JSONObject qw = root.optJSONObject("quadrantWidget");
             if (qw == null) return false;
             JSONArray arr = qw.optJSONArray(qKey);
             if (arr == null) return false;
             boolean updated = false;
+            boolean nextState = false;
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject obj = arr.optJSONObject(i);
                 if (obj != null && itemId.equals(obj.optString("id"))) {
                     boolean cur = obj.optBoolean("done", false);
-                    boolean nextState = !cur;
-                    obj.put("done", nextState);
-                    updated = true;
-
-                    // 保持与主列表对应待办事项完成状态双向同步
-                    JSONArray rootItems = root.optJSONArray("items");
-                    if (rootItems != null) {
-                        for (int j = 0; j < rootItems.length(); j++) {
-                            JSONObject rootIt = rootItems.optJSONObject(j);
-                            if (rootIt != null && itemId.equals(rootIt.optString("id"))) {
-                                rootIt.put("done", nextState);
-                                break;
-                            }
-                        }
+                    nextState = !cur;
+                    if (removeDone && nextState) {
+                        arr.remove(i);
+                    } else {
+                        obj.put("done", nextState);
                     }
+                    updated = true;
                     break;
                 }
             }
             if (updated) {
+                // 保持与主列表对应待办事项完成状态双向同步
+                JSONArray rootItems = root.optJSONArray("items");
+                if (rootItems != null) {
+                    for (int j = 0; j < rootItems.length(); j++) {
+                        JSONObject rootIt = rootItems.optJSONObject(j);
+                        if (rootIt != null && itemId.equals(rootIt.optString("id"))) {
+                            rootIt.put("done", nextState);
+                            break;
+                        }
+                    }
+                }
+                // 同步更新其他象限中可能存在的同 ID 事项
+                String[] qKeys = new String[] { "q1", "q2", "q3", "q4" };
+                for (String otherKey : qKeys) {
+                    if (otherKey.equals(qKey)) continue;
+                    JSONArray otherArr = qw.optJSONArray(otherKey);
+                    if (otherArr == null) continue;
+                    for (int k = otherArr.length() - 1; k >= 0; k--) {
+                        JSONObject oObj = otherArr.optJSONObject(k);
+                        if (oObj != null && itemId.equals(oObj.optString("id"))) {
+                            if (removeDone && nextState) {
+                                otherArr.remove(k);
+                            } else {
+                                oObj.put("done", nextState);
+                            }
+                        }
+                    }
+                }
                 saveWidgetData(context, root.toString());
                 return true;
             }
@@ -372,5 +442,39 @@ public class WidgetDataManager {
                 }
             }
         } catch (Exception ignore) {}
+    }
+
+    public static int getWidgetWidth(Context context, AppWidgetManager mgr, int appWidgetId, int defaultWidth) {
+        if (mgr == null || context == null) return defaultWidth;
+        try {
+            Bundle options = mgr.getAppWidgetOptions(appWidgetId);
+            if (options == null) return defaultWidth;
+            boolean isLandscape = context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+            int w = isLandscape ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 0)
+                                : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0);
+            if (w <= 0) {
+                w = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0);
+            }
+            return w > 0 ? w : defaultWidth;
+        } catch (Throwable t) {
+            return defaultWidth;
+        }
+    }
+
+    public static int getWidgetHeight(Context context, AppWidgetManager mgr, int appWidgetId, int defaultHeight) {
+        if (mgr == null || context == null) return defaultHeight;
+        try {
+            Bundle options = mgr.getAppWidgetOptions(appWidgetId);
+            if (options == null) return defaultHeight;
+            boolean isLandscape = context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+            int h = isLandscape ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+                                : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0);
+            if (h <= 0) {
+                h = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0);
+            }
+            return h > 0 ? h : defaultHeight;
+        } catch (Throwable t) {
+            return defaultHeight;
+        }
     }
 }

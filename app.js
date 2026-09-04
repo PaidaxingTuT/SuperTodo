@@ -17,6 +17,7 @@ let state={
   devMode:false,
   autoCheckUpdate:true,
   autoInstallUpdate:true,
+  widgetRemoveDone:false,
   ai:{enabled:false,base:'',key:'',model:''},
   quadrantWidget:{q1:[],q2:[],q3:[],q4:[]}
 };
@@ -78,6 +79,7 @@ function load(){
     if(d.devMode!==undefined)state.devMode=!!d.devMode;
     if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate;
     if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate;
+    if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone;
     state.sortKey=d.sortKey||'默认'; state.sortAsc=d.sortAsc!==false;
     if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
     if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget;
@@ -123,9 +125,23 @@ function syncFromNativeWidget(){
           state.quadrantWidget=d.quadrantWidget;
           changed=true;
         }
+        if(d.widgetRemoveDone!==undefined&&state.widgetRemoveDone!==!!d.widgetRemoveDone){
+          state.widgetRemoveDone=!!d.widgetRemoveDone;
+          changed=true;
+        }
+        if(state.widgetRemoveDone&&state.quadrantWidget){
+          ['q1','q2','q3','q4'].forEach(k=>{
+            if(Array.isArray(state.quadrantWidget[k])){
+              const origLen=state.quadrantWidget[k].length;
+              state.quadrantWidget[k]=state.quadrantWidget[k].filter(it=>!it.done);
+              if(state.quadrantWidget[k].length!==origLen) changed=true;
+            }
+          });
+        }
         if(changed){
           localStorage.setItem(KEY,JSON.stringify(state));
           if(typeof render==='function') render();
+          if(typeof renderQuadrantModal==='function') renderQuadrantModal();
         }
       }
     }
@@ -1002,6 +1018,7 @@ function toggleDone(id, kind, key){
         it.doneScenes.push(key);
       }
       it.done = scenes.length>0 && scenes.every(s=>it.doneScenes.includes(s));
+      syncItemDoneToQuadrant(it.id, it.done);
       save(); render(); return;
     }
   }
@@ -1016,6 +1033,7 @@ function toggleDone(id, kind, key){
         it.doneTypes.push(key);
       }
       it.done = types.length>0 && types.every(t=>it.doneTypes.includes(t));
+      syncItemDoneToQuadrant(it.id, it.done);
       save(); render(); return;
     }
   }
@@ -1028,7 +1046,23 @@ function toggleDone(id, kind, key){
     it.doneScenes=[];
     it.doneTypes=[];
   }
+  syncItemDoneToQuadrant(it.id, it.done);
   save(); render();
+}
+
+function syncItemDoneToQuadrant(itemId, isDone){
+  if(state.quadrantWidget && typeof state.quadrantWidget === 'object'){
+    ['q1','q2','q3','q4'].forEach(k=>{
+      if(Array.isArray(state.quadrantWidget[k])){
+        state.quadrantWidget[k].forEach(qIt=>{
+          if(qIt.id === itemId) qIt.done = isDone;
+        });
+        if(state.widgetRemoveDone && isDone){
+          state.quadrantWidget[k] = state.quadrantWidget[k].filter(x => x.id !== itemId);
+        }
+      }
+    });
+  }
 }
 
 /* ========== 添加/编辑弹窗 ========== */
@@ -1167,6 +1201,8 @@ function renderUpdateSettings(){
   if(chkCheck) chkCheck.checked=state.autoCheckUpdate!==false;
   const chkInstall=$('#autoInstallUpdate');
   if(chkInstall) chkInstall.checked=state.autoInstallUpdate!==false;
+  const chkRemove=$('#widgetRemoveDone');
+  if(chkRemove) chkRemove.checked=!!state.widgetRemoveDone;
 }
 
 function openSettings(){
@@ -1183,7 +1219,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.6-beta.5';
+const APP_VERSION='v1.7.6-beta.6';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -1944,7 +1980,10 @@ function renderQuadrantPreview(){
 
   function renderCell(qKey){
     const info = QUADRANTS[qKey];
-    const items = qw[qKey] || [];
+    let items = (qw[qKey] || []).slice();
+    if(state.widgetRemoveDone){
+      items = items.filter(it => !it.done);
+    }
     let itemsHtml = '';
     if(!items.length){
       itemsHtml = `
@@ -2017,7 +2056,7 @@ function renderQuadrantEditors(){
       itemsHtml = items.map((it, idx)=>`
         <div class="qe-row">
           <span class="card-check ${it.done?'done':''}" data-qtoggle="${k}:${idx}"></span>
-          <span class="qe-row-title ${it.done?'done':''}">${esc(it.title)}</span>
+          <span class="qe-row-title ${it.done?'done':''}" data-qtoggle="${k}:${idx}">${esc(it.title)}</span>
           <button class="qe-row-del" data-qdel="${k}:${idx}" title="移除">✕</button>
         </div>
       `).join('');
@@ -2082,7 +2121,44 @@ function removeQuadrantItem(qKey, idx){
 function toggleQuadrantItemDone(qKey, idx){
   const qw = getQuadrantWidgetData();
   if(qw[qKey] && qw[qKey][idx] !== undefined){
-    qw[qKey][idx].done = !qw[qKey][idx].done;
+    const target = qw[qKey][idx];
+    target.done = !target.done;
+    const newDone = target.done;
+    const itemId = target.id;
+
+    // 同步主列表中同 ID 待办事项完成状态
+    const localIt = state.items.find(x => x.id === itemId);
+    if(localIt){
+      localIt.done = newDone;
+      if(newDone){
+        localIt.doneScenes = itemScenes(localIt).slice();
+        localIt.doneTypes = itemTypes(localIt).slice();
+      } else {
+        localIt.doneScenes = [];
+        localIt.doneTypes = [];
+      }
+    }
+
+    // 同步其他象限中包含的同 ID 事项状态
+    ['q1','q2','q3','q4'].forEach(k=>{
+      if(Array.isArray(qw[k])){
+        qw[k].forEach(item=>{
+          if(item.id === itemId) item.done = newDone;
+        });
+      }
+    });
+
+    // 若开启自动移除，已完成事项立即从四象限中移除
+    if(state.widgetRemoveDone && newDone){
+      ['q1','q2','q3','q4'].forEach(k=>{
+        if(Array.isArray(qw[k])){
+          qw[k] = qw[k].filter(it => !it.done);
+        }
+      });
+    }
+
+    save();
+    render();
     renderQuadrantModal();
   }
 }
@@ -2165,14 +2241,14 @@ function initSortable(){
 
 /* ========== 导出/导入/清空 ========== */
 function exportData(){
-  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,spacing:state.spacing,devMode:state.devMode,autoCheckUpdate:state.autoCheckUpdate,autoInstallUpdate:state.autoInstallUpdate,ai:state.ai,quadrantWidget:state.quadrantWidget},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,spacing:state.spacing,devMode:state.devMode,autoCheckUpdate:state.autoCheckUpdate,autoInstallUpdate:state.autoInstallUpdate,widgetRemoveDone:state.widgetRemoveDone,ai:state.ai,quadrantWidget:state.quadrantWidget},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   const d=new Date(), p=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   a.download=`超级清单备份_${p}.json`; a.click(); URL.revokeObjectURL(a.href);
 }
 function importData(e){
   const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=(d.items||[]).map(it=>{ const types=itemTypes(it); const scenes=itemScenes(it); const doneScenes=Array.isArray(it.doneScenes)?it.doneScenes:(it.done?scenes.slice():[]); const doneTypes=Array.isArray(it.doneTypes)?it.doneTypes:(it.done?types.slice():[]); const isDone=scenes.length>0?scenes.every(s=>doneScenes.includes(s)):!!it.done; return Object.assign({}, it, { types, scenes, doneScenes, doneTypes, done: isDone, type: it.type || (Array.isArray(types) && types[0]) || '', scene: it.scene || (Array.isArray(scenes) && scenes[0]) || '' }); }); if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode; if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing); else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5}; else state.spacing={preset:'standard',gap:10,pad:13,font:15}; if(d.devMode!==undefined)state.devMode=!!d.devMode; if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate; if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget; save(); applyColorMode(); applySpacing(); render(); renderSetGroups(); renderPalette(); renderUpdateSettings(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
+  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=(d.items||[]).map(it=>{ const types=itemTypes(it); const scenes=itemScenes(it); const doneScenes=Array.isArray(it.doneScenes)?it.doneScenes:(it.done?scenes.slice():[]); const doneTypes=Array.isArray(it.doneTypes)?it.doneTypes:(it.done?types.slice():[]); const isDone=scenes.length>0?scenes.every(s=>doneScenes.includes(s)):!!it.done; return Object.assign({}, it, { types, scenes, doneScenes, doneTypes, done: isDone, type: it.type || (Array.isArray(types) && types[0]) || '', scene: it.scene || (Array.isArray(scenes) && scenes[0]) || '' }); }); if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode; if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing); else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5}; else state.spacing={preset:'standard',gap:10,pad:13,font:15}; if(d.devMode!==undefined)state.devMode=!!d.devMode; if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate; if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate; if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget; save(); applyColorMode(); applySpacing(); render(); renderSetGroups(); renderPalette(); renderUpdateSettings(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
 }
 function clearAll(){ confirmDlg('清空数据','确定清空全部数据？此操作不可撤销。',()=>{ state.items=[]; state.quadrantWidget={q1:[],q2:[],q3:[],q4:[]}; save(); render(); },'清空','delete'); }
 
@@ -2272,6 +2348,25 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(chkInstall){
     chkInstall.addEventListener('change',e=>{
       state.autoInstallUpdate = e.target.checked;
+      save();
+    });
+  }
+  const chkRemove = $('#widgetRemoveDone');
+  if(chkRemove){
+    chkRemove.addEventListener('change',e=>{
+      state.widgetRemoveDone = e.target.checked;
+      if(state.widgetRemoveDone){
+        const qw = getQuadrantWidgetData();
+        let cleaned = false;
+        ['q1','q2','q3','q4'].forEach(k=>{
+          if(Array.isArray(qw[k])){
+            const origLen = qw[k].length;
+            qw[k] = qw[k].filter(it => !it.done);
+            if(qw[k].length !== origLen) cleaned = true;
+          }
+        });
+        if(cleaned) renderQuadrantModal();
+      }
       save();
     });
   }

@@ -91,6 +91,7 @@
         android:layout_below="@id/widget_count_text"
         android:layout_marginTop="8dp"
         android:orientation="vertical"
+        android:animateLayoutChanges="true"
         android:visibility="gone">
 
         <!-- 槽位 1 -->
@@ -645,4 +646,33 @@
         android:textSize="13sp"
         android:visibility="gone" />
 
+    <!-- 1x1 极简自适应模式（当被拖拽至 1x1 极小尺寸时自动展现） -->
+    <LinearLayout
+        android:id="@+id/widget_compact_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/compact_count_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textColor="@color/widget_primary"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/compact_label_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="待办事项"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="11sp" />
+    </LinearLayout>
+
 </RelativeLayout>
+

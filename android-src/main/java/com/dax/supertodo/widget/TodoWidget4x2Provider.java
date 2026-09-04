@@ -23,19 +23,71 @@ public class TodoWidget4x2Provider extends AppWidgetProvider {
         }
     }
 
+    @Override
+    public void onAppWidgetOptionsChanged(Context context, AppWidgetManager appWidgetManager, int appWidgetId, android.os.Bundle newOptions) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions);
+        updateAppWidget(context, appWidgetManager, appWidgetId);
+    }
+
     public static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_4x2);
 
-        // 设置小组件标题与当前分类标签
-        String filterTitle = WidgetDataManager.getWidgetFilterTitle(context, appWidgetId);
-        views.setTextViewText(R.id.widget_filter_badge, filterTitle);
+        int width = WidgetDataManager.getWidgetWidth(context, appWidgetManager, appWidgetId, 250);
+        int height = WidgetDataManager.getWidgetHeight(context, appWidgetManager, appWidgetId, 120);
 
         List<TodoItem> items = WidgetDataManager.loadTasksForWidget(context, appWidgetId);
         int activeCount = 0;
         for (TodoItem it : items) {
             if (!it.done) activeCount++;
         }
+
+        // 判定是否处于 1x1 极小紧凑尺寸 (例如宽 <= 110dp 且 高 <= 110dp)
+        boolean isCompact = width <= 110 && height <= 110;
+
+        if (isCompact) {
+            // 极简 1x1 模式：仅展示大数字待办计数和文本标签，点击直接打开 App
+            views.setViewVisibility(R.id.widget_header, View.GONE);
+            views.setViewVisibility(R.id.widget_list, View.GONE);
+            views.setViewVisibility(R.id.widget_empty_view, View.GONE);
+            views.setViewVisibility(R.id.widget_compact_layout, View.VISIBLE);
+            views.setTextViewText(R.id.compact_count_text, String.valueOf(activeCount));
+
+            Intent mainIntent = new Intent(context, MainActivity.class);
+            mainIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent mainPI = PendingIntent.getActivity(
+                context,
+                4000 + appWidgetId,
+                mainIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            views.setOnClickPendingIntent(R.id.widget_compact_layout, mainPI);
+
+            appWidgetManager.updateAppWidget(appWidgetId, views);
+            return;
+        }
+
+        // 正常尺寸模式
+        views.setViewVisibility(R.id.widget_compact_layout, View.GONE);
+        views.setViewVisibility(R.id.widget_header, View.VISIBLE);
+
+        // 设置小组件标题与当前分类标签
+        String filterTitle = WidgetDataManager.getWidgetFilterTitle(context, appWidgetId);
+        views.setTextViewText(R.id.widget_filter_badge, filterTitle);
         views.setTextViewText(R.id.widget_count_text, activeCount + " 项待办");
+
+        // 宽度弹性响应：空间较小时隐藏次要元素以防标题被挤压截断
+        if (width < 260) {
+            views.setViewVisibility(R.id.widget_filter_badge, View.GONE);
+        } else {
+            views.setViewVisibility(R.id.widget_filter_badge, View.VISIBLE);
+        }
+        if (width < 200) {
+            views.setViewVisibility(R.id.widget_count_text, View.GONE);
+            views.setViewVisibility(R.id.btn_widget_settings, View.GONE);
+        } else {
+            views.setViewVisibility(R.id.widget_count_text, View.VISIBLE);
+            views.setViewVisibility(R.id.btn_widget_settings, View.VISIBLE);
+        }
 
         // 绑定列表数据源 Service
         Intent serviceIntent = new Intent(context, TodoWidgetService.class);

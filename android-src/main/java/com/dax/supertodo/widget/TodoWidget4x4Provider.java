@@ -27,9 +27,8 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
     public static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_4x4);
 
-        // 获取分组与过滤标题
-        String filterTitle = WidgetDataManager.getWidgetFilterTitle(context, appWidgetId);
-        views.setTextViewText(R.id.widget_filter_badge, filterTitle);
+        int width = WidgetDataManager.getWidgetWidth(context, appWidgetManager, appWidgetId, 280);
+        int height = WidgetDataManager.getWidgetHeight(context, appWidgetManager, appWidgetId, 280);
 
         List<TodoItem> items = WidgetDataManager.loadTasksForWidget(context, appWidgetId);
         int activeCount = 0;
@@ -38,19 +37,91 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
             if (it.done) doneCount++;
             else activeCount++;
         }
-        views.setTextViewText(R.id.widget_count_text, activeCount + " 项待办 · " + doneCount + " 项已完成");
+
+        // 1. 判定是否处于 1x1 极小紧凑尺寸 (宽 <= 110dp 且 高 <= 110dp)
+        boolean isCompact = width <= 110 && height <= 110;
+        if (isCompact) {
+            views.setViewVisibility(R.id.widget_header, View.GONE);
+            views.setViewVisibility(R.id.widget_count_text, View.GONE);
+            views.setViewVisibility(R.id.widget_slots_container, View.GONE);
+            views.setViewVisibility(R.id.widget_list, View.GONE);
+            views.setViewVisibility(R.id.widget_empty_view, View.GONE);
+            views.setViewVisibility(R.id.widget_compact_layout, View.VISIBLE);
+            views.setTextViewText(R.id.compact_count_text, String.valueOf(activeCount));
+
+            Intent mainIntent = new Intent(context, MainActivity.class);
+            mainIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent mainPI = PendingIntent.getActivity(
+                context,
+                1000 + appWidgetId,
+                mainIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            views.setOnClickPendingIntent(R.id.widget_compact_layout, mainPI);
+
+            appWidgetManager.updateAppWidget(appWidgetId, views);
+            return;
+        }
+
+        // 正常尺寸模式
+        views.setViewVisibility(R.id.widget_compact_layout, View.GONE);
+        views.setViewVisibility(R.id.widget_header, View.VISIBLE);
+
+        // 获取分组与过滤标题
+        String filterTitle = WidgetDataManager.getWidgetFilterTitle(context, appWidgetId);
+        views.setTextViewText(R.id.widget_filter_badge, filterTitle);
+
+        // 宽度弹性响应：根据宽度决定是否精简顶部操作栏与徽标
+        if (width < 270) {
+            views.setViewVisibility(R.id.widget_filter_badge, View.GONE);
+        } else {
+            views.setViewVisibility(R.id.widget_filter_badge, View.VISIBLE);
+        }
+        if (width < 220) {
+            views.setViewVisibility(R.id.btn_widget_refresh, View.GONE);
+            views.setViewVisibility(R.id.btn_widget_settings, View.GONE);
+        } else {
+            views.setViewVisibility(R.id.btn_widget_refresh, View.VISIBLE);
+            views.setViewVisibility(R.id.btn_widget_settings, View.VISIBLE);
+        }
+
+        // 高度弹性响应：根据 height 决定统计条展示与最大槽位数
+        boolean showCountHeader = height >= 140;
+        if (showCountHeader) {
+            views.setViewVisibility(R.id.widget_count_text, View.VISIBLE);
+            views.setTextViewText(R.id.widget_count_text, activeCount + " 项待办 · " + doneCount + " 项已完成");
+        } else {
+            views.setViewVisibility(R.id.widget_count_text, View.GONE);
+        }
+
+        // 高度梯度：动态决定槽位数
+        int maxSlots = 5;
+        if (height < 130) {
+            maxSlots = 1;
+        } else if (height < 175) {
+            maxSlots = 2;
+        } else if (height < 225) {
+            maxSlots = 3;
+        } else if (height < 280) {
+            maxSlots = 4;
+        } else {
+            maxSlots = 5;
+        }
+
+        // 是否精简列表项中的次要标签（当宽度较窄或高度较紧凑时）
+        boolean showItemDetails = width >= 210 && height >= 160;
 
         if (items.isEmpty()) {
             views.setViewVisibility(R.id.widget_slots_container, View.GONE);
             views.setViewVisibility(R.id.widget_list, View.GONE);
             views.setViewVisibility(R.id.widget_empty_view, View.VISIBLE);
-        } else if (items.size() <= 5) {
-            // 1~5 项：启用全填充槽位容器，按权重完全占满空间
+        } else if (items.size() <= maxSlots) {
+            // 在 maxSlots 范围内：启用全填充槽位容器，按权重完全占满纵向空间
             views.setViewVisibility(R.id.widget_slots_container, View.VISIBLE);
             views.setViewVisibility(R.id.widget_list, View.GONE);
             views.setViewVisibility(R.id.widget_empty_view, View.GONE);
 
-            int count = items.size();
+            int count = Math.min(items.size(), maxSlots);
             int[] slotIds = { R.id.slot_item_1, R.id.slot_item_2, R.id.slot_item_3, R.id.slot_item_4, R.id.slot_item_5 };
             int[] checkIds = { R.id.slot_1_checkbox, R.id.slot_2_checkbox, R.id.slot_3_checkbox, R.id.slot_4_checkbox, R.id.slot_5_checkbox };
             int[] titleIds = { R.id.slot_1_title, R.id.slot_2_title, R.id.slot_3_title, R.id.slot_4_title, R.id.slot_5_title };
@@ -94,21 +165,21 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
                     else if (it.time != null && !it.time.isEmpty()) tag = it.time;
                     else if (it.type != null && !it.type.isEmpty() && !"全部".equals(it.type)) tag = it.type;
 
-                    if (!tag.isEmpty()) {
+                    if (showItemDetails && !tag.isEmpty()) {
                         views.setViewVisibility(tagIds[i], View.VISIBLE);
                         views.setTextViewText(tagIds[i], tag);
                     } else {
                         views.setViewVisibility(tagIds[i], View.GONE);
                     }
 
-                    if (it.due != null && !it.due.isEmpty()) {
+                    if (showItemDetails && it.due != null && !it.due.isEmpty()) {
                         views.setViewVisibility(dueIds[i], View.VISIBLE);
                         views.setTextViewText(dueIds[i], it.due);
                     } else {
                         views.setViewVisibility(dueIds[i], View.GONE);
                     }
 
-                    if (it.star > 0) {
+                    if (showItemDetails && it.star > 0) {
                         StringBuilder sb = new StringBuilder();
                         for (int s = 0; s < it.star; s++) sb.append("★");
                         views.setViewVisibility(starIds[i], View.VISIBLE);
@@ -117,7 +188,7 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
                         views.setViewVisibility(starIds[i], View.GONE);
                     }
 
-                    if (it.hasCost && it.cost > 0) {
+                    if (showItemDetails && it.hasCost && it.cost > 0) {
                         String costStr;
                         if (it.cost == (long) it.cost) {
                             costStr = "¥" + ((long) it.cost);
@@ -243,6 +314,12 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         updateWidgets(context, appWidgetManager, appWidgetIds);
+    }
+
+    @Override
+    public void onAppWidgetOptionsChanged(Context context, AppWidgetManager appWidgetManager, int appWidgetId, android.os.Bundle newOptions) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions);
+        updateAppWidget(context, appWidgetManager, appWidgetId);
     }
 
     @Override
