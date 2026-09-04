@@ -58,6 +58,22 @@ function injectWidgetManifest() {
                 android:resource="@xml/widget_4x4_info" />
         </receiver>
 
+        <!-- Android 原生桌面小部件 四象限法则 4x4 -->
+        <receiver
+            android:name="com.dax.supertodo.widget.TodoWidgetQuadrantProvider"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/widget_quadrant_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.dax.supertodo.ACTION_QUADRANT_CLICK" />
+                <action android:name="com.dax.supertodo.ACTION_REFRESH_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quadrant_info" />
+        </receiver>
+
         <!-- 小部件列表远程服务 -->
         <service
             android:name="com.dax.supertodo.widget.TodoWidgetService"

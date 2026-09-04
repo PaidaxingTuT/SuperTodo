@@ -115,6 +115,10 @@ function syncFromNativeWidget(){
             changed=true;
           }
         });
+        if(d.quadrantWidget&&typeof d.quadrantWidget==='object'){
+          state.quadrantWidget=d.quadrantWidget;
+          changed=true;
+        }
         if(changed){
           localStorage.setItem(KEY,JSON.stringify(state));
           if(typeof render==='function') render();
@@ -153,7 +157,14 @@ window.onNativeWidgetAction=function(action,itemId){
   }
   if(action==='add_item'){ if(typeof openAdd==='function') openAdd(); }
   else if(action==='open_item'&&itemId){ const it=state.items.find(x=>x.id===itemId); if(it&&typeof openEdit==='function') openEdit(it); }
+  else if(action==='open_quadrant'){ if(typeof openQuadrantModal==='function') openQuadrantModal(); }
 };
+try {
+  const urlParams = new URLSearchParams(window.location.search);
+  if(urlParams.get('quadrant')==='1'||urlParams.get('view')==='quadrant'){
+    setTimeout(()=>{ if(typeof openQuadrantModal==='function') openQuadrantModal(); }, 250);
+  }
+}catch(e){}
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'){
     applySystemSafeArea();
@@ -1022,7 +1033,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.6-beta.1';
+const APP_VERSION='v1.7.6-beta.2';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;

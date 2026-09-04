@@ -1,0 +1,921 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:padding="12dp">
+
+    <!-- 2x2 四象限网格 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- 上排：左边 Q3 (紧急不重要)，右边 Q1 (重要且紧急) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <!-- 象限三 Q3 (紧急不重要) -->
+            <LinearLayout
+                android:id="@+id/qw_card_q3"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/qw_cell_q3_bg"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="紧急不重要"
+                        android:textColor="@color/qw_q3_border"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <TextView
+                        android:id="@+id/q3_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0/4"
+                        android:textColor="@color/widget_text_secondary"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/q3_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="暂无事项"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="10.5sp" />
+
+                <LinearLayout
+                    android:id="@+id/q3_items_box"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:id="@+id/q3_item_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q3_chk_1"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q3_title_1"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q3_done_1"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/q3_item_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q3_chk_2"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q3_title_2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q3_done_2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/q3_item_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q3_chk_3"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q3_title_3"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q3_done_3"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/q3_item_4"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q3_chk_4"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q3_title_4"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q3_done_4"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 纵向间隔 -->
+            <TextView
+                android:layout_width="14dp"
+                android:layout_height="match_parent" />
+
+            <!-- 象限一 Q1 (重要且紧急) -->
+            <LinearLayout
+                android:id="@+id/qw_card_q1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/qw_cell_q1_bg"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="重要且紧急"
+                        android:textColor="@color/qw_q1_border"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <TextView
+                        android:id="@+id/q1_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0/4"
+                        android:textColor="@color/widget_text_secondary"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/q1_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="暂无事项"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="10.5sp" />
+
+                <LinearLayout
+                    android:id="@+id/q1_items_box"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:id="@+id/q1_item_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q1_chk_1"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q1_title_1"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q1_done_1"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/q1_item_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q1_chk_2"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q1_title_2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q1_done_2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/q1_item_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q1_chk_3"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q1_title_3"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q1_done_3"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/q1_item_4"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q1_chk_4"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q1_title_4"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q1_done_4"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 横向间隔 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="14dp" />
+
+        <!-- 下排：左边 Q4 (不重要不紧急)，右边 Q2 (重要不紧急) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <!-- 象限四 Q4 (不重要不紧急) -->
+            <LinearLayout
+                android:id="@+id/qw_card_q4"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/qw_cell_q4_bg"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="不重要不紧急"
+                        android:textColor="@color/qw_q4_border"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <TextView
+                        android:id="@+id/q4_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0/4"
+                        android:textColor="@color/widget_text_secondary"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/q4_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="暂无事项"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="10.5sp" />
+
+                <LinearLayout
+                    android:id="@+id/q4_items_box"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:id="@+id/q4_item_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q4_chk_1"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q4_title_1"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q4_done_1"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/q4_item_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q4_chk_2"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q4_title_2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q4_done_2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/q4_item_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q4_chk_3"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q4_title_3"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q4_done_3"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/q4_item_4"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q4_chk_4"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q4_title_4"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q4_done_4"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 纵向间隔 -->
+            <TextView
+                android:layout_width="14dp"
+                android:layout_height="match_parent" />
+
+            <!-- 象限二 Q2 (重要不紧急) -->
+            <LinearLayout
+                android:id="@+id/qw_card_q2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/qw_cell_q2_bg"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="重要不紧急"
+                        android:textColor="@color/qw_q2_border"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <TextView
+                        android:id="@+id/q2_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0/4"
+                        android:textColor="@color/widget_text_secondary"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/q2_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="暂无事项"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="10.5sp" />
+
+                <LinearLayout
+                    android:id="@+id/q2_items_box"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:id="@+id/q2_item_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q2_chk_1"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q2_title_1"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q2_done_1"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/q2_item_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q2_chk_2"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q2_title_2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q2_done_2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/q2_item_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q2_chk_3"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q2_title_3"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q2_done_3"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/q2_item_4"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q2_chk_4"
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q2_title_4"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/q2_done_4"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="11.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 十字坐标轴横线 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="2.5dp"
+        android:layout_centerVertical="true"
+        android:background="@color/qw_axis_line" />
+
+    <!-- 十字坐标轴纵线 -->
+    <TextView
+        android:layout_width="2.5dp"
+        android:layout_height="match_parent"
+        android:layout_centerHorizontal="true"
+        android:background="@color/qw_axis_line" />
+
+    <!-- 四个方向的柔和胶囊标注 -->
+    <!-- 上：紧急 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/qw_pill_bg"
+        android:paddingLeft="9dp"
+        android:paddingRight="9dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:text="紧急"
+        android:textColor="@color/qw_pill_text"
+        android:textSize="10.5sp"
+        android:textStyle="bold" />
+
+    <!-- 下：不紧急 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/qw_pill_bg"
+        android:paddingLeft="9dp"
+        android:paddingRight="9dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:text="不紧急"
+        android:textColor="@color/qw_pill_text"
+        android:textSize="10.5sp"
+        android:textStyle="bold" />
+
+    <!-- 左：不重要 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_centerVertical="true"
+        android:background="@drawable/qw_pill_bg"
+        android:paddingLeft="7dp"
+        android:paddingRight="7dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:text="不重要"
+        android:textColor="@color/qw_pill_text"
+        android:textSize="10.5sp"
+        android:textStyle="bold" />
+
+    <!-- 右：重要 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:background="@drawable/qw_pill_bg"
+        android:paddingLeft="7dp"
+        android:paddingRight="7dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:text="重要"
+        android:textColor="@color/qw_pill_text"
+        android:textSize="10.5sp"
+        android:textStyle="bold" />
+
+</RelativeLayout>

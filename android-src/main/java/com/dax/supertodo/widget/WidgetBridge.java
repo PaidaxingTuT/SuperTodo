@@ -71,7 +71,14 @@ public class WidgetBridge {
             if (manager == null || !manager.isRequestPinAppWidgetSupported()) {
                 return false;
             }
-            Class<?> providerClass = "4x4".equals(size) ? TodoWidget4x4Provider.class : TodoWidget4x2Provider.class;
+            Class<?> providerClass;
+            if ("quadrant".equals(size)) {
+                providerClass = TodoWidgetQuadrantProvider.class;
+            } else if ("4x4".equals(size)) {
+                providerClass = TodoWidget4x4Provider.class;
+            } else {
+                providerClass = TodoWidget4x2Provider.class;
+            }
             ComponentName provider = new ComponentName(activity, providerClass);
             return manager.requestPinAppWidget(provider, null, null);
         } catch (Exception e) {
