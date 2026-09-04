@@ -21,11 +21,11 @@
     <color name="config_pill_text_unselected">#9AA0A6</color>
     <color name="config_divider">#2E3442</color>
     <color name="config_btn_cancel_border">#3C4354</color>
-    <!-- 四象限法则桌面小部件专属配色（夜间自适应） -->
+    <!-- 四象限法则桌面小部件专属配色（夜间自适应，逆时针：Q1右上红，Q2左上橙，Q3左下绿，Q4右下蓝） -->
     <color name="qw_q1_border">#FF776D</color>
-    <color name="qw_q2_border">#8AB4F8</color>
-    <color name="qw_q3_border">#FFB74D</color>
-    <color name="qw_q4_border">#81C995</color>
+    <color name="qw_q2_border">#FFB74D</color>
+    <color name="qw_q3_border">#81C995</color>
+    <color name="qw_q4_border">#8AB4F8</color>
     <color name="qw_axis_line">#5F6877</color>
     <color name="qw_pill_bg">#252A36</color>
     <color name="qw_pill_stroke">#3A4150</color>

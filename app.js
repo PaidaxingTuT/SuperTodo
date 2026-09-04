@@ -164,58 +164,58 @@ try {
   if(urlParams.get('seed_quadrant')==='1'){
     state.quadrantWidget = {
       q1: [{ id: 'demo1', title: '完成紧急汇报材料', done: false }, { id: 'demo2', title: '提交项目最终审核', done: true }],
-      q2: [{ id: 'demo3', title: '年度学习与运动规划', done: false }, { id: 'demo4', title: '重构小组件渲染机制', done: false }],
-      q3: [{ id: 'demo5', title: '回复普通咨询邮件', done: false }],
-      q4: [{ id: 'demo6', title: '整理电脑桌面文件', done: true }]
+      q2: [{ id: 'demo5', title: '回复普通咨询邮件', done: false }],
+      q3: [{ id: 'demo6', title: '整理电脑桌面文件', done: true }],
+      q4: [{ id: 'demo3', title: '年度学习与运动规划', done: false }, { id: 'demo4', title: '重构小组件渲染机制', done: false }]
     };
   } else if(urlParams.get('seed_quadrant_all')==='4'){
     state.quadrantWidget = {
       q1: [
-        { id: 'd11', title: '紧急任务第一项', done: false },
-        { id: 'd12', title: '紧急任务第二项', done: true },
-        { id: 'd13', title: '紧急任务第三项', done: false },
-        { id: 'd14', title: '紧急任务第四项', done: false }
+        { id: 'd11', title: '危机任务第一项', done: false },
+        { id: 'd12', title: '危机任务第二项', done: true },
+        { id: 'd13', title: '危机任务第三项', done: false },
+        { id: 'd14', title: '危机任务第四项', done: false }
       ],
       q2: [
-        { id: 'd21', title: '长期规划第一项', done: false },
-        { id: 'd22', title: '长期规划第二项', done: false },
-        { id: 'd23', title: '长期规划第三项', done: true },
-        { id: 'd24', title: '长期规划第四项', done: false }
+        { id: 'd21', title: '杂事琐事第一项', done: false },
+        { id: 'd22', title: '杂事琐事第二项', done: false },
+        { id: 'd23', title: '杂事琐事第三项', done: true },
+        { id: 'd24', title: '杂事琐事第四项', done: false }
       ],
       q3: [
-        { id: 'd31', title: '杂事琐事第一项', done: false },
-        { id: 'd32', title: '杂事琐事第二项', done: false },
-        { id: 'd33', title: '杂事琐事第三项', done: true },
-        { id: 'd34', title: '杂事琐事第四项', done: false }
+        { id: 'd31', title: '休闲娱乐第一项', done: true },
+        { id: 'd32', title: '休闲娱乐第二项', done: false },
+        { id: 'd33', title: '休闲娱乐第三项', done: false },
+        { id: 'd34', title: '休闲娱乐第四项', done: false }
       ],
       q4: [
-        { id: 'd41', title: '休闲娱乐第一项', done: true },
-        { id: 'd42', title: '休闲娱乐第二项', done: false },
-        { id: 'd43', title: '休闲娱乐第三项', done: false },
-        { id: 'd44', title: '休闲娱乐第四项', done: false }
+        { id: 'd41', title: '长期规划第一项', done: false },
+        { id: 'd42', title: '长期规划第二项', done: false },
+        { id: 'd43', title: '长期规划第三项', done: true },
+        { id: 'd44', title: '长期规划第四项', done: false }
       ]
     };
   } else if(urlParams.get('seed_quadrant_all')==='3'){
     state.quadrantWidget = {
       q1: [
-        { id: 'd11', title: '紧急任务第一项', done: false },
-        { id: 'd12', title: '紧急任务第二项', done: true },
-        { id: 'd13', title: '紧急任务第三项', done: false }
+        { id: 'd11', title: '危机任务第一项', done: false },
+        { id: 'd12', title: '危机任务第二项', done: true },
+        { id: 'd13', title: '危机任务第三项', done: false }
       ],
       q2: [
-        { id: 'd21', title: '长期规划第一项', done: false },
-        { id: 'd22', title: '长期规划第二项', done: false },
-        { id: 'd23', title: '长期规划第三项', done: true }
+        { id: 'd21', title: '杂事琐事第一项', done: false },
+        { id: 'd22', title: '杂事琐事第二项', done: false },
+        { id: 'd23', title: '杂事琐事第三项', done: true }
       ],
       q3: [
-        { id: 'd31', title: '杂事琐事第一项', done: false },
-        { id: 'd32', title: '杂事琐事第二项', done: false },
-        { id: 'd33', title: '杂事琐事第三项', done: true }
+        { id: 'd31', title: '休闲娱乐第一项', done: true },
+        { id: 'd32', title: '休闲娱乐第二项', done: false },
+        { id: 'd33', title: '休闲娱乐第三项', done: false }
       ],
       q4: [
-        { id: 'd41', title: '休闲娱乐第一项', done: true },
-        { id: 'd42', title: '休闲娱乐第二项', done: false },
-        { id: 'd43', title: '休闲娱乐第三项', done: false }
+        { id: 'd41', title: '长期规划第一项', done: false },
+        { id: 'd42', title: '长期规划第二项', done: false },
+        { id: 'd43', title: '长期规划第三项', done: true }
       ]
     };
   }
@@ -224,6 +224,24 @@ try {
   }
   if(urlParams.get('quadrant')==='1'||urlParams.get('view')==='quadrant'){
     setTimeout(()=>{ if(typeof openQuadrantModal==='function') openQuadrantModal(); }, 250);
+  }
+  const pickQ = urlParams.get('picker');
+  if(pickQ){
+    if(!state.items || !state.items.length){
+      state.items = [
+        { id: 't1', title: '编写第四季度工作规划', done: false, type: '待办', scene: '家里', time: '今年' },
+        { id: 't2', title: '购买人体工学椅与升降桌', done: false, type: '购物', scene: '家里', time: '今年' },
+        { id: 't3', title: '学习 Flutter 与 WebAssembly 技术', done: false, type: '计划', scene: '学校', time: '明年' },
+        { id: 't4', title: '全量更新 SuperTodo 移动端组件', done: false, type: '待办', scene: '网上', time: '今年' }
+      ];
+    }
+    setTimeout(()=>{ if(typeof openItemPickerFor==='function') openItemPickerFor(pickQ); }, 380);
+  }
+  if(urlParams.get('scroll_down')==='1'){
+    setTimeout(()=>{
+      const b=$('.quadrant-body');
+      if(b) b.scrollTop = b.scrollHeight;
+    }, 450);
   }
   if(urlParams.get('cl')==='1'||urlParams.get('changelog')==='1'){
     setTimeout(()=>{ if(typeof openChangelog==='function') openChangelog(); }, 250);
@@ -1097,7 +1115,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.6-beta.3';
+const APP_VERSION='v1.7.6-beta.4';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -1655,30 +1673,30 @@ const QUADRANTS = {
   },
   q2: {
     key: 'q2',
-    name: '重要不紧急',
-    tag: '象限二',
-    badge: '战略 · 规划',
-    color: '#1a73e8',
-    bg: 'rgba(26, 115, 232, 0.06)',
-    desc: '长期成长与目标规划，高产出投资'
-  },
-  q3: {
-    key: 'q3',
     name: '紧急不重要',
-    tag: '象限三',
+    tag: '象限二',
     badge: '速决 · 琐事',
     color: '#e37400',
     bg: 'rgba(227, 116, 0, 0.06)',
     desc: '繁杂干扰或突发琐事，尽量速决'
   },
-  q4: {
-    key: 'q4',
+  q3: {
+    key: 'q3',
     name: '不重要不紧急',
-    tag: '象限四',
+    tag: '象限三',
     badge: '精简 · 休闲',
     color: '#188038',
     bg: 'rgba(24, 128, 56, 0.06)',
     desc: '低价值事务与消遣杂项，尽量精简'
+  },
+  q4: {
+    key: 'q4',
+    name: '重要不紧急',
+    tag: '象限四',
+    badge: '战略 · 规划',
+    color: '#1a73e8',
+    bg: 'rgba(26, 115, 232, 0.06)',
+    desc: '长期成长与目标规划，高产出投资'
   }
 };
 
@@ -1711,6 +1729,7 @@ function closeQuadrantModal(){
 
 function renderQuadrantModal(){
   renderQuadrantPreview();
+  renderQuadrantEditors();
 }
 
 function renderQuadrantPreview(){
@@ -1724,7 +1743,7 @@ function renderQuadrantPreview(){
     let itemsHtml = '';
     if(!items.length){
       itemsHtml = `
-        <div class="qw-empty-cell" data-qpick="${qKey}" title="点击上方胶囊或此处添加待办">
+        <div class="qw-empty-cell">
           <span>暂无事项</span>
         </div>
       `;
@@ -1733,22 +1752,23 @@ function renderQuadrantPreview(){
         <div class="qw-preview-item" data-qtoggle="${qKey}:${idx}" title="点击切换完成状态">
           <span class="qw-chk ${it.done?'done':''}"></span>
           <span class="qw-title ${it.done?'done':''}">${esc(it.title)}</span>
-          <button class="qw-item-del" data-qdel="${qKey}:${idx}" title="移除事项" type="button">✕</button>
         </div>
       `).join('');
     }
+    const isBottom = (qKey === 'q3' || qKey === 'q4');
+    const headerHtml = `
+      <div class="qw-cell-header ${isBottom ? 'bottom' : ''}">
+        <span class="qw-tag ${qKey}">${info.name}</span>
+      </div>
+    `;
+    const bodyHtml = `
+      <div class="qw-cell-body">
+        ${itemsHtml}
+      </div>
+    `;
     return `
-      <div class="qw-preview-cell ${qKey}">
-        <div class="qw-cell-header">
-          <button class="qw-title-pill ${qKey}" type="button" data-qpick="${qKey}" title="点击配置「${info.name}」">
-            <span class="qw-pill-title">${info.name}</span>
-            <span class="qw-pill-count">${items.length}/4</span>
-            <span class="qw-pill-arrow">＋</span>
-          </button>
-        </div>
-        <div class="qw-cell-body">
-          ${itemsHtml}
-        </div>
+      <div class="qw-preview-cell ${qKey} ${isBottom ? 'pos-bottom' : 'pos-top'}">
+        ${isBottom ? (bodyHtml + headerHtml) : (headerHtml + bodyHtml)}
       </div>
     `;
   }
@@ -1765,10 +1785,10 @@ function renderQuadrantPreview(){
         <div class="qw-axis-label-right"><span class="qw-axis-text">重要</span></div>
 
         <div class="qw-matrix-grid">
-          ${renderCell('q3')}
-          ${renderCell('q1')}
-          ${renderCell('q4')}
           ${renderCell('q2')}
+          ${renderCell('q1')}
+          ${renderCell('q3')}
+          ${renderCell('q4')}
         </div>
       </div>
     </div>
@@ -1780,7 +1800,7 @@ function renderQuadrantEditors(){
   if(!wrap) return;
   const qw = getQuadrantWidgetData();
 
-  wrap.innerHTML = ['q3','q1','q4','q2'].map(k=>{
+  wrap.innerHTML = ['q2','q1','q3','q4'].map(k=>{
     const info = QUADRANTS[k];
     const items = qw[k] || [];
     const isFull = items.length >= 4;
@@ -1814,7 +1834,7 @@ function renderQuadrantEditors(){
         <div class="qe-card-header">
           <div class="qe-title-col">
             <div class="qe-title-row">
-              <span class="qe-name">${info.tag} · ${info.name}</span>
+              <span class="qe-name ${k}">${info.tag} · ${info.name}</span>
             </div>
             <div class="qe-desc">${info.desc}</div>
           </div>
@@ -2074,8 +2094,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 
   /* 四象限桌面小部件 (4x4) 事件绑定（仅在通过桌面组件添加或URL呼出时唤起） */
-  const sqb=$('#setQuadrantBtn');
-  if(sqb) sqb.addEventListener('click',()=>{ closeSettings(); openQuadrantModal(); });
   $('#quadrantClose').addEventListener('click',closeQuadrantModal);
   $('#quadrantCancel').addEventListener('click',closeQuadrantModal);
   $('#quadrantMask').addEventListener('click',closeQuadrantModal);
@@ -2083,26 +2101,37 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#qwResetBtn').addEventListener('click',resetQuadrantData);
 
   $('#qwWidgetPreview').addEventListener('click',e=>{
-    const del=e.target.closest('[data-qdel]');
-    if(del){
-      e.stopPropagation();
-      const [k,idx]=del.dataset.qdel.split(':');
-      removeQuadrantItem(k,+idx);
-      return;
-    }
-    const pick=e.target.closest('[data-qpick]');
-    if(pick){
-      e.stopPropagation();
-      openItemPickerFor(pick.dataset.qpick);
-      return;
-    }
     const toggle=e.target.closest('[data-qtoggle]');
     if(toggle){
       const [k,idx]=toggle.dataset.qtoggle.split(':');
       toggleQuadrantItemDone(k,+idx);
-      return;
     }
   });
+
+  const qwEditors=$('#qwEditorsList');
+  if(qwEditors){
+    qwEditors.addEventListener('click',e=>{
+      const del=e.target.closest('[data-qdel]');
+      if(del){
+        e.stopPropagation();
+        const [k,idx]=del.dataset.qdel.split(':');
+        removeQuadrantItem(k,+idx);
+        return;
+      }
+      const pick=e.target.closest('[data-qpick]');
+      if(pick){
+        e.stopPropagation();
+        openItemPickerFor(pick.dataset.qpick);
+        return;
+      }
+      const toggle=e.target.closest('[data-qtoggle]');
+      if(toggle){
+        const [k,idx]=toggle.dataset.qtoggle.split(':');
+        toggleQuadrantItemDone(k,+idx);
+        return;
+      }
+    });
+  }
 
   /* 待办选择弹窗 */
   $('#pickerClose').addEventListener('click',closeItemPicker);

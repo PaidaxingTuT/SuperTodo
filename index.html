@@ -276,12 +276,6 @@ try{
       </label>
     </div>
 
-    <div class="set-divide"></div>
-
-    <div class="set-section">
-      <h3>桌面小部件</h3>
-      <button class="btn-line" id="setQuadrantBtn">四象限小部件 (4×4) 配置</button>
-    </div>
 
     <div class="set-divide"></div>
 
@@ -309,7 +303,7 @@ try{
         <img class="info-logo-dark" src="app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.6-beta.3</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.6-beta.4</div>
       <div class="info-desc">轻量 · 优雅 · 丝滑的待办与清单管理</div>
       <div class="info-author">Crafted with <span class="heart">♥</span> by <strong>派大星TuT</strong></div>
     </div>
@@ -348,26 +342,26 @@ try{
 <div class="modal quadrant-modal" id="quadrantModal" hidden>
   <div class="modal-head">
     <div class="ctx-head-info">
-      <h2 id="quadrantTitle">四象限桌面组件 (4×4)</h2>
-      <span class="ctx-tag-pill">四象限法则</span>
+      <h2 id="quadrantTitle">四象限法则</h2>
     </div>
     <button class="md-close" id="quadrantClose" aria-label="关闭"></button>
   </div>
   <div class="modal-body quadrant-body">
     <!-- 4x4 实时小部件预览 -->
     <div class="qw-preview-section">
-      <div class="qw-preview-header">
-        <span class="qw-preview-title">4×4 桌面小部件效果与配置</span>
-        <span class="qw-preview-sub">轻触事项标记完成 · 点击象限胶囊标题可配置</span>
-      </div>
       <div class="qw-preview-card" id="qwWidgetPreview"></div>
+    </div>
+
+    <!-- 底部各象限内容配置 -->
+    <div class="qw-editors-section">
+      <div class="qw-grid-editors" id="qwEditorsList"></div>
     </div>
   </div>
   <div class="modal-foot">
-    <button class="btn-text danger" id="qwResetBtn">清空四象限</button>
+    <button class="btn-text danger" id="qwResetBtn">清空</button>
     <div class="spacer"></div>
     <button class="btn-text" id="quadrantCancel">取消</button>
-    <button class="btn-filled" id="quadrantSave">保存小部件配置</button>
+    <button class="btn-filled" id="quadrantSave">保存</button>
   </div>
 </div>
 

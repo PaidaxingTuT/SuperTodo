@@ -11,47 +11,43 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- 上排：左边 Q3 (紧急不重要)，右边 Q1 (重要且紧急) -->
+        <!-- 上排：左边 Q2 (第二象限·紧急不重要)，右边 Q1 (第一象限·重要且紧急) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:orientation="horizontal">
 
-            <!-- 象限 q3 (紧急不重要) -->
+            <!-- 象限 q2 (紧急不重要) -->
             <LinearLayout
-                android:id="@+id/qw_card_q3"
+                android:id="@+id/qw_card_q2"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:padding="8dp">
 
-                <!-- 象限小标题胶囊（置于上方正中间，点击打开应用四象限管理） -->
+                <!-- 象限小标题（纯文字无胶囊） -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:orientation="horizontal"
-                    android:paddingBottom="6dp">
+                    android:paddingTop="0dp"
+                    android:paddingBottom="4dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/qw_pill_bg"
                         android:gravity="center"
-                        android:paddingLeft="10dp"
-                        android:paddingRight="10dp"
-                        android:paddingTop="3dp"
-                        android:paddingBottom="3dp"
                         android:text="紧急不重要"
-                        android:textColor="@color/qw_q3_border"
+                        android:textColor="@color/qw_q2_border"
                         android:textSize="11.5sp"
                         android:textStyle="bold" />
                 </LinearLayout>
 
                 <TextView
-                    android:id="@+id/q3_empty"
+                    android:id="@+id/q2_empty"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
@@ -61,7 +57,7 @@
                     android:textSize="11sp" />
 
                 <LinearLayout
-                    android:id="@+id/q3_items_box"
+                    android:id="@+id/q2_items_box"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
@@ -69,7 +65,7 @@
                     android:visibility="gone">
 
                     <LinearLayout
-                        android:id="@+id/q3_item_1"
+                        android:id="@+id/q2_item_1"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
@@ -83,14 +79,14 @@
                         android:paddingBottom="4dp"
                         android:visibility="gone">
                         <ImageView
-                            android:id="@+id/q3_chk_1"
+                            android:id="@+id/q2_chk_1"
                             android:layout_width="19dp"
                             android:layout_height="19dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
                         <TextView
-                            android:id="@+id/q3_title_1"
+                            android:id="@+id/q2_title_1"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -99,7 +95,7 @@
                             android:textColor="@color/widget_text_primary"
                             android:textSize="12.5sp" />
                         <TextView
-                            android:id="@+id/q3_done_1"
+                            android:id="@+id/q2_done_1"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -110,7 +106,7 @@
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
-                        android:id="@+id/q3_item_2"
+                        android:id="@+id/q2_item_2"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
@@ -124,14 +120,14 @@
                         android:paddingBottom="4dp"
                         android:visibility="gone">
                         <ImageView
-                            android:id="@+id/q3_chk_2"
+                            android:id="@+id/q2_chk_2"
                             android:layout_width="19dp"
                             android:layout_height="19dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
                         <TextView
-                            android:id="@+id/q3_title_2"
+                            android:id="@+id/q2_title_2"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -140,7 +136,7 @@
                             android:textColor="@color/widget_text_primary"
                             android:textSize="12.5sp" />
                         <TextView
-                            android:id="@+id/q3_done_2"
+                            android:id="@+id/q2_done_2"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -151,7 +147,7 @@
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
-                        android:id="@+id/q3_item_3"
+                        android:id="@+id/q2_item_3"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
@@ -165,14 +161,14 @@
                         android:paddingBottom="4dp"
                         android:visibility="gone">
                         <ImageView
-                            android:id="@+id/q3_chk_3"
+                            android:id="@+id/q2_chk_3"
                             android:layout_width="19dp"
                             android:layout_height="19dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
                         <TextView
-                            android:id="@+id/q3_title_3"
+                            android:id="@+id/q2_title_3"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -181,7 +177,7 @@
                             android:textColor="@color/widget_text_primary"
                             android:textSize="12.5sp" />
                         <TextView
-                            android:id="@+id/q3_done_3"
+                            android:id="@+id/q2_done_3"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -192,7 +188,7 @@
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
-                        android:id="@+id/q3_item_4"
+                        android:id="@+id/q2_item_4"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
@@ -206,14 +202,14 @@
                         android:paddingBottom="4dp"
                         android:visibility="gone">
                         <ImageView
-                            android:id="@+id/q3_chk_4"
+                            android:id="@+id/q2_chk_4"
                             android:layout_width="19dp"
                             android:layout_height="19dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
                         <TextView
-                            android:id="@+id/q3_title_4"
+                            android:id="@+id/q2_title_4"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -222,7 +218,7 @@
                             android:textColor="@color/widget_text_primary"
                             android:textSize="12.5sp" />
                         <TextView
-                            android:id="@+id/q3_done_4"
+                            android:id="@+id/q2_done_4"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -235,7 +231,7 @@
                 </LinearLayout>
             </LinearLayout>
 
-                <View
+                <TextView
                     android:layout_width="14dp"
                     android:layout_height="match_parent" />
 
@@ -248,23 +244,19 @@
                 android:orientation="vertical"
                 android:padding="8dp">
 
-                <!-- 象限小标题胶囊（置于上方正中间，点击打开应用四象限管理） -->
+                <!-- 象限小标题（纯文字无胶囊） -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:orientation="horizontal"
-                    android:paddingBottom="6dp">
+                    android:paddingTop="0dp"
+                    android:paddingBottom="4dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/qw_pill_bg"
                         android:gravity="center"
-                        android:paddingLeft="10dp"
-                        android:paddingRight="10dp"
-                        android:paddingTop="3dp"
-                        android:paddingBottom="3dp"
                         android:text="重要且紧急"
                         android:textColor="@color/qw_q1_border"
                         android:textSize="11.5sp"
@@ -458,18 +450,235 @@
 
         </LinearLayout>
 
-        <View
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="14dp" />
 
-        <!-- 下排：左边 Q4 (不重要不紧急)，右边 Q2 (重要不紧急) -->
+        <!-- 下排：左边 Q3 (第三象限·不重要不紧急)，右边 Q4 (第四象限·重要不紧急) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:orientation="horizontal">
 
-            <!-- 象限 q4 (不重要不紧急) -->
+            <!-- 象限 q3 (不重要不紧急) -->
+            <LinearLayout
+                android:id="@+id/qw_card_q3"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <TextView
+                    android:id="@+id/q3_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="暂无事项"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp" />
+
+                <LinearLayout
+                    android:id="@+id/q3_items_box"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:id="@+id/q3_item_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/widget_item_bg"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="8dp"
+                        android:paddingRight="8dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q3_chk_1"
+                            android:layout_width="19dp"
+                            android:layout_height="19dp"
+                            android:layout_marginEnd="7dp"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q3_title_1"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="12.5sp" />
+                        <TextView
+                            android:id="@+id/q3_done_1"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="12.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/q3_item_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/widget_item_bg"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="8dp"
+                        android:paddingRight="8dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q3_chk_2"
+                            android:layout_width="19dp"
+                            android:layout_height="19dp"
+                            android:layout_marginEnd="7dp"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q3_title_2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="12.5sp" />
+                        <TextView
+                            android:id="@+id/q3_done_2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="12.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/q3_item_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/widget_item_bg"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="8dp"
+                        android:paddingRight="8dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q3_chk_3"
+                            android:layout_width="19dp"
+                            android:layout_height="19dp"
+                            android:layout_marginEnd="7dp"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q3_title_3"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="12.5sp" />
+                        <TextView
+                            android:id="@+id/q3_done_3"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="12.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/q3_item_4"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/widget_item_bg"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="8dp"
+                        android:paddingRight="8dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/q3_chk_4"
+                            android:layout_width="19dp"
+                            android:layout_height="19dp"
+                            android:layout_marginEnd="7dp"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/widget_ic_check_box_unchecked" />
+                        <TextView
+                            android:id="@+id/q3_title_4"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="12.5sp" />
+                        <TextView
+                            android:id="@+id/q3_done_4"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_done"
+                            android:textSize="12.5sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- 象限小标题（纯文字无胶囊） -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="0dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="不重要不紧急"
+                        android:textColor="@color/qw_q3_border"
+                        android:textSize="11.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+                <TextView
+                    android:layout_width="14dp"
+                    android:layout_height="match_parent" />
+
+            <!-- 象限 q4 (重要不紧急) -->
             <LinearLayout
                 android:id="@+id/qw_card_q4"
                 android:layout_width="0dp"
@@ -477,29 +686,6 @@
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:padding="8dp">
-
-                <!-- 象限小标题胶囊（置于上方正中间，点击打开应用四象限管理） -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:orientation="horizontal"
-                    android:paddingBottom="6dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/qw_pill_bg"
-                        android:gravity="center"
-                        android:paddingLeft="10dp"
-                        android:paddingRight="10dp"
-                        android:paddingTop="3dp"
-                        android:paddingBottom="3dp"
-                        android:text="不重要不紧急"
-                        android:textColor="@color/qw_q4_border"
-                        android:textSize="11.5sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
 
                 <TextView
                     android:id="@+id/q4_empty"
@@ -684,226 +870,24 @@
                             android:visibility="gone" />
                     </LinearLayout>
                 </LinearLayout>
-            </LinearLayout>
 
-                <View
-                    android:layout_width="14dp"
-                    android:layout_height="match_parent" />
-
-            <!-- 象限 q2 (重要不紧急) -->
-            <LinearLayout
-                android:id="@+id/qw_card_q2"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:padding="8dp">
-
-                <!-- 象限小标题胶囊（置于上方正中间，点击打开应用四象限管理） -->
+                <!-- 象限小标题（纯文字无胶囊） -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:orientation="horizontal"
-                    android:paddingBottom="6dp">
+                    android:paddingTop="4dp"
+                    android:paddingBottom="0dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/qw_pill_bg"
                         android:gravity="center"
-                        android:paddingLeft="10dp"
-                        android:paddingRight="10dp"
-                        android:paddingTop="3dp"
-                        android:paddingBottom="3dp"
                         android:text="重要不紧急"
-                        android:textColor="@color/qw_q2_border"
+                        android:textColor="@color/qw_q4_border"
                         android:textSize="11.5sp"
                         android:textStyle="bold" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/q2_empty"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="暂无事项"
-                    android:textColor="@color/widget_text_secondary"
-                    android:textSize="11sp" />
-
-                <LinearLayout
-                    android:id="@+id/q2_items_box"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:visibility="gone">
-
-                    <LinearLayout
-                        android:id="@+id/q2_item_1"
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
-                        android:background="@drawable/widget_item_bg"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingLeft="8dp"
-                        android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
-                        android:visibility="gone">
-                        <ImageView
-                            android:id="@+id/q2_chk_1"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
-                            android:layout_marginEnd="7dp"
-                            android:scaleType="fitCenter"
-                            android:src="@drawable/widget_ic_check_box_unchecked" />
-                        <TextView
-                            android:id="@+id/q2_title_1"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:maxLines="1"
-                            android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
-                        <TextView
-                            android:id="@+id/q2_done_1"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:maxLines="1"
-                            android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
-                            android:visibility="gone" />
-                    </LinearLayout>
-                    <LinearLayout
-                        android:id="@+id/q2_item_2"
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
-                        android:background="@drawable/widget_item_bg"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingLeft="8dp"
-                        android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
-                        android:visibility="gone">
-                        <ImageView
-                            android:id="@+id/q2_chk_2"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
-                            android:layout_marginEnd="7dp"
-                            android:scaleType="fitCenter"
-                            android:src="@drawable/widget_ic_check_box_unchecked" />
-                        <TextView
-                            android:id="@+id/q2_title_2"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:maxLines="1"
-                            android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
-                        <TextView
-                            android:id="@+id/q2_done_2"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:maxLines="1"
-                            android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
-                            android:visibility="gone" />
-                    </LinearLayout>
-                    <LinearLayout
-                        android:id="@+id/q2_item_3"
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
-                        android:background="@drawable/widget_item_bg"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingLeft="8dp"
-                        android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
-                        android:visibility="gone">
-                        <ImageView
-                            android:id="@+id/q2_chk_3"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
-                            android:layout_marginEnd="7dp"
-                            android:scaleType="fitCenter"
-                            android:src="@drawable/widget_ic_check_box_unchecked" />
-                        <TextView
-                            android:id="@+id/q2_title_3"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:maxLines="1"
-                            android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
-                        <TextView
-                            android:id="@+id/q2_done_3"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:maxLines="1"
-                            android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
-                            android:visibility="gone" />
-                    </LinearLayout>
-                    <LinearLayout
-                        android:id="@+id/q2_item_4"
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
-                        android:background="@drawable/widget_item_bg"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingLeft="8dp"
-                        android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
-                        android:visibility="gone">
-                        <ImageView
-                            android:id="@+id/q2_chk_4"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
-                            android:layout_marginEnd="7dp"
-                            android:scaleType="fitCenter"
-                            android:src="@drawable/widget_ic_check_box_unchecked" />
-                        <TextView
-                            android:id="@+id/q2_title_4"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:maxLines="1"
-                            android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
-                        <TextView
-                            android:id="@+id/q2_done_4"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:maxLines="1"
-                            android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
-                            android:visibility="gone" />
-                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
 
@@ -911,16 +895,16 @@
     </LinearLayout>
 
     <!-- 十字深色坐标轴（位于四象限网格正中央） -->
-    <!-- X 轴（水平分界线） -->
-    <View
+    <!-- X 轴（水平分界线，使用 RemoteViews 允许的 ImageView 避免 InflateException） -->
+    <ImageView
         android:id="@+id/qw_axis_x"
         android:layout_width="match_parent"
         android:layout_height="2dp"
         android:layout_centerVertical="true"
         android:background="@color/qw_axis_line" />
 
-    <!-- Y 轴（垂直分界线） -->
-    <View
+    <!-- Y 轴（垂直分界线，使用 RemoteViews 允许的 ImageView 避免 InflateException） -->
+    <ImageView
         android:id="@+id/qw_axis_y"
         android:layout_width="2dp"
         android:layout_height="match_parent"
