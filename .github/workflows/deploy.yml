@@ -45,7 +45,7 @@ jobs:
           node -e "const f='capacitor.config.json', fs=require('fs'), c=JSON.parse(fs.readFileSync(f)); (c.android=c.android||{}).adjustMarginsForEdgeToEdge='force'; fs.writeFileSync(f, JSON.stringify(c, null, 2));"
           npx cap add android
           npx cap sync android
-      - name: 注入澎湃OS桌面小组件源码与配置
+      - name: 注入 Android 桌面小部件源码与配置
         run: |
           cp -r android-src/main/* android/app/src/main/
           node scripts/inject_android_widget.js
