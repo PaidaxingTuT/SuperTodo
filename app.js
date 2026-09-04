@@ -1226,7 +1226,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.6-beta.7';
+const APP_VERSION='v1.7.6-beta.8';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -1404,7 +1404,8 @@ let updateTargetAsset=null;
 
 function renderReleaseNotes(md){
   if(!md || !md.trim()) return '<div class="cl-empty">暂无详细更新说明</div>';
-  const lines=md.split('\n');
+  const cleanMd = md.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines=cleanMd.split('\n');
   let html='';
   let inList=false;
 
@@ -1420,9 +1421,10 @@ function renderReleaseNotes(md){
 
   for(let line of lines){
     line=line.trim();
-    if(!line || line.startsWith('# ')) continue;
+    if(!line) continue;
 
-    const subMatch=line.match(/^###+\s+(.*)$/);
+    // 匹配 ### 标题 或 ## 标题
+    const subMatch=line.match(/^#{1,4}\s+(.*)$/);
     if(subMatch){
       if(inList){ html+='</ul>'; inList=false; }
       html+='<div class="cl-subhead">'+formatInline(subMatch[1])+'</div>';
@@ -1549,7 +1551,8 @@ function onDownloadSuccess(filePath){
     currentUpdateProgressTimer=null;
   }
   downloadedApkPath=filePath||null;
-  updateProgressBar(100, '下载完成', '100%');
+  const doneSizeStr = (updateTargetAsset && updateTargetAsset.size) ? ((updateTargetAsset.size / (1024 * 1024)).toFixed(1) + ' MB') : '已完成';
+  updateProgressBar(100, '下载完成', doneSizeStr);
   setUpdateStage('success');
 
   // 默认自动安装：若用户开启 autoInstallUpdate（默认 true），立即调起安装
@@ -1573,8 +1576,17 @@ function startUpdateDownload(){
     return;
   }
 
+  const totalBytes = (asset && asset.size) ? asset.size : 16 * 1024 * 1024;
+  const totalMbStr = (totalBytes / (1024 * 1024)).toFixed(1) + ' MB';
+
+  function formatSizeProg(pct){
+    const curBytes = Math.round(totalBytes * (pct / 100));
+    const curMbStr = (curBytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return curMbStr + ' / ' + totalMbStr;
+  }
+
   setUpdateStage('progress');
-  updateProgressBar(0, '正在连接更新服务器…', '准备中…');
+  updateProgressBar(0, '正在连接更新服务器…', '0.0 MB / ' + totalMbStr);
 
   // 原生 Android 桥梁触发下载
   let nativeDownloadStarted = false;
@@ -1587,32 +1599,32 @@ function startUpdateDownload(){
   if(nativeDownloadStarted){
     // 原生已启动系统 DownloadManager：在前端展示平滑优雅的下载进度条
     let currentPct = 2;
-    updateProgressBar(currentPct, '正在下载更新安装包…', '约 ' + currentPct + '%');
+    updateProgressBar(currentPct, '正在下载更新安装包…', formatSizeProg(currentPct));
     currentUpdateProgressTimer = setInterval(()=>{
-      if(currentPct < 92){
-        const step = (100 - currentPct) * 0.08 + Math.random() * 2;
-        currentPct = Math.min(92, currentPct + step);
-        updateProgressBar(currentPct, '正在下载更新安装包…', '约 ' + Math.round(currentPct) + '%');
+      if(currentPct < 96){
+        const step = Math.max(0.5, (100 - currentPct) * 0.06);
+        currentPct = Math.min(96, currentPct + step);
+        updateProgressBar(currentPct, '正在下载更新安装包…', formatSizeProg(currentPct));
       }
-    }, 400);
+    }, 200);
 
     // 预估下载时间后展示完成
     setTimeout(()=>{
       onDownloadSuccess(fileName);
     }, 3800);
   }else{
-    // Web / 备用环境：流式 Fetch 读取进度，或模拟进度后下载
+    // Web / 备用环境：平滑模拟进度后触发下载
     let currentPct = 0;
     currentUpdateProgressTimer = setInterval(()=>{
-      currentPct += Math.max(3, (98 - currentPct) * 0.12);
+      currentPct += Math.max(1.5, (98 - currentPct) * 0.08);
       if(currentPct >= 96){
         clearInterval(currentUpdateProgressTimer);
         currentUpdateProgressTimer=null;
         onDownloadSuccess(fileName);
       } else {
-        updateProgressBar(currentPct, '正在下载更新安装包…', Math.round(currentPct)+'%');
+        updateProgressBar(currentPct, '正在下载更新安装包…', formatSizeProg(currentPct));
       }
-    }, 200);
+    }, 120);
 
     try{
       const a=document.createElement('a');

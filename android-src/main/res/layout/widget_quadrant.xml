@@ -37,7 +37,7 @@
                     android:gravity="center"
                     android:orientation="horizontal"
                     android:paddingTop="0dp"
-                    android:paddingBottom="4dp">
+                    android:paddingBottom="2dp">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -73,19 +73,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q2_chk_1"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -97,7 +97,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q2_done_1"
                             android:layout_width="0dp"
@@ -106,7 +106,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
@@ -114,19 +114,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q2_chk_2"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -138,7 +138,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q2_done_2"
                             android:layout_width="0dp"
@@ -147,7 +147,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
@@ -155,19 +155,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q2_chk_3"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -179,7 +179,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q2_done_3"
                             android:layout_width="0dp"
@@ -188,7 +188,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
@@ -196,19 +196,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q2_chk_4"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -220,7 +220,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q2_done_4"
                             android:layout_width="0dp"
@@ -229,7 +229,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                 </LinearLayout>
@@ -258,7 +258,7 @@
                     android:gravity="center"
                     android:orientation="horizontal"
                     android:paddingTop="0dp"
-                    android:paddingBottom="4dp">
+                    android:paddingBottom="2dp">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -294,19 +294,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q1_chk_1"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -318,7 +318,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q1_done_1"
                             android:layout_width="0dp"
@@ -327,7 +327,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
@@ -335,19 +335,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q1_chk_2"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -359,7 +359,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q1_done_2"
                             android:layout_width="0dp"
@@ -368,7 +368,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
@@ -376,19 +376,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q1_chk_3"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -400,7 +400,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q1_done_3"
                             android:layout_width="0dp"
@@ -409,7 +409,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
@@ -417,19 +417,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q1_chk_4"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -441,7 +441,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q1_done_4"
                             android:layout_width="0dp"
@@ -450,7 +450,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                 </LinearLayout>
@@ -504,19 +504,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q3_chk_1"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -528,7 +528,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q3_done_1"
                             android:layout_width="0dp"
@@ -537,7 +537,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
@@ -545,19 +545,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q3_chk_2"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -569,7 +569,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q3_done_2"
                             android:layout_width="0dp"
@@ -578,7 +578,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
@@ -586,19 +586,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q3_chk_3"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -610,7 +610,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q3_done_3"
                             android:layout_width="0dp"
@@ -619,7 +619,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
@@ -627,19 +627,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q3_chk_4"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -651,7 +651,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q3_done_4"
                             android:layout_width="0dp"
@@ -660,7 +660,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                 </LinearLayout>
@@ -672,7 +672,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:orientation="horizontal"
-                    android:paddingTop="4dp"
+                    android:paddingTop="2dp"
                     android:paddingBottom="0dp">
 
                     <TextView
@@ -725,19 +725,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q4_chk_1"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -749,7 +749,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q4_done_1"
                             android:layout_width="0dp"
@@ -758,7 +758,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
@@ -766,19 +766,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q4_chk_2"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -790,7 +790,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q4_done_2"
                             android:layout_width="0dp"
@@ -799,7 +799,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
@@ -807,19 +807,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q4_chk_3"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -831,7 +831,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q4_done_3"
                             android:layout_width="0dp"
@@ -840,7 +840,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                     <LinearLayout
@@ -848,19 +848,19 @@
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="2dp"
                         android:background="@drawable/widget_item_bg"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingLeft="8dp"
                         android:paddingRight="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
                         android:visibility="gone">
                         <ImageView
                             android:id="@+id/q4_chk_4"
-                            android:layout_width="19dp"
-                            android:layout_height="19dp"
+                            android:layout_width="17dp"
+                            android:layout_height="17dp"
                             android:layout_marginEnd="7dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/widget_ic_check_box_unchecked" />
@@ -872,7 +872,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_primary"
-                            android:textSize="12.5sp" />
+                            android:textSize="11.5sp" />
                         <TextView
                             android:id="@+id/q4_done_4"
                             android:layout_width="0dp"
@@ -881,7 +881,7 @@
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textColor="@color/widget_text_done"
-                            android:textSize="12.5sp"
+                            android:textSize="11.5sp"
                             android:visibility="gone" />
                     </LinearLayout>
                 </LinearLayout>
@@ -893,7 +893,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:orientation="horizontal"
-                    android:paddingTop="4dp"
+                    android:paddingTop="2dp"
                     android:paddingBottom="0dp">
 
                     <TextView
@@ -910,28 +910,28 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 十字深色坐标轴（位于四象限网格正中央，保留充足可见长度，杜绝窄宽时消失或穿透） -->
-    <!-- X 轴（水平分界线，两端保留微距内缩，确保即便在 2格/1格 极窄宽度下依然清晰可见） -->
+    <!-- 十字深色坐标轴（位于四象限网格正中央，两端内缩避开四周方向标签，杜绝贯穿遮挡） -->
+    <!-- X 轴（水平分界线，两端留出 42dp 边距避开“重要/不重要”标签） -->
     <ImageView
         android:id="@+id/qw_axis_x"
         android:layout_width="match_parent"
         android:layout_height="2dp"
         android:layout_centerVertical="true"
-        android:layout_marginLeft="10dp"
-        android:layout_marginRight="10dp"
+        android:layout_marginLeft="42dp"
+        android:layout_marginRight="42dp"
         android:background="@color/qw_axis_line" />
 
-    <!-- Y 轴（垂直分界线，上下保留微距内缩） -->
+    <!-- Y 轴（垂直分界线，上下留出 26dp 边距避开“紧急/不紧急”标签） -->
     <ImageView
         android:id="@+id/qw_axis_y"
         android:layout_width="2dp"
         android:layout_height="match_parent"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="10dp"
-        android:layout_marginBottom="10dp"
+        android:layout_marginTop="26dp"
+        android:layout_marginBottom="26dp"
         android:background="@color/qw_axis_line" />
 
-    <!-- 四周方向提示纯文字（无背景色，透明背景，杜绝遮挡文字） -->
+    <!-- 四周方向提示标签（背景纯白遮盖坐标轴，无圆角实体胶囊，文字保持原色） -->
     <!-- 上方：紧急 -->
     <TextView
         android:id="@+id/qw_pill_top"
@@ -939,14 +939,15 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
+        android:background="#FFFFFF"
         android:gravity="center"
-        android:paddingLeft="2dp"
-        android:paddingRight="2dp"
-        android:paddingTop="1dp"
-        android:paddingBottom="1dp"
+        android:paddingLeft="6dp"
+        android:paddingRight="6dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
         android:text="紧急"
         android:textColor="@color/qw_pill_text"
-        android:textSize="10.5sp"
+        android:textSize="10sp"
         android:textStyle="bold" />
 
     <!-- 下方：不紧急 -->
@@ -956,14 +957,15 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
+        android:background="#FFFFFF"
         android:gravity="center"
-        android:paddingLeft="2dp"
-        android:paddingRight="2dp"
-        android:paddingTop="1dp"
-        android:paddingBottom="1dp"
+        android:paddingLeft="6dp"
+        android:paddingRight="6dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
         android:text="不紧急"
         android:textColor="@color/qw_pill_text"
-        android:textSize="10.5sp"
+        android:textSize="10sp"
         android:textStyle="bold" />
 
     <!-- 左侧：不重要 -->
@@ -973,14 +975,15 @@
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_centerVertical="true"
+        android:background="#FFFFFF"
         android:gravity="center"
-        android:paddingLeft="2dp"
-        android:paddingRight="2dp"
-        android:paddingTop="1dp"
-        android:paddingBottom="1dp"
+        android:paddingLeft="6dp"
+        android:paddingRight="6dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
         android:text="不重要"
         android:textColor="@color/qw_pill_text"
-        android:textSize="10.5sp"
+        android:textSize="10sp"
         android:textStyle="bold" />
 
     <!-- 右侧：重要 -->
@@ -990,22 +993,23 @@
         android:layout_height="wrap_content"
         android:layout_alignParentRight="true"
         android:layout_centerVertical="true"
+        android:background="#FFFFFF"
         android:gravity="center"
-        android:paddingLeft="2dp"
-        android:paddingRight="2dp"
-        android:paddingTop="1dp"
-        android:paddingBottom="1dp"
+        android:paddingLeft="6dp"
+        android:paddingRight="6dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
         android:text="重要"
         android:textColor="@color/qw_pill_text"
-        android:textSize="10.5sp"
+        android:textSize="10sp"
         android:textStyle="bold" />
 
-    <!-- 1x1 极简自适应四色四象限角标模式（保留微型十字坐标轴，展现红橙绿蓝四象限，严格内缩留白杜绝重叠） -->
+    <!-- 1x1 极简自适应四色四象限角标模式（保留微型十字坐标轴，展现红橙绿蓝四象限，严格内缩留白与常规 App 图标一致） -->
     <RelativeLayout
         android:id="@+id/qw_compact_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="3dp"
+        android:padding="6dp"
         android:visibility="gone">
 
         <LinearLayout
@@ -1027,9 +1031,10 @@
                     android:layout_margin="1.5dp"
                     android:background="@drawable/widget_item_bg"
                     android:gravity="center"
+                    android:includeFontPadding="false"
                     android:text="0"
                     android:textColor="@color/qw_q2_border"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -1040,9 +1045,10 @@
                     android:layout_margin="1.5dp"
                     android:background="@drawable/widget_item_bg"
                     android:gravity="center"
+                    android:includeFontPadding="false"
                     android:text="0"
                     android:textColor="@color/qw_q1_border"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -1060,9 +1066,10 @@
                     android:layout_margin="1.5dp"
                     android:background="@drawable/widget_item_bg"
                     android:gravity="center"
+                    android:includeFontPadding="false"
                     android:text="0"
                     android:textColor="@color/qw_q3_border"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -1073,9 +1080,10 @@
                     android:layout_margin="1.5dp"
                     android:background="@drawable/widget_item_bg"
                     android:gravity="center"
+                    android:includeFontPadding="false"
                     android:text="0"
                     android:textColor="@color/qw_q4_border"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>

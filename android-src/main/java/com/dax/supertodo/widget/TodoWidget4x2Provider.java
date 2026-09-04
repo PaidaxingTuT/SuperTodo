@@ -105,11 +105,12 @@ public class TodoWidget4x2Provider extends AppWidgetProvider {
             views.setViewVisibility(R.id.widget_empty_view, View.GONE);
         } else {
             // 需要展示事项：根据高度动态计算槽位数
-            // 2x2 (width < 220 且 height <= 145) 或高度较低时：严格展示 2 项且利用 layout_weight 完整显示不被裁切
+            // 4x2 默认尺寸（通常高度约为 110~175dp）严格默认只展示 2 项
+            // 只有用户主动将其纵向拉高到 4x3（> 180dp）或 4x4（> 250dp）时，才逐步扩展为 3 项和 4 项
             int maxSlots;
-            if (height <= 145) {
+            if (height <= 180) {
                 maxSlots = 2;
-            } else if (height <= 210) {
+            } else if (height <= 250) {
                 maxSlots = 3;
             } else {
                 maxSlots = 4;

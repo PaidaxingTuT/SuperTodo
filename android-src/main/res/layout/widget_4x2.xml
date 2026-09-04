@@ -5,11 +5,12 @@
     android:background="@drawable/widget_bg"
     android:padding="12dp">
 
-    <!-- 顶部导航与操作栏 -->
+    <!-- 顶部导航与操作栏（高度为 1 时居中） -->
     <LinearLayout
         android:id="@+id/widget_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -522,33 +523,35 @@
         android:textSize="12sp"
         android:visibility="gone" />
 
-    <!-- 1x1 极简自适应模式（当被拖拽至 1x1 极小尺寸时自动展现，严格内缩留白杜绝重叠） -->
+    <!-- 1x1 极简自适应模式（当被拖拽至 1x1 极小尺寸时自动展现，严格内缩留白与常规 App 图标一致） -->
     <LinearLayout
         android:id="@+id/widget_compact_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="4dp"
+        android:padding="8dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/compact_count_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:includeFontPadding="false"
             android:text="0"
             android:textColor="@color/widget_primary"
-            android:textSize="22sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/compact_label_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
+            android:layout_marginTop="2dp"
+            android:includeFontPadding="false"
             android:text="待办事项"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="10.5sp" />
+            android:textSize="9.5sp" />
     </LinearLayout>
 
 </RelativeLayout>
