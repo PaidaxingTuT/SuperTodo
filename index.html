@@ -187,7 +187,6 @@ try{
 
     <div class="set-section">
       <h3>外观 · 日夜模式</h3>
-      <p class="set-tip">默认跟随系统深色/浅色模式自动切换，亦可手动常驻指定模式。</p>
       <div class="db-seg" id="colorModeSeg" style="margin: 8px 0 16px;">
         <button class="seg" data-mode="system">跟随系统</button>
         <button class="seg" data-mode="light">日间浅色</button>
@@ -195,7 +194,6 @@ try{
       </div>
 
       <h3>外观 · 主色</h3>
-      <p class="set-tip">选择主色调，界面配色会整体跟随。</p>
       <div class="palette" id="palette"></div>
       <div class="pal-custom">
         <button class="btn-line" id="customColorBtn">自定义颜色</button>
@@ -207,7 +205,6 @@ try{
 
     <div class="set-section">
       <h3>类型</h3>
-      <p class="set-tip">长按汉堡菜单里的项目可重命名/删除。</p>
       <div class="tags" id="setTypes"></div>
     </div>
 
@@ -225,7 +222,6 @@ try{
 
     <div class="set-section">
       <h3>列表布局 · 自定义间距与字号</h3>
-      <p class="set-tip">支持快捷预设或自由拖动滑块自定义卡片间距、内边距与字号，完美适应不同屏幕尺寸。</p>
       <div class="db-seg" id="spacingPresetSeg" style="margin: 8px 0 10px;">
         <button class="seg" data-preset="compact">紧凑</button>
         <button class="seg" data-preset="standard">标准</button>
@@ -262,8 +258,22 @@ try{
     <div class="set-divide"></div>
 
     <div class="set-section">
+      <h3>更新与安装</h3>
+      <label class="switch"><input type="checkbox" id="autoCheckUpdate"><span></span><em>启动时自动检查更新</em></label>
+      <label class="switch" style="margin-top:8px;"><input type="checkbox" id="autoInstallUpdate"><span></span><em>更新包下载完成后自动安装</em></label>
+    </div>
+
+    <div class="set-divide"></div>
+
+    <div class="set-section">
+      <h3>桌面小部件</h3>
+      <label class="switch"><input type="checkbox" id="widgetRemoveDone"><span></span><em>在小部件中完成事项后自动移除</em></label>
+    </div>
+
+    <div class="set-divide"></div>
+
+    <div class="set-section">
       <h3>AI · 云端增强</h3>
-      <p class="set-tip">开启后可启用「一句话速记」与「智能整理」，解析需联网调用 AI 服务。</p>
       <label class="switch ai-switch"><input type="checkbox" id="aiEnabled"><span></span><em>启用 AI 增强</em></label>
       <label class="fld">
         <input type="text" id="aiBase" placeholder="Base URL，如 https://api.deepseek.com/v1" data-aifield="base" autocomplete="off">
@@ -274,24 +284,6 @@ try{
       <label class="fld">
         <input type="text" id="aiModel" placeholder="模型名，如 deepseek-chat" data-aifield="model" autocomplete="off">
       </label>
-    </div>
-
-    <div class="set-divide"></div>
-
-    <div class="set-section">
-      <h3>更新与安装</h3>
-      <p class="set-tip">管理应用更新检测行为以及更新包下载完成后的处理方式。</p>
-      <label class="switch"><input type="checkbox" id="autoCheckUpdate"><span></span><em>启动时自动检查更新</em></label>
-      <label class="switch" style="margin-top:8px;"><input type="checkbox" id="autoInstallUpdate"><span></span><em>更新包下载完成后自动安装</em></label>
-    </div>
-
-    <div class="set-divide"></div>
-
-    <div class="set-section">
-      <h3>桌面小部件</h3>
-      <p class="set-tip">控制桌面小部件及四象限卡片的操作行为与展现形式。</p>
-      <label class="switch"><input type="checkbox" id="widgetRemoveDone"><span></span><em>在小部件中完成事项后自动移除</em></label>
-      <p class="set-tip" style="margin-top:4px;">开启后，在小部件中勾选完成的事项将直接移出，剩余事项平滑过渡填满当前格子；关闭时则保留划线展示。</p>
     </div>
 
     <div class="set-divide"></div>

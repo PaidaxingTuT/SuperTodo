@@ -1123,7 +1123,7 @@ function setSeg(kind,val){
   });
 }
 function showModal(){ pushLayer(); $('#modalMask').hidden=false; $('#modal').hidden=false; $('#fTitle').focus(); }
-function hideModal(){ $('#modal').hidden=true; $('#modalMask').hidden=true; modalOpen=false; if(!backSuppress)syncBack(); }
+function hideModal(){ $('#modal').hidden=true; $('#modalMask').hidden=true; modalOpen=false; pendingQuadrantAddKey=null; if(!backSuppress)syncBack(); }
 
 function segSelAll(kind){
   const cap = kind.charAt(0).toUpperCase() + kind.slice(1);
@@ -1183,7 +1183,14 @@ function saveForm(){
       }
     }
   }
-  else state.items.push(Object.assign({id:uid(),done:false,doneScenes:[],doneTypes:[],created:Date.now()},g));
+  else {
+    const newItem = Object.assign({id:uid(),done:false,doneScenes:[],doneTypes:[],created:Date.now()},g);
+    state.items.push(newItem);
+    if(pendingQuadrantAddKey){
+      addQuadrantItem(pendingQuadrantAddKey, newItem.title, newItem.id);
+      pendingQuadrantAddKey = null;
+    }
+  }
   save(); render(); hideModal();
 }
 
@@ -1219,7 +1226,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.6-beta.6';
+const APP_VERSION='v1.7.6-beta.7';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -1414,6 +1421,13 @@ function renderReleaseNotes(md){
   for(let line of lines){
     line=line.trim();
     if(!line || line.startsWith('# ')) continue;
+
+    const subMatch=line.match(/^###+\s+(.*)$/);
+    if(subMatch){
+      if(inList){ html+='</ul>'; inList=false; }
+      html+='<div class="cl-subhead">'+formatInline(subMatch[1])+'</div>';
+      continue;
+    }
 
     const listMatch=line.match(/^[-*•]\s+(.*)$/);
     if(listMatch){
@@ -1943,6 +1957,18 @@ const QUADRANTS = {
 };
 
 let currentPickerQKey = null;
+let pendingQuadrantAddKey = null;
+
+function openCreateForQuadrant(qKey){
+  const qw = getQuadrantWidgetData();
+  if(!qw[qKey]) qw[qKey] = [];
+  if(qw[qKey].length >= 4){
+    alertDlg('提示', '该象限已达到 4 项上限，无法继续添加');
+    return;
+  }
+  pendingQuadrantAddKey = qKey;
+  openAdd();
+}
 
 function getQuadrantWidgetData(){
   if(!state.quadrantWidget || typeof state.quadrantWidget !== 'object'){
@@ -2066,7 +2092,8 @@ function renderQuadrantEditors(){
     if(!isFull){
       addHtml = `
         <div class="qe-add-box">
-          <button class="btn-line qe-pick-btn" data-qpick="${k}">＋ 选择待办</button>
+          <button class="btn-line qe-btn qe-create-btn" data-qcreate="${k}">＋ 添加待办</button>
+          <button class="btn-line qe-btn qe-pick-btn" data-qpick="${k}">＋ 选择待办</button>
         </div>
       `;
     } else {
@@ -2437,6 +2464,12 @@ document.addEventListener('DOMContentLoaded',()=>{
         e.stopPropagation();
         const [k,idx]=del.dataset.qdel.split(':');
         removeQuadrantItem(k,+idx);
+        return;
+      }
+      const create=e.target.closest('[data-qcreate]');
+      if(create){
+        e.stopPropagation();
+        openCreateForQuadrant(create.dataset.qcreate);
         return;
       }
       const pick=e.target.closest('[data-qpick]');

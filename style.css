@@ -66,7 +66,7 @@ input{font-family:inherit}
 .appbar{
   position:fixed;top:0;left:0;right:0;z-index:40;background:linear-gradient(180deg,var(--primary) 0%,var(--primary-deep) 100%);color:#fff;
   box-shadow:0 2px 8px rgba(20,40,90,.18);
-  padding-top:var(--safe-t);height:calc(56px + var(--safe-t));
+  padding-top:var(--safe-t);
 }
 .appbar-top,.searchbar{display:flex;align-items:center;height:56px;padding:0 6px}
 .app-title{font-weight:500;font-size:19px;letter-spacing:.3px;margin-left:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -248,6 +248,8 @@ body.home-view .content{padding-top:calc(56px + var(--safe-t) + 54px)}
   animation:pop .18s ease;
 }
 .modal-sm{width:min(88vw,420px)}
+#modalMask{z-index:105}
+#modal{z-index:108}
 #dlgMask{z-index:110}
 #dlgModal{z-index:120}
 @keyframes pop{from{transform:translate(-50%,-50%) scale(.94);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
@@ -674,6 +676,15 @@ body.home-view .content{padding-top:calc(56px + var(--safe-t) + 54px)}
   max-height:42vh;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
+}
+.update-notes-box .cl-subhead{
+  font-size:13.5px;
+  font-weight:700;
+  color:var(--text);
+  margin:10px 0 5px;
+}
+.update-notes-box .cl-subhead:first-child{
+  margin-top:2px;
 }
 .update-notes-box ul{
   margin:0;
@@ -1335,27 +1346,28 @@ body.home-view .content{padding-top:calc(56px + var(--safe-t) + 54px)}
 }
 .qe-add-box{
   display:flex;
-  flex-direction:column;
-  gap:6px;
+  flex-direction:row;
+  gap:8px;
   margin-top:2px;
 }
-.qe-pick-btn{
-  width:100%;
-  padding:10px 0;
+.qe-btn{
+  flex:1;
+  padding:9px 0;
   font-size:13px;
   font-weight:600;
-  color:var(--primary-ink);
   border-radius:10px;
-  background:var(--surface);
-  border:1px dashed var(--line);
   cursor:pointer;
   transition:all .15s;
+  text-align:center;
+  background:var(--surface);
+  color:var(--primary-ink);
+  border:1px dashed var(--line);
 }
-.qe-pick-btn:hover{
+.qe-btn:hover{
   border-color:var(--primary);
   background:var(--primary-soft);
 }
-.qe-pick-btn:active{
+.qe-btn:active{
   transform:scale(.98);
 }
 .qe-full-badge{

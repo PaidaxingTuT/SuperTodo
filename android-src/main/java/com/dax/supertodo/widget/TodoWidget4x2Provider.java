@@ -75,13 +75,15 @@ public class TodoWidget4x2Provider extends AppWidgetProvider {
         views.setTextViewText(R.id.widget_filter_badge, filterTitle);
         views.setTextViewText(R.id.widget_count_text, activeCount + " 项待办");
 
-        // 宽度弹性响应：空间较小时隐藏次要元素以防标题被挤压截断
-        if (width < 260) {
+        // 宽度弹性响应：空间较小时按用户需求隐藏次要元素
+        // 如果宽度极窄（< 150dp，如 1x2 或竖向拖拽），精简至仅显示标题与添加按钮
+        if (width < 250) {
             views.setViewVisibility(R.id.widget_filter_badge, View.GONE);
         } else {
             views.setViewVisibility(R.id.widget_filter_badge, View.VISIBLE);
         }
-        if (width < 200) {
+
+        if (width < 210) {
             views.setViewVisibility(R.id.widget_count_text, View.GONE);
             views.setViewVisibility(R.id.btn_widget_settings, View.GONE);
         } else {
@@ -89,25 +91,165 @@ public class TodoWidget4x2Provider extends AppWidgetProvider {
             views.setViewVisibility(R.id.btn_widget_settings, View.VISIBLE);
         }
 
-        // 绑定列表数据源 Service
-        Intent serviceIntent = new Intent(context, TodoWidgetService.class);
-        serviceIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
-        serviceIntent.putExtra("is_4x4", false);
-        serviceIntent.setData(Uri.parse(serviceIntent.toUri(Intent.URI_INTENT_SCHEME)));
-        views.setRemoteAdapter(R.id.widget_list, serviceIntent);
-        views.setEmptyView(R.id.widget_list, R.id.widget_empty_view);
+        // 高度弹性响应：
+        // 当变成 4x1, 3x1, 2x1（height <= 85dp）时，不再显示事项内容，只保留顶部控制栏
+        boolean showItems = height > 85;
 
-        // 设置列表项点击事件模板（勾选完成或打开事项）
-        Intent clickIntent = new Intent(context, TodoWidget4x2Provider.class);
-        clickIntent.setAction(WidgetDataManager.ACTION_WIDGET_CLICK);
-        clickIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
-        PendingIntent clickPI = PendingIntent.getBroadcast(
-            context,
-            appWidgetId,
-            clickIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE
-        );
-        views.setPendingIntentTemplate(R.id.widget_list, clickPI);
+        if (!showItems) {
+            // 4x1, 3x1, 2x1 矮栏模式：完全隐藏槽位、列表与空状态
+            views.setViewVisibility(R.id.widget_slots_container, View.GONE);
+            views.setViewVisibility(R.id.widget_list, View.GONE);
+            views.setViewVisibility(R.id.widget_empty_view, View.GONE);
+        } else {
+            // 需要展示事项：根据高度动态计算槽位数
+            // 2x2 (width < 220 且 height <= 145) 或高度较低时：严格展示 2 项且利用 layout_weight 完整显示不被裁切
+            int maxSlots;
+            if (height <= 145) {
+                maxSlots = 2;
+            } else if (height <= 210) {
+                maxSlots = 3;
+            } else {
+                maxSlots = 4;
+            }
+
+            // 次要标签（tag/due/star）是否展示（较窄或较扁时不挤压标题）
+            boolean showItemDetails = width >= 210 && height >= 125;
+
+            if (items.isEmpty()) {
+                views.setViewVisibility(R.id.widget_slots_container, View.GONE);
+                views.setViewVisibility(R.id.widget_list, View.GONE);
+                views.setViewVisibility(R.id.widget_empty_view, View.VISIBLE);
+            } else if (items.size() <= maxSlots || maxSlots <= 4) {
+                // 在 maxSlots 范围内或常规尺寸：启用全填充槽位容器（layout_weight="1"），按权重完全占满纵向空间
+                views.setViewVisibility(R.id.widget_slots_container, View.VISIBLE);
+                views.setViewVisibility(R.id.widget_list, View.GONE);
+                views.setViewVisibility(R.id.widget_empty_view, View.GONE);
+
+                int count = Math.min(items.size(), maxSlots);
+                int[] slotIds = { R.id.slot_item_1, R.id.slot_item_2, R.id.slot_item_3, R.id.slot_item_4 };
+                int[] checkIds = { R.id.slot_1_checkbox, R.id.slot_2_checkbox, R.id.slot_3_checkbox, R.id.slot_4_checkbox };
+                int[] titleIds = { R.id.slot_1_title, R.id.slot_2_title, R.id.slot_3_title, R.id.slot_4_title };
+                int[] titleDoneIds = { R.id.slot_1_title_done, R.id.slot_2_title_done, R.id.slot_3_title_done, R.id.slot_4_title_done };
+                int[] tagIds = { R.id.slot_1_tag, R.id.slot_2_tag, R.id.slot_3_tag, R.id.slot_4_tag };
+                int[] dueIds = { R.id.slot_1_due, R.id.slot_2_due, R.id.slot_3_due, R.id.slot_4_due };
+                int[] starIds = { R.id.slot_1_star, R.id.slot_2_star, R.id.slot_3_star, R.id.slot_4_star };
+                int[] costIds = { R.id.slot_1_cost, R.id.slot_2_cost, R.id.slot_3_cost, R.id.slot_4_cost };
+
+                for (int i = 0; i < 4; i++) {
+                    if (i < count) {
+                        views.setViewVisibility(slotIds[i], View.VISIBLE);
+                        TodoItem it = items.get(i);
+                        String title = it.title != null ? it.title : "";
+
+                        if (it.done) {
+                            SpannableString ss = new SpannableString(title);
+                            ss.setSpan(new StrikethroughSpan(), 0, ss.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            views.setViewVisibility(titleIds[i], View.GONE);
+                            views.setViewVisibility(titleDoneIds[i], View.VISIBLE);
+                            views.setTextViewText(titleDoneIds[i], ss);
+                            views.setImageViewResource(checkIds[i], R.drawable.widget_ic_check_box_checked);
+                        } else {
+                            views.setViewVisibility(titleDoneIds[i], View.GONE);
+                            views.setViewVisibility(titleIds[i], View.VISIBLE);
+                            views.setTextViewText(titleIds[i], title);
+                            views.setImageViewResource(checkIds[i], R.drawable.widget_ic_check_box_unchecked);
+                        }
+
+                        String tag = "";
+                        if (it.scene != null && !it.scene.isEmpty()) tag = it.scene;
+                        else if (it.time != null && !it.time.isEmpty()) tag = it.time;
+                        else if (it.type != null && !it.type.isEmpty() && !"全部".equals(it.type)) tag = it.type;
+
+                        if (showItemDetails && !tag.isEmpty()) {
+                            views.setViewVisibility(tagIds[i], View.VISIBLE);
+                            views.setTextViewText(tagIds[i], tag);
+                        } else {
+                            views.setViewVisibility(tagIds[i], View.GONE);
+                        }
+
+                        if (showItemDetails && it.due != null && !it.due.isEmpty()) {
+                            views.setViewVisibility(dueIds[i], View.VISIBLE);
+                            views.setTextViewText(dueIds[i], it.due);
+                        } else {
+                            views.setViewVisibility(dueIds[i], View.GONE);
+                        }
+
+                        if (showItemDetails && it.star > 0) {
+                            StringBuilder sb = new StringBuilder();
+                            for (int s = 0; s < it.star; s++) sb.append("★");
+                            views.setViewVisibility(starIds[i], View.VISIBLE);
+                            views.setTextViewText(starIds[i], sb.toString());
+                        } else {
+                            views.setViewVisibility(starIds[i], View.GONE);
+                        }
+
+                        if (showItemDetails && it.hasCost && it.cost > 0) {
+                            String costStr;
+                            if (it.cost == (long) it.cost) {
+                                costStr = "¥" + ((long) it.cost);
+                            } else {
+                                costStr = String.format(java.util.Locale.CHINA, "¥%.2f", it.cost);
+                            }
+                            views.setViewVisibility(costIds[i], View.VISIBLE);
+                            views.setTextViewText(costIds[i], costStr);
+                        } else {
+                            views.setViewVisibility(costIds[i], View.GONE);
+                        }
+
+                        Intent toggleIntent = new Intent(context, TodoWidget4x2Provider.class);
+                        toggleIntent.setAction(WidgetDataManager.ACTION_WIDGET_CLICK);
+                        toggleIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+                        toggleIntent.putExtra("extra_action", "toggle_done");
+                        toggleIntent.putExtra("extra_item_id", it.id);
+                        PendingIntent togglePI = PendingIntent.getBroadcast(
+                            context,
+                            appWidgetId * 1000 + i * 2,
+                            toggleIntent,
+                            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE
+                        );
+                        views.setOnClickPendingIntent(checkIds[i], togglePI);
+
+                        Intent openIntent = new Intent(context, TodoWidget4x2Provider.class);
+                        openIntent.setAction(WidgetDataManager.ACTION_WIDGET_CLICK);
+                        openIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+                        openIntent.putExtra("extra_action", "open_item");
+                        openIntent.putExtra("extra_item_id", it.id);
+                        PendingIntent openPI = PendingIntent.getBroadcast(
+                            context,
+                            appWidgetId * 1000 + i * 2 + 1,
+                            openIntent,
+                            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE
+                        );
+                        views.setOnClickPendingIntent(slotIds[i], openPI);
+                    } else {
+                        views.setViewVisibility(slotIds[i], View.GONE);
+                    }
+                }
+            } else {
+                // 超出 4 项且高度充裕：切换为 ListView 滚动列表
+                views.setViewVisibility(R.id.widget_slots_container, View.GONE);
+                views.setViewVisibility(R.id.widget_list, View.VISIBLE);
+                views.setViewVisibility(R.id.widget_empty_view, View.GONE);
+
+                Intent serviceIntent = new Intent(context, TodoWidgetService.class);
+                serviceIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+                serviceIntent.putExtra("is_4x4", false);
+                serviceIntent.setData(Uri.parse(serviceIntent.toUri(Intent.URI_INTENT_SCHEME)));
+                views.setRemoteAdapter(R.id.widget_list, serviceIntent);
+                views.setEmptyView(R.id.widget_list, R.id.widget_empty_view);
+
+                Intent clickIntent = new Intent(context, TodoWidget4x2Provider.class);
+                clickIntent.setAction(WidgetDataManager.ACTION_WIDGET_CLICK);
+                clickIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+                PendingIntent clickPI = PendingIntent.getBroadcast(
+                    context,
+                    appWidgetId,
+                    clickIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE
+                );
+                views.setPendingIntentTemplate(R.id.widget_list, clickPI);
+            }
+        }
 
         // 设置按钮（长按或点击设置齿轮均可配置）
         Intent configIntent = new Intent(context, WidgetConfigActivity.class);

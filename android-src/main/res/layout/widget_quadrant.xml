@@ -910,25 +910,25 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 十字深色坐标轴（位于四象限网格正中央，两端内缩避免穿透文字） -->
-    <!-- X 轴（水平分界线，两端内缩预留文字空间，彻底杜绝穿透与背景遮挡） -->
+    <!-- 十字深色坐标轴（位于四象限网格正中央，保留充足可见长度，杜绝窄宽时消失或穿透） -->
+    <!-- X 轴（水平分界线，两端保留微距内缩，确保即便在 2格/1格 极窄宽度下依然清晰可见） -->
     <ImageView
         android:id="@+id/qw_axis_x"
         android:layout_width="match_parent"
         android:layout_height="2dp"
         android:layout_centerVertical="true"
-        android:layout_marginLeft="46dp"
-        android:layout_marginRight="46dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
         android:background="@color/qw_axis_line" />
 
-    <!-- Y 轴（垂直分界线，上下内缩预留文字空间，彻底杜绝穿透与背景遮挡） -->
+    <!-- Y 轴（垂直分界线，上下保留微距内缩） -->
     <ImageView
         android:id="@+id/qw_axis_y"
         android:layout_width="2dp"
         android:layout_height="match_parent"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="24dp"
-        android:layout_marginBottom="24dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
         android:background="@color/qw_axis_line" />
 
     <!-- 四周方向提示纯文字（无背景色，透明背景，杜绝遮挡文字） -->
@@ -1000,11 +1000,12 @@
         android:textSize="10.5sp"
         android:textStyle="bold" />
 
-    <!-- 1x1 极简自适应四色四象限角标模式（保留微型十字坐标轴，展现红橙绿蓝四象限） -->
+    <!-- 1x1 极简自适应四色四象限角标模式（保留微型十字坐标轴，展现红橙绿蓝四象限，严格内缩留白杜绝重叠） -->
     <RelativeLayout
         android:id="@+id/qw_compact_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:padding="3dp"
         android:visibility="gone">
 
         <LinearLayout
@@ -1028,7 +1029,7 @@
                     android:gravity="center"
                     android:text="0"
                     android:textColor="@color/qw_q2_border"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -1041,7 +1042,7 @@
                     android:gravity="center"
                     android:text="0"
                     android:textColor="@color/qw_q1_border"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -1061,7 +1062,7 @@
                     android:gravity="center"
                     android:text="0"
                     android:textColor="@color/qw_q3_border"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -1074,7 +1075,7 @@
                     android:gravity="center"
                     android:text="0"
                     android:textColor="@color/qw_q4_border"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>

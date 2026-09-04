@@ -85,8 +85,12 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
             views.setViewVisibility(R.id.btn_widget_settings, View.VISIBLE);
         }
 
+        // 高度弹性响应：
+        // 当变成 4x1, 3x1, 2x1（height <= 85dp）时，不再显示统计条与事项内容，只保留顶部控制栏
+        boolean showItems = height > 85;
+
         // 高度弹性响应：根据 height 决定统计条展示与最大槽位数
-        boolean showCountHeader = height >= 140;
+        boolean showCountHeader = height >= 140 && showItems;
         if (showCountHeader) {
             views.setViewVisibility(R.id.widget_count_text, View.VISIBLE);
             views.setTextViewText(R.id.widget_count_text, activeCount + " 项待办 · " + doneCount + " 项已完成");
@@ -94,24 +98,30 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
             views.setViewVisibility(R.id.widget_count_text, View.GONE);
         }
 
-        // 高度梯度：动态决定槽位数
-        int maxSlots = 5;
-        if (height < 130) {
-            maxSlots = 1;
-        } else if (height < 175) {
-            maxSlots = 2;
-        } else if (height < 225) {
-            maxSlots = 3;
-        } else if (height < 280) {
-            maxSlots = 4;
+        if (!showItems) {
+            // 4x1, 3x1, 2x1 矮栏模式：完全隐藏槽位、列表与空状态
+            views.setViewVisibility(R.id.widget_slots_container, View.GONE);
+            views.setViewVisibility(R.id.widget_list, View.GONE);
+            views.setViewVisibility(R.id.widget_empty_view, View.GONE);
         } else {
-            maxSlots = 5;
-        }
+            // 高度梯度：动态决定槽位数
+            int maxSlots = 5;
+            if (height < 130) {
+                maxSlots = 1;
+            } else if (height < 175) {
+                maxSlots = 2;
+            } else if (height < 225) {
+                maxSlots = 3;
+            } else if (height < 280) {
+                maxSlots = 4;
+            } else {
+                maxSlots = 5;
+            }
 
-        // 是否精简列表项中的次要标签（当宽度较窄或高度较紧凑时）
-        boolean showItemDetails = width >= 210 && height >= 160;
+            // 是否精简列表项中的次要标签（当宽度较窄或高度较紧凑时）
+            boolean showItemDetails = width >= 210 && height >= 160;
 
-        if (items.isEmpty()) {
+            if (items.isEmpty()) {
             views.setViewVisibility(R.id.widget_slots_container, View.GONE);
             views.setViewVisibility(R.id.widget_list, View.GONE);
             views.setViewVisibility(R.id.widget_empty_view, View.VISIBLE);
@@ -254,6 +264,7 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
             );
             views.setPendingIntentTemplate(R.id.widget_list, clickPI);
         }
+    }
 
         // 设置按钮（长按或点击设置齿轮均可配置）
         Intent configIntent = new Intent(context, WidgetConfigActivity.class);
