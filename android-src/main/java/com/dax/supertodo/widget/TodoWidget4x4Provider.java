@@ -28,12 +28,7 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_4x4);
 
         // 获取分组与过滤标题
-        String category = WidgetDataManager.getWidgetCategory(context, appWidgetId);
-        String groupBy = WidgetDataManager.getWidgetGroupBy(context, appWidgetId);
-        String filterTitle = "全部事项";
-        if (!"全部".equals(category)) {
-            filterTitle = WidgetDataManager.GROUP_SCENE.equals(groupBy) ? "场景 · " + category : "时间 · " + category;
-        }
+        String filterTitle = WidgetDataManager.getWidgetFilterTitle(context, appWidgetId);
         views.setTextViewText(R.id.widget_filter_badge, filterTitle);
 
         List<TodoItem> items = WidgetDataManager.loadTasksForWidget(context, appWidgetId);

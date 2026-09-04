@@ -161,8 +161,72 @@ window.onNativeWidgetAction=function(action,itemId){
 };
 try {
   const urlParams = new URLSearchParams(window.location.search);
+  if(urlParams.get('seed_quadrant')==='1'){
+    state.quadrantWidget = {
+      q1: [{ id: 'demo1', title: '完成紧急汇报材料', done: false }, { id: 'demo2', title: '提交项目最终审核', done: true }],
+      q2: [{ id: 'demo3', title: '年度学习与运动规划', done: false }, { id: 'demo4', title: '重构小组件渲染机制', done: false }],
+      q3: [{ id: 'demo5', title: '回复普通咨询邮件', done: false }],
+      q4: [{ id: 'demo6', title: '整理电脑桌面文件', done: true }]
+    };
+  } else if(urlParams.get('seed_quadrant_all')==='4'){
+    state.quadrantWidget = {
+      q1: [
+        { id: 'd11', title: '紧急任务第一项', done: false },
+        { id: 'd12', title: '紧急任务第二项', done: true },
+        { id: 'd13', title: '紧急任务第三项', done: false },
+        { id: 'd14', title: '紧急任务第四项', done: false }
+      ],
+      q2: [
+        { id: 'd21', title: '长期规划第一项', done: false },
+        { id: 'd22', title: '长期规划第二项', done: false },
+        { id: 'd23', title: '长期规划第三项', done: true },
+        { id: 'd24', title: '长期规划第四项', done: false }
+      ],
+      q3: [
+        { id: 'd31', title: '杂事琐事第一项', done: false },
+        { id: 'd32', title: '杂事琐事第二项', done: false },
+        { id: 'd33', title: '杂事琐事第三项', done: true },
+        { id: 'd34', title: '杂事琐事第四项', done: false }
+      ],
+      q4: [
+        { id: 'd41', title: '休闲娱乐第一项', done: true },
+        { id: 'd42', title: '休闲娱乐第二项', done: false },
+        { id: 'd43', title: '休闲娱乐第三项', done: false },
+        { id: 'd44', title: '休闲娱乐第四项', done: false }
+      ]
+    };
+  } else if(urlParams.get('seed_quadrant_all')==='3'){
+    state.quadrantWidget = {
+      q1: [
+        { id: 'd11', title: '紧急任务第一项', done: false },
+        { id: 'd12', title: '紧急任务第二项', done: true },
+        { id: 'd13', title: '紧急任务第三项', done: false }
+      ],
+      q2: [
+        { id: 'd21', title: '长期规划第一项', done: false },
+        { id: 'd22', title: '长期规划第二项', done: false },
+        { id: 'd23', title: '长期规划第三项', done: true }
+      ],
+      q3: [
+        { id: 'd31', title: '杂事琐事第一项', done: false },
+        { id: 'd32', title: '杂事琐事第二项', done: false },
+        { id: 'd33', title: '杂事琐事第三项', done: true }
+      ],
+      q4: [
+        { id: 'd41', title: '休闲娱乐第一项', done: true },
+        { id: 'd42', title: '休闲娱乐第二项', done: false },
+        { id: 'd43', title: '休闲娱乐第三项', done: false }
+      ]
+    };
+  }
+  if(urlParams.get('dev')==='1'||urlParams.get('devMode')==='1'){
+    state.devMode = true;
+  }
   if(urlParams.get('quadrant')==='1'||urlParams.get('view')==='quadrant'){
     setTimeout(()=>{ if(typeof openQuadrantModal==='function') openQuadrantModal(); }, 250);
+  }
+  if(urlParams.get('cl')==='1'||urlParams.get('changelog')==='1'){
+    setTimeout(()=>{ if(typeof openChangelog==='function') openChangelog(); }, 250);
   }
 }catch(e){}
 document.addEventListener('visibilitychange',()=>{
@@ -1033,7 +1097,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.6-beta.2';
+const APP_VERSION='v1.7.6-beta.3';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -1055,7 +1119,8 @@ function handleVerClick(){
     state.devMode=!state.devMode;
     save();
     updateInfoVerText();
-    alertDlg('开发者模式', state.devMode?'已启用开发者模式！检查更新时将优先拉取最新的预发行测试版（Pre-release）。':'已退出开发者模式，仅检测正式版本。');
+    alertDlg('开发者模式', state.devMode?'已启用开发者模式':'已退出开发者模式');
+    if($('#clModal')&&!$('#clModal').hidden) loadChangelog(true);
   }
 }
 function openInfo(){
@@ -1067,7 +1132,7 @@ function openInfo(){
 function closeInfo(){ $('#infoMask').hidden=true; $('#infoModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 更新日志 ========== */
-let changelogCache=null;
+let changelogRawMd=null;
 
 function renderChangelog(md){
   if(!md) return '<div class="cl-error">暂无更新日志</div>';
@@ -1075,6 +1140,7 @@ function renderChangelog(md){
   let html='';
   let inList=false;
   let hasCard=false;
+  let skipSection=false;
 
   function formatInline(text){
     return text
@@ -1093,11 +1159,19 @@ function renderChangelog(md){
     const verMatch=line.match(/^##\s+(v[^\s（(]+)(?:[（(]([^）)]+)[）)])?/);
     if(verMatch){
       if(inList){ html+='</ul>'; inList=false; }
-      if(hasCard){ html+='</div>'; }
-      hasCard=true;
+      if(hasCard){ html+='</div>'; hasCard=false; }
       const ver=verMatch[1];
       const date=verMatch[2]||'';
       const isPre=/-(beta|alpha|rc|pre)/i.test(ver);
+
+      // 默认移除 beta 测试版本，只有开启开发者选项后才显示
+      if(isPre && !state.devMode){
+        skipSection=true;
+        continue;
+      }
+      skipSection=false;
+      hasCard=true;
+
       const isCur=ver===APP_VERSION;
       const badgeCls=isPre?'cl-badge pre':'cl-badge formal';
       html+='<div class="cl-card">';
@@ -1112,6 +1186,8 @@ function renderChangelog(md){
       html+='</div>';
       continue;
     }
+
+    if(skipSection) continue;
 
     const listMatch=line.match(/^[-*•]\s+(.*)$/);
     if(listMatch){
@@ -1138,11 +1214,11 @@ function renderChangelog(md){
   return html || '<div class="cl-error">暂无更新日志内容</div>';
 }
 
-async function loadChangelog(){
+async function loadChangelog(forceRefresh){
   const box=$('#clContent');
   if(!box) return;
-  if(changelogCache){
-    box.innerHTML=changelogCache;
+  if(changelogRawMd && !forceRefresh){
+    box.innerHTML=renderChangelog(changelogRawMd);
     return;
   }
   box.innerHTML='<div class="cl-loading">正在加载更新日志…</div>';
@@ -1159,8 +1235,8 @@ async function loadChangelog(){
     }
 
     if(!mdText) throw new Error('not found');
-    changelogCache=renderChangelog(mdText);
-    box.innerHTML=changelogCache;
+    changelogRawMd=mdText;
+    box.innerHTML=renderChangelog(changelogRawMd);
   }catch(err){
     box.innerHTML='<div class="cl-error">加载更新日志失败，请检查网络连接</div>';
   }
@@ -1170,7 +1246,7 @@ function openChangelog(){
   pushLayer();
   $('#clMask').hidden=false;
   $('#clModal').hidden=false;
-  loadChangelog();
+  loadChangelog(true);
 }
 function closeChangelog(){
   $('#clMask').hidden=true;
@@ -1635,7 +1711,6 @@ function closeQuadrantModal(){
 
 function renderQuadrantModal(){
   renderQuadrantPreview();
-  renderQuadrantEditors();
 }
 
 function renderQuadrantPreview(){
@@ -1648,20 +1723,28 @@ function renderQuadrantPreview(){
     const items = qw[qKey] || [];
     let itemsHtml = '';
     if(!items.length){
-      itemsHtml = `<div class="qw-empty-cell">未配置事项</div>`;
+      itemsHtml = `
+        <div class="qw-empty-cell" data-qpick="${qKey}" title="点击上方胶囊或此处添加待办">
+          <span>暂无事项</span>
+        </div>
+      `;
     }else{
       itemsHtml = items.map((it, idx)=>`
-        <div class="qw-preview-item" data-qtoggle="${qKey}:${idx}">
+        <div class="qw-preview-item" data-qtoggle="${qKey}:${idx}" title="点击切换完成状态">
           <span class="qw-chk ${it.done?'done':''}"></span>
           <span class="qw-title ${it.done?'done':''}">${esc(it.title)}</span>
+          <button class="qw-item-del" data-qdel="${qKey}:${idx}" title="移除事项" type="button">✕</button>
         </div>
       `).join('');
     }
     return `
       <div class="qw-preview-cell ${qKey}">
         <div class="qw-cell-header">
-          <span class="qw-tag ${qKey}">${info.name}</span>
-          <span class="qw-count">${items.length}/4</span>
+          <button class="qw-title-pill ${qKey}" type="button" data-qpick="${qKey}" title="点击配置「${info.name}」">
+            <span class="qw-pill-title">${info.name}</span>
+            <span class="qw-pill-count">${items.length}/4</span>
+            <span class="qw-pill-arrow">＋</span>
+          </button>
         </div>
         <div class="qw-cell-body">
           ${itemsHtml}
@@ -1673,13 +1756,13 @@ function renderQuadrantPreview(){
   wrap.innerHTML = `
     <div class="qw-widget-box">
       <div class="qw-matrix-container">
-        <!-- 坐标轴与极性标注：用黑色胶囊装起来文字，去除箭头 -->
+        <!-- 坐标轴与极性标注：纯文字标注，无胶囊框 -->
         <div class="qw-axis-x" title="重要程度：从左向右"></div>
         <div class="qw-axis-y" title="紧急程度：从下向上"></div>
-        <div class="qw-axis-label-top"><span class="qw-axis-pill">紧急</span></div>
-        <div class="qw-axis-label-bottom"><span class="qw-axis-pill">不紧急</span></div>
-        <div class="qw-axis-label-left"><span class="qw-axis-pill">不重要</span></div>
-        <div class="qw-axis-label-right"><span class="qw-axis-pill">重要</span></div>
+        <div class="qw-axis-label-top"><span class="qw-axis-text">紧急</span></div>
+        <div class="qw-axis-label-bottom"><span class="qw-axis-text">不紧急</span></div>
+        <div class="qw-axis-label-left"><span class="qw-axis-text">不重要</span></div>
+        <div class="qw-axis-label-right"><span class="qw-axis-text">重要</span></div>
 
         <div class="qw-matrix-grid">
           ${renderCell('q3')}
@@ -1697,14 +1780,14 @@ function renderQuadrantEditors(){
   if(!wrap) return;
   const qw = getQuadrantWidgetData();
 
-  wrap.innerHTML = ['q1','q2','q3','q4'].map(k=>{
+  wrap.innerHTML = ['q3','q1','q4','q2'].map(k=>{
     const info = QUADRANTS[k];
     const items = qw[k] || [];
     const isFull = items.length >= 4;
 
     let itemsHtml = '';
     if(!items.length){
-      itemsHtml = `<div class="qe-empty">暂无事项（最多可添加 4 项）</div>`;
+      itemsHtml = `<div class="qe-empty">暂无事项（最多 4 项）</div>`;
     } else {
       itemsHtml = items.map((it, idx)=>`
         <div class="qe-row">
@@ -1723,7 +1806,7 @@ function renderQuadrantEditors(){
         </div>
       `;
     } else {
-      addHtml = `<div class="qe-full-badge">✓ 已达到本象限上限（4 / 4 项）</div>`;
+      addHtml = `<div class="qe-full-badge">✓ 已达到上限（4 / 4）</div>`;
     }
 
     return `
@@ -1731,12 +1814,11 @@ function renderQuadrantEditors(){
         <div class="qe-card-header">
           <div class="qe-title-col">
             <div class="qe-title-row">
-              <span class="qe-dot ${k}"></span>
               <span class="qe-name">${info.tag} · ${info.name}</span>
             </div>
             <div class="qe-desc">${info.desc}</div>
           </div>
-          <span class="qe-count-badge ${isFull?'full':''}">${items.length} / 4 项</span>
+          <span class="qe-count-badge ${isFull?'full':''}">${items.length} / 4</span>
         </div>
         <div class="qe-items-list">
           ${itemsHtml}
@@ -2001,29 +2083,23 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#qwResetBtn').addEventListener('click',resetQuadrantData);
 
   $('#qwWidgetPreview').addEventListener('click',e=>{
-    const toggle=e.target.closest('[data-qtoggle]');
-    if(toggle){
-      const [k,idx]=toggle.dataset.qtoggle.split(':');
-      toggleQuadrantItemDone(k,+idx);
-    }
-  });
-
-  $('#qwEditorsList').addEventListener('click',e=>{
-    const toggle=e.target.closest('[data-qtoggle]');
-    if(toggle){
-      const [k,idx]=toggle.dataset.qtoggle.split(':');
-      toggleQuadrantItemDone(k,+idx);
-      return;
-    }
     const del=e.target.closest('[data-qdel]');
     if(del){
+      e.stopPropagation();
       const [k,idx]=del.dataset.qdel.split(':');
       removeQuadrantItem(k,+idx);
       return;
     }
     const pick=e.target.closest('[data-qpick]');
     if(pick){
+      e.stopPropagation();
       openItemPickerFor(pick.dataset.qpick);
+      return;
+    }
+    const toggle=e.target.closest('[data-qtoggle]');
+    if(toggle){
+      const [k,idx]=toggle.dataset.qtoggle.split(':');
+      toggleQuadrantItemDone(k,+idx);
       return;
     }
   });

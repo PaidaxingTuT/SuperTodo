@@ -59,13 +59,8 @@ public class TodoWidgetQuadrantProvider extends AppWidgetProvider {
         List<TodoItem> items = WidgetDataManager.loadQuadrantItems(context, qKey);
         int total = items.size();
 
-        int countRes = getResId(context, qKey + "_count", "id");
         int emptyRes = getResId(context, qKey + "_empty", "id");
         int boxRes = getResId(context, qKey + "_items_box", "id");
-
-        if (countRes > 0) {
-            views.setTextViewText(countRes, total + "/4");
-        }
 
         if (total == 0) {
             if (emptyRes > 0) views.setViewVisibility(emptyRes, View.VISIBLE);

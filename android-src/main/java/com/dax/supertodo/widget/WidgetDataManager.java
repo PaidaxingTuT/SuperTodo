@@ -202,14 +202,14 @@ public class WidgetDataManager {
     public static String getWidgetFilterTitle(Context context, int widgetId) {
         String groupBy = getWidgetGroupBy(context, widgetId);
         String category = getWidgetCategory(context, widgetId);
-        if (GROUP_ALL.equals(groupBy) || "全部".equals(category)) {
+        if (GROUP_ALL.equals(groupBy) || "全部".equals(category) || category == null || category.trim().isEmpty()) {
             return "全部事项";
         }
         if (GROUP_SCENE.equals(groupBy)) {
-            return "🏷 " + category;
+            return "场景 · " + category;
         }
         if (GROUP_TIME.equals(groupBy)) {
-            return "⏰ " + category;
+            return "时间 · " + category;
         }
         return category;
     }
