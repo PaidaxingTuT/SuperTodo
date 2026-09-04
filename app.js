@@ -15,7 +15,8 @@ let state={
   colorMode:'system',
   spacing:{preset:'standard',gap:10,pad:13,font:15},
   devMode:false,
-  ai:{enabled:false,base:'',key:'',model:''}
+  ai:{enabled:false,base:'',key:'',model:''},
+  quadrantWidget:{q1:[],q2:[],q3:[],q4:[]}
 };
 
 /* 预设主色 */
@@ -75,6 +76,7 @@ function load(){
     if(d.devMode!==undefined)state.devMode=!!d.devMode;
     state.sortKey=d.sortKey||'默认'; state.sortAsc=d.sortAsc!==false;
     if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
+    if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget;
   }}catch(e){}
   syncFromNativeWidget();
 }
@@ -327,6 +329,8 @@ function backHome(){ state.view={name:'home'}; state.sortKey='默认'; render() 
 function closeTopLayer(){
   backSuppress=true;
   if(!$('#dlgModal').hidden){ dlgClose(); backSuppress=false; return true; }
+  if(!$('#itemPickerModal').hidden){ closeItemPicker(); backSuppress=false; return true; }
+  if(!$('#quadrantModal').hidden){ closeQuadrantModal(); backSuppress=false; return true; }
   if(!$('#updateModal').hidden){ closeUpdateModal(); backSuppress=false; return true; }
   if(!$('#clModal').hidden){ closeChangelog(); backSuppress=false; return true; }
   if(!$('#modal').hidden){ hideModal(); backSuppress=false; return true; }
@@ -593,6 +597,10 @@ function init(){
   render();
   setTimeout(setupNativeBack,300);
   setTimeout(()=>checkUpdate(true),900);
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('quadrant')==='1'||params.get('view')==='quadrant'){
+    setTimeout(openQuadrantModal,250);
+  }
 }
 
 /* 抽屉 */
@@ -1014,7 +1022,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.5';
+const APP_VERSION='v1.7.6-beta.1';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -1547,6 +1555,279 @@ function saveAiField(field){
   save(); render();
 }
 
+/* ========== 四象限桌面小部件 (4×4) ========== */
+const QUADRANTS = {
+  q1: {
+    key: 'q1',
+    name: '重要且紧急',
+    tag: '象限一',
+    badge: '紧急 · 重要',
+    color: '#d93025',
+    bg: 'rgba(217, 48, 37, 0.06)',
+    desc: '必须立即行动的关键危机与要务'
+  },
+  q2: {
+    key: 'q2',
+    name: '重要不紧急',
+    tag: '象限二',
+    badge: '战略 · 规划',
+    color: '#1a73e8',
+    bg: 'rgba(26, 115, 232, 0.06)',
+    desc: '长期成长与目标规划，高产出投资'
+  },
+  q3: {
+    key: 'q3',
+    name: '紧急不重要',
+    tag: '象限三',
+    badge: '速决 · 琐事',
+    color: '#e37400',
+    bg: 'rgba(227, 116, 0, 0.06)',
+    desc: '繁杂干扰或突发琐事，尽量速决'
+  },
+  q4: {
+    key: 'q4',
+    name: '不重要不紧急',
+    tag: '象限四',
+    badge: '精简 · 休闲',
+    color: '#188038',
+    bg: 'rgba(24, 128, 56, 0.06)',
+    desc: '低价值事务与消遣杂项，尽量精简'
+  }
+};
+
+let currentPickerQKey = null;
+
+function getQuadrantWidgetData(){
+  if(!state.quadrantWidget || typeof state.quadrantWidget !== 'object'){
+    state.quadrantWidget = { q1:[], q2:[], q3:[], q4:[] };
+  }
+  ['q1','q2','q3','q4'].forEach(k=>{
+    if(!Array.isArray(state.quadrantWidget[k])) state.quadrantWidget[k]=[];
+  });
+  return state.quadrantWidget;
+}
+
+function openQuadrantModal(){
+  pushLayer();
+  $('#drawerMask').hidden=true; $('#drawer').hidden=true;
+  $('#setMask').hidden=true; $('#setModal').hidden=true;
+  renderQuadrantModal();
+  $('#quadrantMask').hidden=false;
+  $('#quadrantModal').hidden=false;
+}
+
+function closeQuadrantModal(){
+  $('#quadrantMask').hidden=true;
+  $('#quadrantModal').hidden=true;
+  if(!backSuppress) syncBack();
+}
+
+function renderQuadrantModal(){
+  renderQuadrantPreview();
+  renderQuadrantEditors();
+}
+
+function renderQuadrantPreview(){
+  const wrap = $('#qwWidgetPreview');
+  if(!wrap) return;
+  const qw = getQuadrantWidgetData();
+
+  function renderCell(qKey){
+    const info = QUADRANTS[qKey];
+    const items = qw[qKey] || [];
+    let itemsHtml = '';
+    if(!items.length){
+      itemsHtml = `<div class="qw-empty-cell">未配置事项</div>`;
+    }else{
+      itemsHtml = items.map((it, idx)=>`
+        <div class="qw-preview-item" data-qtoggle="${qKey}:${idx}">
+          <span class="qw-chk ${it.done?'done':''}"></span>
+          <span class="qw-title ${it.done?'done':''}">${esc(it.title)}</span>
+        </div>
+      `).join('');
+    }
+    return `
+      <div class="qw-preview-cell ${qKey}">
+        <div class="qw-cell-header">
+          <span class="qw-tag ${qKey}">${info.name}</span>
+          <span class="qw-count">${items.length}/4</span>
+        </div>
+        <div class="qw-cell-body">
+          ${itemsHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  wrap.innerHTML = `
+    <div class="qw-widget-box">
+      <div class="qw-matrix-container">
+        <!-- 坐标轴与极性标注：用黑色胶囊装起来文字，去除箭头 -->
+        <div class="qw-axis-x" title="重要程度：从左向右"></div>
+        <div class="qw-axis-y" title="紧急程度：从下向上"></div>
+        <div class="qw-axis-label-top"><span class="qw-axis-pill">紧急</span></div>
+        <div class="qw-axis-label-bottom"><span class="qw-axis-pill">不紧急</span></div>
+        <div class="qw-axis-label-left"><span class="qw-axis-pill">不重要</span></div>
+        <div class="qw-axis-label-right"><span class="qw-axis-pill">重要</span></div>
+
+        <div class="qw-matrix-grid">
+          ${renderCell('q3')}
+          ${renderCell('q1')}
+          ${renderCell('q4')}
+          ${renderCell('q2')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderQuadrantEditors(){
+  const wrap = $('#qwEditorsList');
+  if(!wrap) return;
+  const qw = getQuadrantWidgetData();
+
+  wrap.innerHTML = ['q1','q2','q3','q4'].map(k=>{
+    const info = QUADRANTS[k];
+    const items = qw[k] || [];
+    const isFull = items.length >= 4;
+
+    let itemsHtml = '';
+    if(!items.length){
+      itemsHtml = `<div class="qe-empty">暂无事项（最多可添加 4 项）</div>`;
+    } else {
+      itemsHtml = items.map((it, idx)=>`
+        <div class="qe-row">
+          <span class="card-check ${it.done?'done':''}" data-qtoggle="${k}:${idx}"></span>
+          <span class="qe-row-title ${it.done?'done':''}">${esc(it.title)}</span>
+          <button class="qe-row-del" data-qdel="${k}:${idx}" title="移除">✕</button>
+        </div>
+      `).join('');
+    }
+
+    let addHtml = '';
+    if(!isFull){
+      addHtml = `
+        <div class="qe-add-box">
+          <button class="btn-line qe-pick-btn" data-qpick="${k}">＋ 选择待办</button>
+        </div>
+      `;
+    } else {
+      addHtml = `<div class="qe-full-badge">✓ 已达到本象限上限（4 / 4 项）</div>`;
+    }
+
+    return `
+      <div class="qe-card ${k}">
+        <div class="qe-card-header">
+          <div class="qe-title-col">
+            <div class="qe-title-row">
+              <span class="qe-dot ${k}"></span>
+              <span class="qe-name">${info.tag} · ${info.name}</span>
+            </div>
+            <div class="qe-desc">${info.desc}</div>
+          </div>
+          <span class="qe-count-badge ${isFull?'full':''}">${items.length} / 4 项</span>
+        </div>
+        <div class="qe-items-list">
+          ${itemsHtml}
+        </div>
+        ${addHtml}
+      </div>
+    `;
+  }).join('');
+}
+
+function addQuadrantItem(qKey, title, origId){
+  const qw = getQuadrantWidgetData();
+  if(!qw[qKey]) qw[qKey]=[];
+  if(qw[qKey].length >= 4){
+    alertDlg('提示', '每个象限最多只能添加 4 项');
+    return;
+  }
+  const clean = (title||'').trim();
+  if(!clean) return;
+  qw[qKey].push({
+    id: origId || uid(),
+    title: clean,
+    done: false
+  });
+  renderQuadrantModal();
+}
+
+function removeQuadrantItem(qKey, idx){
+  const qw = getQuadrantWidgetData();
+  if(qw[qKey] && qw[qKey][idx] !== undefined){
+    qw[qKey].splice(idx, 1);
+    renderQuadrantModal();
+  }
+}
+
+function toggleQuadrantItemDone(qKey, idx){
+  const qw = getQuadrantWidgetData();
+  if(qw[qKey] && qw[qKey][idx] !== undefined){
+    qw[qKey][idx].done = !qw[qKey][idx].done;
+    renderQuadrantModal();
+  }
+}
+
+function resetQuadrantData(){
+  confirmDlg('清空四象限', '确定清空四个象限的所有内容？', ()=>{
+    state.quadrantWidget = { q1: [], q2: [], q3: [], q4: [] };
+    renderQuadrantModal();
+  }, '清空', 'delete');
+}
+
+function saveQuadrantConfig(){
+  save();
+  closeQuadrantModal();
+  alertDlg('小部件配置已保存', '4×4 四象限桌面小部件已成功保存并同步！在手机桌面添加 4×4 组件即可实时呈现。');
+}
+
+function openItemPickerFor(qKey){
+  currentPickerQKey = qKey;
+  const info = QUADRANTS[qKey];
+  const titleEl = $('#pickerTitle');
+  if(titleEl) titleEl.textContent = '添加到「' + info.name + '」';
+  $('#pickerSearch').value = '';
+  renderPickerList('');
+  pushLayer();
+  $('#itemPickerMask').hidden = false;
+  $('#itemPickerModal').hidden = false;
+}
+
+function closeItemPicker(){
+  $('#itemPickerMask').hidden = true;
+  $('#itemPickerModal').hidden = true;
+  currentPickerQKey = null;
+  if(!backSuppress) syncBack();
+}
+
+function renderPickerList(query){
+  const listEl = $('#pickerList');
+  if(!listEl) return;
+  const q = (query || '').toLowerCase().trim();
+  const qw = getQuadrantWidgetData();
+  const existingIds = new Set(((qw && currentPickerQKey && qw[currentPickerQKey]) || []).map(x => x.id));
+
+  let items = state.items.filter(it => !it.done && !existingIds.has(it.id));
+  if(q){
+    items = items.filter(it => (it.title + ' ' + (it.note||'')).toLowerCase().includes(q));
+  }
+  if(!items.length){
+    listEl.innerHTML = `<div class="picker-empty">${q?'无匹配待办':'暂无可添加的待办（已全部添加或全部完成）'}</div>`;
+    return;
+  }
+  listEl.innerHTML = items.map(it => `
+    <div class="picker-item-row" data-pick-id="${it.id}">
+      <span class="card-check"></span>
+      <div class="picker-item-text">
+        <div class="picker-item-title">${esc(it.title)}</div>
+        <div class="picker-item-meta">${esc(itemScenes(it).join(' ') || itemTypes(it).join(' ') || '未分组')}</div>
+      </div>
+      <button class="btn-filled btn-sm" type="button">选择</button>
+    </div>
+  `).join('');
+}
+
 /* ========== 拖拽排序（SortableJS，仅默认排序下可用） ========== */
 let sortable=null;
 function initSortable(){
@@ -1566,16 +1847,16 @@ function initSortable(){
 
 /* ========== 导出/导入/清空 ========== */
 function exportData(){
-  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,spacing:state.spacing,ai:state.ai},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,spacing:state.spacing,ai:state.ai,quadrantWidget:state.quadrantWidget},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   const d=new Date(), p=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   a.download=`超级清单备份_${p}.json`; a.click(); URL.revokeObjectURL(a.href);
 }
 function importData(e){
   const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=(d.items||[]).map(it=>{ const types=itemTypes(it); const scenes=itemScenes(it); const doneScenes=Array.isArray(it.doneScenes)?it.doneScenes:(it.done?scenes.slice():[]); const doneTypes=Array.isArray(it.doneTypes)?it.doneTypes:(it.done?types.slice():[]); const isDone=scenes.length>0?scenes.every(s=>doneScenes.includes(s)):!!it.done; return Object.assign({}, it, { types, scenes, doneScenes, doneTypes, done: isDone, type: it.type || (Array.isArray(types) && types[0]) || '', scene: it.scene || (Array.isArray(scenes) && scenes[0]) || '' }); }); if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode; if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing); else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5}; else state.spacing={preset:'standard',gap:10,pad:13,font:15}; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); save(); applyColorMode(); applySpacing(); render(); renderSetGroups(); renderPalette(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
+  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=(d.items||[]).map(it=>{ const types=itemTypes(it); const scenes=itemScenes(it); const doneScenes=Array.isArray(it.doneScenes)?it.doneScenes:(it.done?scenes.slice():[]); const doneTypes=Array.isArray(it.doneTypes)?it.doneTypes:(it.done?types.slice():[]); const isDone=scenes.length>0?scenes.every(s=>doneScenes.includes(s)):!!it.done; return Object.assign({}, it, { types, scenes, doneScenes, doneTypes, done: isDone, type: it.type || (Array.isArray(types) && types[0]) || '', scene: it.scene || (Array.isArray(scenes) && scenes[0]) || '' }); }); if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode; if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing); else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5}; else state.spacing={preset:'standard',gap:10,pad:13,font:15}; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget; save(); applyColorMode(); applySpacing(); render(); renderSetGroups(); renderPalette(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
 }
-function clearAll(){ confirmDlg('清空数据','确定清空全部数据？此操作不可撤销。',()=>{ state.items=[]; save(); render(); },'清空','delete'); }
+function clearAll(){ confirmDlg('清空数据','确定清空全部数据？此操作不可撤销。',()=>{ state.items=[]; state.quadrantWidget={q1:[],q2:[],q3:[],q4:[]}; save(); render(); },'清空','delete'); }
 
 /* ========== 弹窗事件（一次性绑定） ========== */
 document.addEventListener('DOMContentLoaded',()=>{
@@ -1698,5 +1979,58 @@ document.addEventListener('DOMContentLoaded',()=>{
     const el=e.target.closest('[data-aifield]');
     if(el)saveAiField(el.dataset.aifield);
   });
+
+  /* 四象限桌面小部件 (4x4) 事件绑定（仅在通过桌面组件添加或URL呼出时唤起） */
+  const sqb=$('#setQuadrantBtn');
+  if(sqb) sqb.addEventListener('click',()=>{ closeSettings(); openQuadrantModal(); });
+  $('#quadrantClose').addEventListener('click',closeQuadrantModal);
+  $('#quadrantCancel').addEventListener('click',closeQuadrantModal);
+  $('#quadrantMask').addEventListener('click',closeQuadrantModal);
+  $('#quadrantSave').addEventListener('click',saveQuadrantConfig);
+  $('#qwResetBtn').addEventListener('click',resetQuadrantData);
+
+  $('#qwWidgetPreview').addEventListener('click',e=>{
+    const toggle=e.target.closest('[data-qtoggle]');
+    if(toggle){
+      const [k,idx]=toggle.dataset.qtoggle.split(':');
+      toggleQuadrantItemDone(k,+idx);
+    }
+  });
+
+  $('#qwEditorsList').addEventListener('click',e=>{
+    const toggle=e.target.closest('[data-qtoggle]');
+    if(toggle){
+      const [k,idx]=toggle.dataset.qtoggle.split(':');
+      toggleQuadrantItemDone(k,+idx);
+      return;
+    }
+    const del=e.target.closest('[data-qdel]');
+    if(del){
+      const [k,idx]=del.dataset.qdel.split(':');
+      removeQuadrantItem(k,+idx);
+      return;
+    }
+    const pick=e.target.closest('[data-qpick]');
+    if(pick){
+      openItemPickerFor(pick.dataset.qpick);
+      return;
+    }
+  });
+
+  /* 待办选择弹窗 */
+  $('#pickerClose').addEventListener('click',closeItemPicker);
+  $('#itemPickerMask').addEventListener('click',closeItemPicker);
+  $('#pickerSearch').addEventListener('input',e=>renderPickerList(e.target.value));
+  $('#pickerList').addEventListener('click',e=>{
+    const row=e.target.closest('[data-pick-id]');
+    if(row&&currentPickerQKey){
+      const it=state.items.find(x=>x.id===row.dataset.pickId);
+      if(it){
+        addQuadrantItem(currentPickerQKey,it.title,it.id);
+        closeItemPicker();
+      }
+    }
+  });
 });
 window.showUpdateModal = showUpdateModal;
+window.openQuadrantModal = openQuadrantModal;

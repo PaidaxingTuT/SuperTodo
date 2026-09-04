@@ -302,7 +302,7 @@ try{
         <img class="info-logo-dark" src="app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.5</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.6-beta.1</div>
       <div class="info-desc">轻量 · 优雅 · 丝滑的待办与清单管理</div>
       <div class="info-author">Crafted with <span class="heart">♥</span> by <strong>派大星TuT</strong></div>
     </div>
@@ -333,6 +333,58 @@ try{
   <div class="modal-foot">
     <div class="spacer"></div>
     <button class="btn-filled" id="clOk">我知道了</button>
+  </div>
+</div>
+
+<!-- ===== 四象限桌面小部件 (4×4) 配置弹窗 ===== -->
+<div class="modal-mask" id="quadrantMask" hidden></div>
+<div class="modal quadrant-modal" id="quadrantModal" hidden>
+  <div class="modal-head">
+    <div class="ctx-head-info">
+      <h2 id="quadrantTitle">四象限桌面组件 (4×4)</h2>
+      <span class="ctx-tag-pill">四象限法则</span>
+    </div>
+    <button class="md-close" id="quadrantClose" aria-label="关闭"></button>
+  </div>
+  <div class="modal-body quadrant-body">
+    <!-- 4x4 实时小部件预览 -->
+    <div class="qw-preview-section">
+      <div class="qw-preview-header">
+        <span class="qw-preview-title">4×4 桌面小部件实时效果</span>
+        <span class="qw-preview-sub">轻触可模拟在桌面勾选完成</span>
+      </div>
+      <div class="qw-preview-card" id="qwWidgetPreview"></div>
+    </div>
+
+    <!-- 四象限编辑器列表 -->
+    <div class="qw-editors-section">
+      <div class="qw-editors-header">
+        <span class="section-label">各象限内容配置</span>
+        <span class="qw-limit-tip">每个象限最多添加 4 项</span>
+      </div>
+      <div class="qw-grid-editors" id="qwEditorsList"></div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn-text danger" id="qwResetBtn">清空四象限</button>
+    <div class="spacer"></div>
+    <button class="btn-text" id="quadrantCancel">取消</button>
+    <button class="btn-filled" id="quadrantSave">保存小部件配置</button>
+  </div>
+</div>
+
+<!-- ===== 从已有待办选择事项弹窗 ===== -->
+<div class="modal-mask" id="itemPickerMask" hidden></div>
+<div class="modal modal-sm picker-modal" id="itemPickerModal" hidden>
+  <div class="modal-head">
+    <h2 id="pickerTitle">选择要添加到象限的事项</h2>
+    <button class="md-close" id="pickerClose" aria-label="关闭"></button>
+  </div>
+  <div class="modal-body picker-body">
+    <label class="fld" style="margin-bottom:10px;">
+      <input type="search" id="pickerSearch" placeholder="搜索已有待办事项…" autocomplete="off">
+    </label>
+    <div class="picker-list" id="pickerList"></div>
   </div>
 </div>
 
