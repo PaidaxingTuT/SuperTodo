@@ -10,6 +10,7 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     private WidgetBridge widgetBridge;
+    private android.content.BroadcastReceiver downloadReceiver;
     private int lastTopDp = -1;
 
     @Override
@@ -17,6 +18,10 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         try {
             if (getBridge() != null && getBridge().getWebView() != null) {
+                // 注册小组件与 Web 端数据及事件交互桥梁
+                widgetBridge = new WidgetBridge(this, getBridge().getWebView());
+                getBridge().getWebView().addJavascriptInterface(widgetBridge, "AndroidWidgetBridge");
+
                 // 原生下载监听（直接调系统下载器，不跳浏览器）
                 getBridge().getWebView().setDownloadListener(new DownloadListener() {
                     @Override
@@ -33,15 +38,35 @@ public class MainActivity extends BridgeActivity {
                                     req.setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, fileName);
                                 }
                                 req.setMimeType("application/vnd.android.package-archive");
-                                dm.enqueue(req);
+                                long id = dm.enqueue(req);
+                                if (widgetBridge != null) {
+                                    widgetBridge.setDownloadTask(id, fileName);
+                                }
                             }
                         } catch (Exception ignore) {}
                     }
                 });
 
-                // 注册小组件与 Web 端数据及事件交互桥梁
-                widgetBridge = new WidgetBridge(this, getBridge().getWebView());
-                getBridge().getWebView().addJavascriptInterface(widgetBridge, "AndroidWidgetBridge");
+                // 注册系统下载管理器广播接收器，精准响应下载完成并触发安装
+                try {
+                    downloadReceiver = new android.content.BroadcastReceiver() {
+                        @Override
+                        public void onReceive(android.content.Context context, Intent intent) {
+                            if (DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(intent.getAction())) {
+                                long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+                                if (widgetBridge != null && id > 0 && id == widgetBridge.getCurrentDownloadId()) {
+                                    widgetBridge.handleDownloadComplete(id);
+                                }
+                            }
+                        }
+                    };
+                    android.content.IntentFilter filter = new android.content.IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        registerReceiver(downloadReceiver, filter, android.content.Context.RECEIVER_EXPORTED);
+                    } else {
+                        registerReceiver(downloadReceiver, filter);
+                    }
+                } catch (Throwable ignore) {}
             }
 
             // 解决 Android 15 (Target SDK 35) / 小米澎湃 3 (HyperOS 2/3) 强制 Edge-to-Edge 导致状态栏与顶部栏重叠遮挡（防高频调用与内存卡顿）
@@ -119,6 +144,17 @@ public class MainActivity extends BridgeActivity {
         }
         if (widgetBridge != null && action != null) {
             widgetBridge.dispatchAction(action, itemId);
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (downloadReceiver != null) {
+            try {
+                unregisterReceiver(downloadReceiver);
+            } catch (Throwable ignore) {}
+            downloadReceiver = null;
         }
     }
 }

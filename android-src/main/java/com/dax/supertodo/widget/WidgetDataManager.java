@@ -442,21 +442,6 @@ public class WidgetDataManager {
                 }
             }
 
-            ComponentName cn1x1 = new ComponentName(context, TodoWidget1x1Provider.class);
-            int[] ids1x1 = mgr.getAppWidgetIds(cn1x1);
-            if (ids1x1 != null && ids1x1.length > 0) {
-                for (int id : ids1x1) {
-                    TodoWidget1x1Provider.updateAppWidget(context, mgr, id);
-                }
-            }
-
-            ComponentName cnQuad1x1 = new ComponentName(context, TodoWidgetQuadrant1x1Provider.class);
-            int[] idsQuad1x1 = mgr.getAppWidgetIds(cnQuad1x1);
-            if (idsQuad1x1 != null && idsQuad1x1.length > 0) {
-                for (int id : idsQuad1x1) {
-                    TodoWidgetQuadrant1x1Provider.updateAppWidget(context, mgr, id);
-                }
-            }
         } catch (Exception ignore) {}
     }
 

@@ -75,33 +75,6 @@ function injectWidgetManifest() {
                 android:resource="@xml/widget_quadrant_info" />
         </receiver>
 
-        <!-- Android 原生桌面小部件 1x1 超级清单 -->
-        <receiver
-            android:name="com.dax.supertodo.widget.TodoWidget1x1Provider"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="@string/widget_1x1_name">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_1x1_info" />
-        </receiver>
-
-        <!-- Android 原生桌面小部件 1x1 四象限法则 -->
-        <receiver
-            android:name="com.dax.supertodo.widget.TodoWidgetQuadrant1x1Provider"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="@string/widget_quadrant_1x1_name">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_quadrant_1x1_info" />
-        </receiver>
 
         <!-- 小部件列表远程服务 -->
         <service

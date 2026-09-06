@@ -1226,7 +1226,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.6-beta.10';
+const APP_VERSION='v1.7.6-beta.11';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -1579,14 +1579,20 @@ function startUpdateDownload(){
   const totalBytes = (asset && asset.size) ? asset.size : 16 * 1024 * 1024;
   const totalMbStr = (totalBytes / (1024 * 1024)).toFixed(1) + ' MB';
 
-  function formatSizeProg(pct){
-    const curBytes = Math.round(totalBytes * (pct / 100));
-    const curMbStr = (curBytes / (1024 * 1024)).toFixed(1) + ' MB';
-    return curMbStr + ' / ' + totalMbStr;
+  function formatSizeProg(curBytes, total){
+    const tot = total || totalBytes;
+    const curMbStr = ((curBytes || 0) / (1024 * 1024)).toFixed(1) + ' MB';
+    const totMbStr = (tot / (1024 * 1024)).toFixed(1) + ' MB';
+    return curMbStr + ' / ' + totMbStr;
   }
 
   setUpdateStage('progress');
   updateProgressBar(0, '正在连接更新服务器…', '0.0 MB / ' + totalMbStr);
+
+  if(currentUpdateProgressTimer){
+    clearInterval(currentUpdateProgressTimer);
+    currentUpdateProgressTimer=null;
+  }
 
   // 原生 Android 桥梁触发下载
   let nativeDownloadStarted = false;
@@ -1597,32 +1603,70 @@ function startUpdateDownload(){
   }catch(e){}
 
   if(nativeDownloadStarted){
-    // 原生已启动系统 DownloadManager：在前端展示平滑优雅的下载进度条
-    let currentPct = 2;
-    updateProgressBar(currentPct, '正在下载更新安装包…', formatSizeProg(currentPct));
-    currentUpdateProgressTimer = setInterval(()=>{
-      if(currentPct < 96){
-        const step = Math.max(0.5, (100 - currentPct) * 0.06);
-        currentPct = Math.min(96, currentPct + step);
-        updateProgressBar(currentPct, '正在下载更新安装包…', formatSizeProg(currentPct));
-      }
-    }, 200);
+    // 原生已启动系统 DownloadManager：
+    // 通过定时轮询 window.AndroidWidgetBridge.getDownloadProgress() 获取真实字节数与状态
+    let simulatedPct = 2;
 
-    // 预估下载时间后展示完成
-    setTimeout(()=>{
-      onDownloadSuccess(fileName);
-    }, 3800);
+    currentUpdateProgressTimer = setInterval(()=>{
+      let progressInfo = null;
+      try{
+        if(window.AndroidWidgetBridge && typeof window.AndroidWidgetBridge.getDownloadProgress === 'function'){
+          const raw = window.AndroidWidgetBridge.getDownloadProgress();
+          if(raw){
+            progressInfo = JSON.parse(raw);
+          }
+        }
+      }catch(e){}
+
+      if(progressInfo && progressInfo.active){
+        // status 常量: 1: PENDING, 2: RUNNING, 4: PAUSED, 8: SUCCESSFUL, 16: FAILED
+        if(progressInfo.status === 8){
+          // 真实下载完成！
+          clearInterval(currentUpdateProgressTimer);
+          currentUpdateProgressTimer = null;
+          onDownloadSuccess(progressInfo.path || fileName);
+          return;
+        }
+        if(progressInfo.status === 16){
+          // 下载失败
+          clearInterval(currentUpdateProgressTimer);
+          currentUpdateProgressTimer = null;
+          updateProgressBar(0, '下载失败', '');
+          alertDlg('下载失败', '安装包下载失败，请检查网络后重试，或前往浏览器下载。');
+          setUpdateStage('info');
+          return;
+        }
+
+        const downloaded = progressInfo.downloaded || 0;
+        const total = (progressInfo.total > 0) ? progressInfo.total : totalBytes;
+        if(total > 0 && downloaded > 0){
+          const realPct = Math.min(99, Math.max(2, Math.round((downloaded / total) * 100)));
+          updateProgressBar(realPct, '正在下载更新安装包…', formatSizeProg(downloaded, total));
+          return;
+        }
+      }
+
+      // 若系统尚未返回确切字节（例如处于连接或挂起状态）：平滑推进至 90% 缓速等待，绝不提前触发完成！
+      if(simulatedPct < 90){
+        const step = Math.max(0.3, (92 - simulatedPct) * 0.05);
+        simulatedPct = Math.min(90, simulatedPct + step);
+        const curBytes = Math.round(totalBytes * (simulatedPct / 100));
+        updateProgressBar(simulatedPct, '正在下载更新安装包…', formatSizeProg(curBytes, totalBytes));
+      }
+    }, 300);
   }else{
-    // Web / 备用环境：平滑模拟进度后触发下载
+    // Web / 备用环境（非原生 Android）：通过浏览器常规下载
     let currentPct = 0;
     currentUpdateProgressTimer = setInterval(()=>{
       currentPct += Math.max(1.5, (98 - currentPct) * 0.08);
       if(currentPct >= 96){
         clearInterval(currentUpdateProgressTimer);
         currentUpdateProgressTimer=null;
-        onDownloadSuccess(fileName);
+        const curBytes = Math.round(totalBytes * 0.96);
+        updateProgressBar(96, '已调起浏览器下载', formatSizeProg(curBytes, totalBytes));
       } else {
-        updateProgressBar(currentPct, '正在下载更新安装包…', formatSizeProg(currentPct));
+        const curBytes = Math.round(totalBytes * (currentPct / 100));
+        updateProgressBar(currentPct, '正在调起下载…', formatSizeProg(curBytes, totalBytes));
       }
     }, 120);
 
@@ -2141,6 +2185,17 @@ function addQuadrantItem(qKey, title, origId){
   }
   const clean = (title||'').trim();
   if(!clean) return;
+
+  // 严格杜绝同一个待办重复添加到不同象限
+  if(origId){
+    for(const k of ['q1','q2','q3','q4']){
+      if(Array.isArray(qw[k]) && qw[k].some(x => x.id === origId)){
+        alertDlg('提示', '该事项已在其他象限中被选中，不能重复添加');
+        return;
+      }
+    }
+  }
+
   qw[qKey].push({
     id: origId || uid(),
     title: clean,
@@ -2239,14 +2294,21 @@ function renderPickerList(query){
   if(!listEl) return;
   const q = (query || '').toLowerCase().trim();
   const qw = getQuadrantWidgetData();
-  const existingIds = new Set(((qw && currentPickerQKey && qw[currentPickerQKey]) || []).map(x => x.id));
+
+  // 某个象限已经选中的待办，其他象限就不准选了：收集所有象限中已存在的事项 ID
+  const existingIds = new Set();
+  ['q1', 'q2', 'q3', 'q4'].forEach(k => {
+    if(Array.isArray(qw[k])){
+      qw[k].forEach(x => { if(x && x.id) existingIds.add(x.id); });
+    }
+  });
 
   let items = state.items.filter(it => !it.done && !existingIds.has(it.id));
   if(q){
     items = items.filter(it => (it.title + ' ' + (it.note||'')).toLowerCase().includes(q));
   }
   if(!items.length){
-    listEl.innerHTML = `<div class="picker-empty">${q?'无匹配待办':'暂无可添加的待办（已全部添加或全部完成）'}</div>`;
+    listEl.innerHTML = `<div class="picker-empty">${q?'无匹配待办':'暂无可添加的待办（已分配到四象限或已全部完成）'}</div>`;
     return;
   }
   listEl.innerHTML = items.map(it => `
@@ -2534,5 +2596,8 @@ window.onUpdateDownloadProgress = function(percent, statusText, sizeText){
   updateProgressBar(percent, statusText, sizeText);
 };
 window.onUpdateDownloadComplete = function(filePath){
+  onDownloadSuccess(filePath);
+};
+window.onNativeDownloadCompleted = function(filePath){
   onDownloadSuccess(filePath);
 };

@@ -61,6 +61,20 @@ public class WidgetBridge {
         return false;
     }
 
+    private long currentDownloadId = -1;
+    private String currentDownloadFilename = "";
+    private String currentDownloadPath = "";
+
+    public synchronized void setDownloadTask(long id, String filename) {
+        this.currentDownloadId = id;
+        this.currentDownloadFilename = (filename != null && !filename.isEmpty()) ? filename : "SuperTodo-update.apk";
+        this.currentDownloadPath = "";
+    }
+
+    public synchronized long getCurrentDownloadId() {
+        return currentDownloadId;
+    }
+
     @JavascriptInterface
     public boolean downloadFile(String url, String filename) {
         if (activity == null || url == null || url.isEmpty()) return false;
@@ -77,11 +91,115 @@ public class WidgetBridge {
                 req.setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, filename);
             }
             req.setMimeType("application/vnd.android.package-archive");
-            dm.enqueue(req);
+            long id = dm.enqueue(req);
+            setDownloadTask(id, filename);
             return true;
         } catch (Throwable t) {
             return false;
         }
+    }
+
+    @JavascriptInterface
+    public String getDownloadProgress() {
+        if (activity == null || currentDownloadId <= 0) {
+            return "{\"active\":false}";
+        }
+        try {
+            android.app.DownloadManager dm = (android.app.DownloadManager) activity.getSystemService(android.content.Context.DOWNLOAD_SERVICE);
+            if (dm == null) return "{\"active\":false}";
+            android.app.DownloadManager.Query query = new android.app.DownloadManager.Query();
+            query.setFilterById(currentDownloadId);
+            android.database.Cursor cursor = dm.query(query);
+            if (cursor != null) {
+                try {
+                    if (cursor.moveToFirst()) {
+                        int bytesDownloaded = cursor.getInt(cursor.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+                        int bytesTotal = cursor.getInt(cursor.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+                        int status = cursor.getInt(cursor.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_STATUS));
+                        String resolvedPath = currentDownloadPath;
+                        if (status == android.app.DownloadManager.STATUS_SUCCESSFUL) {
+                            if (resolvedPath == null || resolvedPath.isEmpty()) {
+                                int uriIdx = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_LOCAL_URI);
+                                if (uriIdx >= 0) {
+                                    String uriStr = cursor.getString(uriIdx);
+                                    if (uriStr != null && uriStr.startsWith("file://")) {
+                                        resolvedPath = android.net.Uri.parse(uriStr).getPath();
+                                    }
+                                }
+                            }
+                            if (resolvedPath == null || resolvedPath.isEmpty()) {
+                                java.io.File f = new java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), currentDownloadFilename);
+                                if (f.exists()) {
+                                    resolvedPath = f.getAbsolutePath();
+                                }
+                            }
+                            if (resolvedPath != null && !resolvedPath.isEmpty()) {
+                                currentDownloadPath = resolvedPath;
+                            }
+                        }
+                        String safePath = resolvedPath != null ? resolvedPath.replace("\\", "\\\\").replace("\"", "\\\"") : "";
+                        return "{\"active\":true,\"status\":" + status + ",\"downloaded\":" + bytesDownloaded + ",\"total\":" + bytesTotal + ",\"path\":\"" + safePath + "\"}";
+                    }
+                } finally {
+                    cursor.close();
+                }
+            }
+        } catch (Throwable ignore) {}
+        return "{\"active\":false}";
+    }
+
+    public void handleDownloadComplete(final long id) {
+        if (id <= 0 || id != currentDownloadId || activity == null || webView == null) return;
+        String resolvedPath = currentDownloadPath;
+        try {
+            android.app.DownloadManager dm = (android.app.DownloadManager) activity.getSystemService(android.content.Context.DOWNLOAD_SERVICE);
+            if (dm != null) {
+                android.app.DownloadManager.Query query = new android.app.DownloadManager.Query();
+                query.setFilterById(id);
+                android.database.Cursor cursor = dm.query(query);
+                if (cursor != null) {
+                    try {
+                        if (cursor.moveToFirst()) {
+                            int status = cursor.getInt(cursor.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_STATUS));
+                            if (status == android.app.DownloadManager.STATUS_SUCCESSFUL) {
+                                int uriIdx = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_LOCAL_URI);
+                                if (uriIdx >= 0) {
+                                    String uriStr = cursor.getString(uriIdx);
+                                    if (uriStr != null && uriStr.startsWith("file://")) {
+                                        resolvedPath = android.net.Uri.parse(uriStr).getPath();
+                                    }
+                                }
+                            }
+                        }
+                    } finally {
+                        cursor.close();
+                    }
+                }
+            }
+        } catch (Throwable ignore) {}
+
+        if (resolvedPath == null || resolvedPath.isEmpty()) {
+            try {
+                java.io.File f = new java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), currentDownloadFilename);
+                if (f.exists()) {
+                    resolvedPath = f.getAbsolutePath();
+                }
+            } catch (Throwable ignore) {}
+        }
+        if (resolvedPath != null && !resolvedPath.isEmpty()) {
+            currentDownloadPath = resolvedPath;
+        }
+
+        final String finalPath = resolvedPath != null ? resolvedPath : "";
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String script = "if(window.onNativeDownloadCompleted){ window.onNativeDownloadCompleted('" + finalPath.replace("\\", "\\\\").replace("'", "\\'") + "'); }";
+                    webView.evaluateJavascript(script, null);
+                } catch (Throwable ignore) {}
+            }
+        });
     }
 
     @JavascriptInterface
