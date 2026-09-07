@@ -570,6 +570,7 @@ function inputDlg(title,placeholder,initial,onOk,onCancel){ dlgShow({title,type:
 function render(){
   renderTitle();
   renderDrawer();
+  initDrawerSortable();
   renderContent();
   initSortable();
 }
@@ -609,7 +610,7 @@ function renderDrawer(){
     const active = state.type===t;
     const col = active ? colorHexToUri(state.theme) : '%235f6368';
     html+=`<button class="dnav-item ${active?'on':''}" data-t="${esc(t)}" data-kind="type" data-idx="${i}">
-      <span class="dnav-ic" style="background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22${col}%22><circle cx=%2212%22 cy=%2212%22 r=%229%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22/></svg>')"></span>${esc(t)}<span class="dnav-count">${(counts[t]||0)}</span></button>`;
+      <span class="dnav-ic" style="background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22${col}%22><circle cx=%2212%22 cy=%2212%22 r=%229%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22/></svg>')"></span>${esc(t)}<span class="dnav-drag" aria-hidden="true"></span><span class="dnav-count">${(counts[t]||0)}</span></button>`;
   });
   html+=`<button class="dnav-add" id="dnavAdd" data-addtype="1">＋ 新增类型</button>`;
   nav.innerHTML=html;
@@ -1226,7 +1227,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.6';
+const APP_VERSION='v1.7.7';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -2336,6 +2337,27 @@ function initSortable(){
     onEnd(){
       $$('#content .item-row').forEach((r,i)=>{ const it=state.items.find(x=>x.id===r.dataset.item); if(it&&!isItemDoneIn(it,state.groupBy,state.view.group))it.order=i; });
       save();
+    }
+  });
+}
+
+let drawerSortable=null;
+function initDrawerSortable(){
+  if(drawerSortable){ drawerSortable.destroy(); drawerSortable=null; }
+  if(typeof Sortable==='undefined') return;
+  drawerSortable=new Sortable($('#drawerNav'),{
+    draggable:'.dnav-item[data-kind="type"]',
+    filter:'.dnav-all',
+    animation:160,
+    delay:180,
+    delayOnTouchOnly:true,
+    touchStartThreshold:5,
+    ghostClass:'sortable-ghost',
+    onStart(){ suppressNavClick=true; },
+    onEnd(){
+      state.types=$$('#drawerNav .dnav-item[data-kind="type"]').map(el=>el.dataset.t);
+      save();
+      render();
     }
   });
 }

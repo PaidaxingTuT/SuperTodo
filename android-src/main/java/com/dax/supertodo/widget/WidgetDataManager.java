@@ -118,6 +118,8 @@ public class WidgetDataManager {
                 Collections.addAll(list, "家里", "学校", "出差", "网上", "线下");
             } else if ("times".equals(tagKey)) {
                 Collections.addAll(list, "今年", "明年", "以后再说");
+            } else if ("types".equals(tagKey)) {
+                Collections.addAll(list, "购物", "待办", "计划", "旅游", "愿望");
             }
         }
         return list;
@@ -129,6 +131,10 @@ public class WidgetDataManager {
 
     public static List<String> loadAvailableTimes(Context context) {
         return loadTags(context, "times");
+    }
+
+    public static List<String> loadAvailableTypes(Context context) {
+        return loadTags(context, "types");
     }
 
     public static boolean isWidgetRemoveDone(Context context) {
@@ -201,10 +207,11 @@ public class WidgetDataManager {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 
-    public static void saveWidgetConfig(Context context, int widgetId, String groupBy, String category, String sortKey, boolean sortAsc, boolean hideDone) {
+    public static void saveWidgetConfig(Context context, int widgetId, String groupBy, String category, String typeCategory, String sortKey, boolean sortAsc, boolean hideDone) {
         SharedPreferences.Editor editor = getPrefs(context).edit();
         editor.putString("config_group_by_" + widgetId, groupBy != null ? groupBy : GROUP_SCENE);
         editor.putString("config_category_" + widgetId, category != null ? category : "全部");
+        editor.putString("config_type_category_" + widgetId, typeCategory != null ? typeCategory : "全部标签");
         editor.putString("config_sort_key_" + widgetId, sortKey != null ? sortKey : SORT_DEFAULT);
         editor.putBoolean("config_sort_asc_" + widgetId, sortAsc);
         editor.putBoolean("config_hide_done_" + widgetId, hideDone);
@@ -217,6 +224,10 @@ public class WidgetDataManager {
 
     public static String getWidgetCategory(Context context, int widgetId) {
         return getPrefs(context).getString("config_category_" + widgetId, "全部");
+    }
+
+    public static String getWidgetTypeCategory(Context context, int widgetId) {
+        return getPrefs(context).getString("config_type_category_" + widgetId, "全部标签");
     }
 
     public static String getWidgetSortKey(Context context, int widgetId) {
@@ -235,6 +246,7 @@ public class WidgetDataManager {
         SharedPreferences.Editor editor = getPrefs(context).edit();
         editor.remove("config_group_by_" + widgetId);
         editor.remove("config_category_" + widgetId);
+        editor.remove("config_type_category_" + widgetId);
         editor.remove("config_sort_key_" + widgetId);
         editor.remove("config_sort_asc_" + widgetId);
         editor.remove("config_hide_done_" + widgetId);
@@ -244,22 +256,25 @@ public class WidgetDataManager {
     public static String getWidgetFilterTitle(Context context, int widgetId) {
         String groupBy = getWidgetGroupBy(context, widgetId);
         String category = getWidgetCategory(context, widgetId);
-        if (GROUP_ALL.equals(groupBy) || "全部".equals(category) || category == null || category.trim().isEmpty()) {
-            return "全部事项";
+        String typeCategory = getWidgetTypeCategory(context, widgetId);
+        StringBuilder title = new StringBuilder();
+        if (GROUP_SCENE.equals(groupBy) && !"全部".equals(category) && category != null && !category.trim().isEmpty()) {
+            title.append("场景 · ").append(category);
+        } else if (GROUP_TIME.equals(groupBy) && !"全部".equals(category) && category != null && !category.trim().isEmpty()) {
+            title.append("时间 · ").append(category);
         }
-        if (GROUP_SCENE.equals(groupBy)) {
-            return "场景 · " + category;
+        if (!"全部标签".equals(typeCategory) && !"全部".equals(typeCategory) && typeCategory != null && !typeCategory.trim().isEmpty()) {
+            if (title.length() > 0) title.append(" · ");
+            title.append("标签 · ").append(typeCategory);
         }
-        if (GROUP_TIME.equals(groupBy)) {
-            return "时间 · " + category;
-        }
-        return category;
+        return title.length() > 0 ? title.toString() : "全部事项";
     }
 
     public static List<TodoItem> loadTasksForWidget(Context context, int widgetId) {
         List<TodoItem> all = loadAllItems(context);
         String groupBy = getWidgetGroupBy(context, widgetId);
         String category = getWidgetCategory(context, widgetId);
+        String typeCategory = getWidgetTypeCategory(context, widgetId);
         String sortKey = getWidgetSortKey(context, widgetId);
         final boolean sortAsc = getWidgetSortAsc(context, widgetId);
         boolean removeDone = isWidgetRemoveDone(context);
@@ -269,21 +284,23 @@ public class WidgetDataManager {
         for (TodoItem it : all) {
             if (hideDone && it.done) continue;
 
-            if (GROUP_ALL.equals(groupBy) || "全部".equals(category)) {
-                filtered.add(it);
-            } else if (GROUP_SCENE.equals(groupBy)) {
+            boolean matchesGroup = true;
+            if (GROUP_SCENE.equals(groupBy)) {
                 if ("未分组".equals(category)) {
-                    if (it.scene == null || it.scene.isEmpty()) filtered.add(it);
-                } else if (category.equals(it.scene)) {
-                    filtered.add(it);
+                    matchesGroup = it.scene == null || it.scene.isEmpty();
+                } else if (!"全部".equals(category)) {
+                    matchesGroup = category.equals(it.scene);
                 }
             } else if (GROUP_TIME.equals(groupBy)) {
                 if ("未分组".equals(category)) {
-                    if (it.time == null || it.time.isEmpty()) filtered.add(it);
-                } else if (category.equals(it.time)) {
-                    filtered.add(it);
+                    matchesGroup = it.time == null || it.time.isEmpty();
+                } else if (!"全部".equals(category)) {
+                    matchesGroup = category.equals(it.time);
                 }
-            } else {
+            }
+            boolean matchesType = "全部标签".equals(typeCategory) || "全部".equals(typeCategory)
+                || typeCategory == null || typeCategory.trim().isEmpty() || it.types.contains(typeCategory);
+            if (matchesGroup && matchesType) {
                 filtered.add(it);
             }
         }

@@ -156,7 +156,41 @@
                         android:src="@drawable/config_ic_arrow_down" />
                 </RelativeLayout>
 
-                <!-- 3. 自定义排序 -->
+                <!-- 3. 标签分类（与上方展示维度取交集） -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="选择标签分类"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/config_spinner_bg">
+
+                    <Spinner
+                        android:id="@+id/sp_type_category"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@android:color/transparent"
+                        android:dropDownVerticalOffset="46dp"
+                        android:paddingRight="36dp"
+                        android:spinnerMode="dropdown" />
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginEnd="12dp"
+                        android:src="@drawable/config_ic_arrow_down" />
+                </RelativeLayout>
+
+                <!-- 4. 自定义排序 -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

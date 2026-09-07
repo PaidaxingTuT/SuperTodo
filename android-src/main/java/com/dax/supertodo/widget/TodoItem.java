@@ -1,12 +1,16 @@
 package com.dax.supertodo.widget;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TodoItem {
     public String id = "";
     public String title = "";
     public String note = "";
     public String type = "";
+    public List<String> types = new ArrayList<>();
     public String scene = "";
     public String time = "";
     public boolean done = false;
@@ -24,6 +28,15 @@ public class TodoItem {
         item.title = obj.optString("title", "");
         item.note = obj.optString("note", "");
         item.type = obj.optString("type", "");
+        JSONArray typeArray = obj.optJSONArray("types");
+        if (typeArray != null) {
+            for (int i = 0; i < typeArray.length(); i++) {
+                String type = typeArray.optString(i, "");
+                if (!type.isEmpty() && !item.types.contains(type)) item.types.add(type);
+            }
+        }
+        if (item.types.isEmpty() && !item.type.isEmpty()) item.types.add(item.type);
+        if (item.type.isEmpty() && !item.types.isEmpty()) item.type = item.types.get(0);
         item.scene = obj.optString("scene", "");
         item.time = obj.optString("time", "");
         item.done = obj.optBoolean("done", false);

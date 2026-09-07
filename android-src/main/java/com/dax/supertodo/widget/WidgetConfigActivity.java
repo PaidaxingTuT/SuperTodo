@@ -3,7 +3,6 @@ package com.dax.supertodo.widget;
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
@@ -37,6 +36,11 @@ public class WidgetConfigActivity extends Activity {
     private Spinner spCategory;
     private final List<String> currentCategoryList = new ArrayList<>();
     private ArrayAdapter<String> categoryAdapter;
+
+    // 标签分类（与上方场景/时间/全部条件取交集）
+    private Spinner spTypeCategory;
+    private final List<String> typeCategoryList = new ArrayList<>();
+    private ArrayAdapter<String> typeCategoryAdapter;
 
     // 排序设置
     private Spinner spSortKey;
@@ -102,6 +106,7 @@ public class WidgetConfigActivity extends Activity {
         tvCategoryLabel = findViewById(R.id.tv_category_label);
         layoutCategoryBox = findViewById(R.id.layout_category_box);
         spCategory = findViewById(R.id.sp_category);
+        spTypeCategory = findViewById(R.id.sp_type_category);
 
         spSortKey = findViewById(R.id.sp_sort_key);
         btnPillAsc = findViewById(R.id.btn_pill_asc);
@@ -122,25 +127,29 @@ public class WidgetConfigActivity extends Activity {
         categoryAdapter.setDropDownViewResource(R.layout.config_spinner_dropdown_item);
         spCategory.setAdapter(categoryAdapter);
 
+        typeCategoryAdapter = new ArrayAdapter<>(this, R.layout.config_spinner_item, typeCategoryList);
+        typeCategoryAdapter.setDropDownViewResource(R.layout.config_spinner_dropdown_item);
+        spTypeCategory.setAdapter(typeCategoryAdapter);
+
         // 2. 胶囊维度切换事件
         btnPillScene.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                setGroupBy("scene", null);
+                setGroupBy("scene", null, getSelectedTypeCategory());
             }
         });
 
         btnPillTime.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                setGroupBy("time", null);
+                setGroupBy("time", null, getSelectedTypeCategory());
             }
         });
 
         btnPillAll.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                setGroupBy("all", null);
+                setGroupBy("all", null, getSelectedTypeCategory());
             }
         });
 
@@ -204,7 +213,7 @@ public class WidgetConfigActivity extends Activity {
         });
     }
 
-    private void setGroupBy(String groupBy, String targetCategory) {
+    private void setGroupBy(String groupBy, String targetCategory, String targetTypeCategory) {
         selectedGroupBy = groupBy;
 
         // 样式刷新
@@ -257,6 +266,18 @@ public class WidgetConfigActivity extends Activity {
         } else if (!currentCategoryList.isEmpty()) {
             spCategory.setSelection(0);
         }
+
+        typeCategoryList.clear();
+        typeCategoryList.add("全部标签");
+        typeCategoryList.addAll(WidgetDataManager.loadAvailableTypes(this));
+        typeCategoryAdapter.notifyDataSetChanged();
+        int typeIdx = typeCategoryList.indexOf(targetTypeCategory);
+        spTypeCategory.setSelection(typeIdx >= 0 ? typeIdx : 0);
+    }
+
+    private String getSelectedTypeCategory() {
+        return spTypeCategory != null && spTypeCategory.getSelectedItem() != null
+            ? spTypeCategory.getSelectedItem().toString() : "全部标签";
     }
 
     private void setSortAsc(boolean asc) {
@@ -270,14 +291,14 @@ public class WidgetConfigActivity extends Activity {
     }
 
     private void loadSavedConfig() {
-        SharedPreferences sp = getSharedPreferences("supertodo_widget_prefs", MODE_PRIVATE);
-        String savedGroup = sp.getString("widget_" + appWidgetId + "_groupby", "scene");
-        String savedCategory = sp.getString("widget_" + appWidgetId + "_category", "");
-        String savedSortKey = sp.getString("widget_" + appWidgetId + "_sort_key", "默认");
-        boolean savedSortAsc = sp.getBoolean("widget_" + appWidgetId + "_sort_asc", true);
-        boolean savedHideDone = sp.getBoolean("widget_" + appWidgetId + "_hide_done", false);
+        String savedGroup = WidgetDataManager.getWidgetGroupBy(this, appWidgetId);
+        String savedCategory = WidgetDataManager.getWidgetCategory(this, appWidgetId);
+        String savedTypeCategory = WidgetDataManager.getWidgetTypeCategory(this, appWidgetId);
+        String savedSortKey = WidgetDataManager.getWidgetSortKey(this, appWidgetId);
+        boolean savedSortAsc = WidgetDataManager.getWidgetSortAsc(this, appWidgetId);
+        boolean savedHideDone = WidgetDataManager.getWidgetHideDone(this, appWidgetId);
 
-        setGroupBy(savedGroup, savedCategory);
+        setGroupBy(savedGroup, savedCategory, savedTypeCategory);
         setSortAsc(savedSortAsc);
 
         // 匹配排序方式选中项
@@ -298,6 +319,8 @@ public class WidgetConfigActivity extends Activity {
         if (!"all".equals(selectedGroupBy) && spCategory.getSelectedItem() != null) {
             category = spCategory.getSelectedItem().toString();
         }
+        String typeCategory = spTypeCategory.getSelectedItem() != null
+            ? spTypeCategory.getSelectedItem().toString() : "全部标签";
 
         int sortPos = spSortKey.getSelectedItemPosition();
         String sortKey = (sortPos >= 0 && sortPos < SORT_KEYS.length) ? SORT_KEYS[sortPos] : "默认";
@@ -310,6 +333,7 @@ public class WidgetConfigActivity extends Activity {
             appWidgetId,
             selectedGroupBy,
             category,
+            typeCategory,
             sortKey,
             selectedSortAsc,
             hideDone
