@@ -1227,7 +1227,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.8';
+const APP_VERSION='v1.7.9';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -1451,6 +1451,7 @@ function renderReleaseNotes(md){
 
 let currentUpdateProgressTimer=null;
 let downloadedApkPath=null;
+let updateDownloadFinished=false;
 
 function setUpdateStage(stage){
   // stage: 'info' | 'progress' | 'success'
@@ -1499,6 +1500,7 @@ function showUpdateModal(rel){
   const asset=rel.assets&&rel.assets[0];
   updateTargetAsset=asset||null;
   downloadedApkPath=null;
+  updateDownloadFinished=false;
 
   const tagEl=$('#updateVerTag');
   if(tagEl){
@@ -1547,6 +1549,8 @@ function triggerInstallApk(){
 }
 
 function onDownloadSuccess(filePath){
+  if(updateDownloadFinished) return;
+  updateDownloadFinished=true;
   if(currentUpdateProgressTimer){
     clearInterval(currentUpdateProgressTimer);
     currentUpdateProgressTimer=null;
@@ -1588,6 +1592,7 @@ function startUpdateDownload(){
   }
 
   setUpdateStage('progress');
+  updateDownloadFinished=false;
   updateProgressBar(0, '正在连接更新服务器…', '0.0 MB / ' + totalMbStr);
 
   if(currentUpdateProgressTimer){
@@ -1606,7 +1611,7 @@ function startUpdateDownload(){
   if(nativeDownloadStarted){
     // 原生已启动系统 DownloadManager：
     // 通过定时轮询 window.AndroidWidgetBridge.getDownloadProgress() 获取真实字节数与状态
-    let simulatedPct = 2;
+    let displayedPct = 0;
 
     currentUpdateProgressTimer = setInterval(()=>{
       let progressInfo = null;
@@ -1641,18 +1646,11 @@ function startUpdateDownload(){
         const downloaded = progressInfo.downloaded || 0;
         const total = (progressInfo.total > 0) ? progressInfo.total : totalBytes;
         if(total > 0 && downloaded > 0){
-          const realPct = Math.min(99, Math.max(2, Math.round((downloaded / total) * 100)));
-          updateProgressBar(realPct, '正在下载更新安装包…', formatSizeProg(downloaded, total));
+          const realPct = Math.min(99, Math.max(1, Math.round((downloaded / total) * 100)));
+          displayedPct = Math.max(displayedPct, realPct);
+          updateProgressBar(displayedPct, '正在下载更新安装包…', formatSizeProg(downloaded, total));
           return;
         }
-      }
-
-      // 若系统尚未返回确切字节（例如处于连接或挂起状态）：平滑推进至 90% 缓速等待，绝不提前触发完成！
-      if(simulatedPct < 90){
-        const step = Math.max(0.3, (92 - simulatedPct) * 0.05);
-        simulatedPct = Math.min(90, simulatedPct + step);
-        const curBytes = Math.round(totalBytes * (simulatedPct / 100));
-        updateProgressBar(simulatedPct, '正在下载更新安装包…', formatSizeProg(curBytes, totalBytes));
       }
     }, 300);
   }else{

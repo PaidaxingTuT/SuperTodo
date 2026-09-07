@@ -151,6 +151,7 @@ public class WidgetBridge {
     public void handleDownloadComplete(final long id) {
         if (id <= 0 || id != currentDownloadId || activity == null || webView == null) return;
         String resolvedPath = currentDownloadPath;
+        boolean successful = false;
         try {
             android.app.DownloadManager dm = (android.app.DownloadManager) activity.getSystemService(android.content.Context.DOWNLOAD_SERVICE);
             if (dm != null) {
@@ -162,6 +163,7 @@ public class WidgetBridge {
                         if (cursor.moveToFirst()) {
                             int status = cursor.getInt(cursor.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_STATUS));
                             if (status == android.app.DownloadManager.STATUS_SUCCESSFUL) {
+                                successful = true;
                                 int uriIdx = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_LOCAL_URI);
                                 if (uriIdx >= 0) {
                                     String uriStr = cursor.getString(uriIdx);
@@ -177,6 +179,9 @@ public class WidgetBridge {
                 }
             }
         } catch (Throwable ignore) {}
+
+        // DownloadManager 对失败任务也发送完成广播，失败时必须留给轮询分支处理。
+        if (!successful) return;
 
         if (resolvedPath == null || resolvedPath.isEmpty()) {
             try {
