@@ -69,26 +69,29 @@ public class MainActivity extends BridgeActivity {
                 } catch (Throwable ignore) {}
             }
 
-            // 解决 Android 15 (Target SDK 35) / 小米澎湃 3 (HyperOS 2/3) 强制 Edge-to-Edge 导致状态栏与顶部栏重叠遮挡（防高频调用与内存卡顿）
+            // 只补齐 WebView 尚未覆盖的状态栏区域，避免 Capacitor 已下移 WebView 时重复留白。
             androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(getWindow().getDecorView(), (v, insets) -> {
                 androidx.core.graphics.Insets sb = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars());
-                if (sb.top > 0) {
-                    float density = getResources().getDisplayMetrics().density;
-                    int topDp = Math.round(sb.top / density);
-                    if (topDp != lastTopDp) {
+                if (getBridge() != null && getBridge().getWebView() != null) {
+                    android.webkit.WebView webView = getBridge().getWebView();
+                    webView.post(() -> {
+                        int[] webViewLocation = new int[2];
+                        webView.getLocationOnScreen(webViewLocation);
+                        int uncoveredPx = Math.max(0, sb.top - Math.max(0, webViewLocation[1]));
+                        float density = getResources().getDisplayMetrics().density;
+                        int topDp = Math.round(uncoveredPx / density);
+                        if (topDp == lastTopDp) return;
                         lastTopDp = topDp;
-                        if (getBridge() != null && getBridge().getWebView() != null) {
-                            getBridge().getWebView().post(() -> {
-                                getBridge().getWebView().evaluateJavascript(
-                                    "document.documentElement.style.setProperty('--safe-t', '" + topDp + "px');",
-                                    null
-                                );
-                            });
-                        }
-                    }
+                        if (widgetBridge != null) widgetBridge.setStatusBarHeightDp(topDp);
+                        webView.evaluateJavascript(
+                            "document.documentElement.style.setProperty('--safe-t', '" + topDp + "px');",
+                            null
+                        );
+                    });
                 }
                 return insets;
             });
+            androidx.core.view.ViewCompat.requestApplyInsets(getWindow().getDecorView());
         } catch (Exception ignore) {}
 
         handleIntent(getIntent());

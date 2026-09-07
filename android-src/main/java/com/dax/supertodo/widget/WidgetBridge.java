@@ -10,6 +10,7 @@ import android.webkit.WebView;
 public class WidgetBridge {
     private final Activity activity;
     private final WebView webView;
+    private volatile int statusBarHeightDp = 0;
 
     public WidgetBridge(Activity activity, WebView webView) {
         this.activity = activity;
@@ -36,16 +37,11 @@ public class WidgetBridge {
 
     @JavascriptInterface
     public int getStatusBarHeightDp() {
-        if (activity == null) return 0;
-        try {
-            int resId = activity.getResources().getIdentifier("status_bar_height", "dimen", "android");
-            if (resId > 0) {
-                int px = activity.getResources().getDimensionPixelSize(resId);
-                float density = activity.getResources().getDisplayMetrics().density;
-                return Math.round(px / density);
-            }
-        } catch (Throwable ignore) {}
-        return 0;
+        return statusBarHeightDp;
+    }
+
+    public void setStatusBarHeightDp(int heightDp) {
+        statusBarHeightDp = Math.max(0, heightDp);
     }
 
     @JavascriptInterface
