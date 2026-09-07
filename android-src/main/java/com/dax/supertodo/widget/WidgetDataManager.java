@@ -259,13 +259,13 @@ public class WidgetDataManager {
         String typeCategory = getWidgetTypeCategory(context, widgetId);
         StringBuilder title = new StringBuilder();
         if (GROUP_SCENE.equals(groupBy) && !"全部".equals(category) && category != null && !category.trim().isEmpty()) {
-            title.append("场景 · ").append(category);
+            title.append(category);
         } else if (GROUP_TIME.equals(groupBy) && !"全部".equals(category) && category != null && !category.trim().isEmpty()) {
-            title.append("时间 · ").append(category);
+            title.append(category);
         }
         if (!"全部标签".equals(typeCategory) && !"全部".equals(typeCategory) && typeCategory != null && !typeCategory.trim().isEmpty()) {
             if (title.length() > 0) title.append(" · ");
-            title.append("标签 · ").append(typeCategory);
+            title.append(typeCategory);
         }
         return title.length() > 0 ? title.toString() : "全部事项";
     }
