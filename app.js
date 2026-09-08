@@ -2013,7 +2013,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.8.5';
+const APP_VERSION='v1.8.6';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -3491,9 +3491,91 @@ function exportData(){
     }
   }
 }
+function applyImportedData(d){
+  state.items=(d.items||[]).map(it=>{
+    const types=itemTypes(it);
+    const scenes=itemScenes(it);
+    const doneScenes=Array.isArray(it.doneScenes)?it.doneScenes:(it.done?scenes.slice():[]);
+    const doneTypes=Array.isArray(it.doneTypes)?it.doneTypes:(it.done?types.slice():[]);
+    const isDone=scenes.length>0?scenes.every(s=>doneScenes.includes(s)):!!it.done;
+    return Object.assign({}, it, {
+      types, scenes, doneScenes, doneTypes, done: isDone,
+      type: it.type || (Array.isArray(types) && types[0]) || '',
+      scene: it.scene || (Array.isArray(scenes) && scenes[0]) || ''
+    });
+  });
+  if(Array.isArray(d.types)&&d.types.length)state.types=d.types;
+  if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes;
+  if(Array.isArray(d.times)&&d.times.length)state.times=d.times;
+  if(Array.isArray(d.trash))state.trash=d.trash;
+  if(d.theme)state.theme=d.theme;
+  if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode;
+  if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing);
+  else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5};
+  else state.spacing={preset:'standard',gap:10,pad:13,font:15};
+  if(d.devMode!==undefined)state.devMode=!!d.devMode;
+  if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate;
+  if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate;
+  if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone;
+  if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
+  if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget;
+  save();
+  applyColorMode();
+  applySpacing();
+  render();
+  renderSetGroups();
+  renderPalette();
+  renderUpdateSettings();
+}
+
+function handleExternalJsonImport(jsonStr){
+  if(!jsonStr || typeof jsonStr !== 'string') return;
+  try {
+    const d = JSON.parse(jsonStr);
+    if(!d || typeof d !== 'object' || (!Array.isArray(d.items) && !Array.isArray(d.types) && !Array.isArray(d.scenes))){
+      alertDlg('导入失败', '该文件不是有效的超级清单备份文件。');
+      return;
+    }
+    const count = (d.items || []).length;
+    const desc = count > 0 ? `检测到外部备份文件（包含 ${count} 项事项及分类配置），是否恢复此备份覆盖当前数据？` : '检测到外部备份文件，是否恢复此备份覆盖当前数据？';
+    confirmDlg('恢复备份数据', desc, () => {
+      try {
+        applyImportedData(d);
+        triggerHaptic('medium');
+        alertDlg('恢复成功', '已成功从外部备份文件恢复数据！');
+      } catch(e) {
+        alertDlg('恢复失败', '解析备份数据出错。');
+      }
+    }, '立即恢复', 'primary');
+  } catch(err) {
+    alertDlg('导入失败', '备份文件不是有效的 JSON 格式。');
+  }
+}
+
+window.onNativeImportJson = function(){
+  if(typeof window.AndroidWidgetBridge !== 'undefined' && typeof window.AndroidWidgetBridge.getPendingImportJson === 'function'){
+    const json = window.AndroidWidgetBridge.getPendingImportJson();
+    if(json){
+      window.AndroidWidgetBridge.clearPendingImportJson();
+      handleExternalJsonImport(json);
+    }
+  }
+};
+
 function importData(e){
   const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=(d.items||[]).map(it=>{ const types=itemTypes(it); const scenes=itemScenes(it); const doneScenes=Array.isArray(it.doneScenes)?it.doneScenes:(it.done?scenes.slice():[]); const doneTypes=Array.isArray(it.doneTypes)?it.doneTypes:(it.done?types.slice():[]); const isDone=scenes.length>0?scenes.every(s=>doneScenes.includes(s)):!!it.done; return Object.assign({}, it, { types, scenes, doneScenes, doneTypes, done: isDone, type: it.type || (Array.isArray(types) && types[0]) || '', scene: it.scene || (Array.isArray(scenes) && scenes[0]) || '' }); }); if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode; if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing); else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5}; else state.spacing={preset:'standard',gap:10,pad:13,font:15}; if(d.devMode!==undefined)state.devMode=!!d.devMode; if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate; if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate; if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget; save(); applyColorMode(); applySpacing(); render(); renderSetGroups(); renderPalette(); renderUpdateSettings(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      applyImportedData(d);
+      alertDlg('导入成功','数据已导入');
+    }catch(er){
+      alertDlg('导入失败','文件格式错误');
+    }
+  };
+  r.readAsText(f);
+  e.target.value='';
 }
 function clearAll(){ confirmDlg('清空数据','确定清空全部数据？此操作不可撤销。',()=>{ state.items=[]; state.trash=[]; state.quadrantWidget={q1:[],q2:[],q3:[],q4:[]}; save(); render(); },'清空','delete'); }
 
@@ -3752,6 +3834,17 @@ document.addEventListener('DOMContentLoaded',()=>{
       checkUpdate(true);
     }, 2500);
   }
+
+  /* 启动时检测是否有来自外部应用打开/分享传入的 JSON 备份数据 */
+  setTimeout(()=>{
+    if(typeof window.AndroidWidgetBridge !== 'undefined' && typeof window.AndroidWidgetBridge.getPendingImportJson === 'function'){
+      const json = window.AndroidWidgetBridge.getPendingImportJson();
+      if(json){
+        window.AndroidWidgetBridge.clearPendingImportJson();
+        handleExternalJsonImport(json);
+      }
+    }
+  }, 350);
 });
 window.showUpdateModal = showUpdateModal;
 window.openQuadrantModal = openQuadrantModal;

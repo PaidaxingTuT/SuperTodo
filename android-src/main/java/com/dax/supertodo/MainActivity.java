@@ -148,6 +148,73 @@ public class MainActivity extends BridgeActivity {
         if (widgetBridge != null && action != null) {
             widgetBridge.dispatchAction(action, itemId);
         }
+
+        // 响应来自其他应用（微信、QQ、文件管理器等）打开或发送的 JSON 备份文件
+        handleIncomingFileIntent(intent);
+    }
+
+    private void handleIncomingFileIntent(Intent intent) {
+        if (intent == null) return;
+        String intentAction = intent.getAction();
+        if (Intent.ACTION_VIEW.equals(intentAction) || Intent.ACTION_SEND.equals(intentAction)) {
+            Uri targetUri = intent.getData();
+            if (targetUri == null && Intent.ACTION_SEND.equals(intentAction)) {
+                try {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        targetUri = intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri.class);
+                    } else {
+                        targetUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                    }
+                } catch (Throwable ignore) {}
+            }
+
+            if (targetUri != null) {
+                // 排除应用自定义的 supertodo:// 内部协议
+                if ("supertodo".equalsIgnoreCase(targetUri.getScheme())) {
+                    return;
+                }
+                final Uri fileUri = targetUri;
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        final String jsonContent = readTextFromUri(fileUri);
+                        if (jsonContent != null && !jsonContent.trim().isEmpty()) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (widgetBridge != null) {
+                                        widgetBridge.dispatchImportJson(jsonContent);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }).start();
+            } else if (Intent.ACTION_SEND.equals(intentAction)) {
+                String sharedText = intent.getStringExtra(Intent.EXTRA_TEXT);
+                if (sharedText != null && sharedText.trim().startsWith("{") && sharedText.trim().endsWith("}")) {
+                    if (widgetBridge != null) {
+                        widgetBridge.dispatchImportJson(sharedText);
+                    }
+                }
+            }
+        }
+    }
+
+    private String readTextFromUri(Uri uri) {
+        if (uri == null) return null;
+        try (java.io.InputStream is = getContentResolver().openInputStream(uri);
+             java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8))) {
+            StringBuilder sb = new StringBuilder();
+            char[] buffer = new char[8192];
+            int read;
+            while ((read = reader.read(buffer, 0, buffer.length)) != -1) {
+                sb.append(buffer, 0, read);
+            }
+            return sb.toString();
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     @Override

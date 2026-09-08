@@ -444,4 +444,33 @@ public class WidgetBridge {
             }
         });
     }
+
+    private String pendingImportJson = null;
+
+    public synchronized void setPendingImportJson(String json) {
+        this.pendingImportJson = json;
+    }
+
+    @JavascriptInterface
+    public synchronized String getPendingImportJson() {
+        return pendingImportJson != null ? pendingImportJson : "";
+    }
+
+    @JavascriptInterface
+    public synchronized void clearPendingImportJson() {
+        this.pendingImportJson = null;
+    }
+
+    public void dispatchImportJson(final String jsonContent) {
+        setPendingImportJson(jsonContent);
+        if (activity == null || webView == null) return;
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    webView.evaluateJavascript("if(window.onNativeImportJson){ window.onNativeImportJson(); }", null);
+                } catch (Exception ignore) {}
+            }
+        });
+    }
 }

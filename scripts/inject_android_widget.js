@@ -100,9 +100,55 @@ function injectWidgetManifest() {
     process.exit(1);
   }
 
+  // 2. 注入外部应用打开 / 分享 JSON 备份文件的 Intent Filter 到 MainActivity
+  const fileIntentFilters = `
+            <!-- 响应从其他应用（微信、QQ、系统文件管理器等）中选择“打开方式 / 用其他应用打开”或“分享/发送” JSON 备份文件 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/json" />
+                <data android:mimeType="text/json" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.json" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.json" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/json" />
+                <data android:mimeType="text/json" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="*/*" />
+            </intent-filter>`;
+
+  if (!content.includes('android.intent.action.SEND') && content.includes('MainActivity')) {
+    content = content.replace(/(<activity[^>]*MainActivity[^>]*>[\s\S]*?)(<\/activity>)/, `$1\n${fileIntentFilters}\n        $2`);
+  }
+
   content = content.replace(appEnd, widgetEntries + '\n    ' + appEnd);
   fs.writeFileSync(manifestPath, content, 'utf8');
-  console.log('Successfully injected widget components and permissions into AndroidManifest.xml');
+  console.log('Successfully injected widget components, file intent-filters and permissions into AndroidManifest.xml');
 }
 
 if (require.main === module) {
