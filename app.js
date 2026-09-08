@@ -2013,7 +2013,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.8.6';
+const APP_VERSION='v1.8.7';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -2378,9 +2378,11 @@ function onDownloadSuccess(filePath){
     return;
   }
 
-  // 尽管安装包已经下载完成，但进度条必须平滑走到 100% 才能触发安装
+  // 尽管安装包已经下载完成，但进度条必须平滑过渡到 100% 才能触发安装
   const startPct = displayedPct;
-  const totalTicks = Math.max(20, Math.min(50, Math.round(((100 - startPct) / 100) * 45)));
+  const totalMs = Math.max(700, Math.min(1500, Math.round(((100 - startPct) / 100) * 1500)));
+  const intervalMs = 30;
+  const totalTicks = Math.max(20, Math.round(totalMs / intervalMs));
   let currentTick = 0;
 
   currentUpdateProgressTimer = setInterval(()=>{
@@ -2393,14 +2395,16 @@ function onDownloadSuccess(filePath){
       updateFinishTimer = setTimeout(()=>{
         updateFinishTimer = null;
         finalizeInstall();
-      }, 400);
+      }, 500);
     } else {
-      const nextPct = Math.round(startPct + (100 - startPct) * (currentTick / totalTicks));
-      displayedPct = Math.min(99, Math.max(displayedPct, nextPct));
+      const progress = currentTick / totalTicks;
+      const ease = 1 - Math.pow(1 - progress, 2);
+      const nextPct = Math.min(99, Math.round(startPct + (100 - startPct) * ease));
+      displayedPct = Math.max(displayedPct, nextPct);
       const curBytes = Math.round(totalBytes * (displayedPct / 100));
       updateProgressBar(displayedPct, '正在下载更新安装包…', formatSizeProg(curBytes, totalBytes));
     }
-  }, 20);
+  }, intervalMs);
 }
 
 function startUpdateDownload(){
@@ -2491,7 +2495,7 @@ function startUpdateDownload(){
           return;
         }
       }
-    }, 300);
+    }, 200);
   }else{
     // Web / 备用环境（非原生 Android）：通过浏览器常规下载
     let currentPct = 0;
@@ -3239,13 +3243,19 @@ function initSwipeGestures(){
     const dy = e.clientY - startY;
 
     if(!dirLocked){
-      if(Math.hypot(dx, dy) < 8) return;
-      dirLocked = true;
-      // 必须有明显的主导水平意图（水平位移大于垂直位移的 1.35 倍，且水平位移至少 10px），杜绝列表上下纵向滚动时误触
-      if(Math.abs(dx) >= 10 && Math.abs(dx) > Math.abs(dy) * 1.35){
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+      // 微小移动时不急于下定论，留出足够空间判定真实滑动方向
+      if(absDx < 7 && absDy < 7) return;
+
+      if(absDx >= 7 && absDx >= absDy * 0.95){
+        // 水平位移达到 7px 且不明显小于垂直位移，锁定为横向手势
+        dirLocked = true;
         isHoriz = true;
         try { frontEl.setPointerCapture(pointerId); } catch(err){}
-      } else {
+      } else if(absDy >= 10 && absDy > absDx * 1.25){
+        // 垂直位移达到 10px 且明显大于水平位移，锁定为纵向滚动
+        dirLocked = true;
         isHoriz = false;
       }
     }
@@ -3261,8 +3271,8 @@ function initSwipeGestures(){
 
     frontEl.style.transform = `translateX(${tx}px)`;
 
-    // 触发幅度阈值由 50px 调整为 88px（更沉稳防误触）
-    const THRESHOLD = 88;
+    // 触发幅度阈值：78px（稳健防误触且手感顺滑）
+    const THRESHOLD = 78;
     if(tx > 0){
       if(compActEl){
         compActEl.classList.add('active');
@@ -3302,8 +3312,8 @@ function initSwipeGestures(){
     const row = activeRow;
     const front = frontEl;
     const finalTx = currentTx;
-    // 触发幅度判定阈值：88px
-    const THRESHOLD = 88;
+    // 触发幅度判定阈值：78px
+    const THRESHOLD = 78;
 
     if(isHoriz && row && front){
       const itemId = row.dataset.item;

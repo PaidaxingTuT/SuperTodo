@@ -125,9 +125,29 @@ public class WidgetBridge {
             if (cursor != null) {
                 try {
                     if (cursor.moveToFirst()) {
-                        int bytesDownloaded = cursor.getInt(cursor.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
-                        int bytesTotal = cursor.getInt(cursor.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
-                        int status = cursor.getInt(cursor.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_STATUS));
+                        long bytesDownloaded = 0;
+                        long bytesTotal = 0;
+                        int status = 0;
+                        try {
+                            int idxDownloaded = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR);
+                            if (idxDownloaded >= 0) bytesDownloaded = cursor.getLong(idxDownloaded);
+                            int idxTotal = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_TOTAL_SIZE_BYTES);
+                            if (idxTotal >= 0) bytesTotal = cursor.getLong(idxTotal);
+                            int idxStatus = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_STATUS);
+                            if (idxStatus >= 0) status = cursor.getInt(idxStatus);
+                        } catch (Throwable ignore) {}
+
+                        // 尝试从存储目录物理文件探测真实已写入字节数（弥补系统数据库延迟刷新或权限限制问题）
+                        if (bytesDownloaded <= 0) {
+                            try {
+                                java.io.File pubDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+                                java.io.File target = new java.io.File(pubDir, currentDownloadFilename);
+                                if (target.exists()) {
+                                    bytesDownloaded = target.length();
+                                }
+                            } catch (Throwable ignore) {}
+                        }
+
                         String resolvedPath = currentDownloadPath;
                         if (status == android.app.DownloadManager.STATUS_SUCCESSFUL) {
                             if (resolvedPath == null || resolvedPath.isEmpty()) {
