@@ -114,19 +114,14 @@ function load(){
     state.sortKey=d.sortKey||'默认'; state.sortAsc=d.sortAsc!==false;
     if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
     if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget;
-    state.trash = Array.isArray(d.trash) ? d.trash : [];
-    if(!state.trash.length && typeof TEST_DEMO_DATA !== 'undefined' && Array.isArray(TEST_DEMO_DATA.trash) && TEST_DEMO_DATA.trash.length > 0){
-      state.trash = JSON.parse(JSON.stringify(TEST_DEMO_DATA.trash));
-    }
+    state.trash = Array.isArray(d.trash) ? d.trash.filter(x => x && x.id !== 'trash-01' && x.id !== 'trash-02') : [];
   }}catch(e){}
+  if(!Array.isArray(state.trash)){
+    state.trash = [];
+  } else {
+    state.trash = state.trash.filter(x => x && x.id !== 'trash-01' && x.id !== 'trash-02');
+  }
   syncFromNativeWidget();
-    if(!Array.isArray(state.trash) || state.trash.length === 0){
-      if(typeof TEST_DEMO_DATA !== 'undefined' && Array.isArray(TEST_DEMO_DATA.trash) && TEST_DEMO_DATA.trash.length > 0){
-        state.trash = JSON.parse(JSON.stringify(TEST_DEMO_DATA.trash));
-      } else {
-        state.trash = [];
-      }
-    }
 }
 
 /* ========== 桌面小部件桥接（小米澎湃OS / Android） ========== */
@@ -788,31 +783,7 @@ const TEST_DEMO_DATA = {
     "以后再说"
   ],
   "hapticFeedback": true,
-  "trash": [
-    {
-      "id": "trash-01",
-      "title": "购买老款茶轴机械键盘",
-      "note": "已有更好选择，取消该采购计划",
-      "type": "购物",
-      "types": ["购物"],
-      "scene": "网上",
-      "scenes": ["网上"],
-      "time": "今年",
-      "cost": 299,
-      "deletedAt": Date.now() - 7200000
-    },
-    {
-      "id": "trash-02",
-      "title": "旧版设计调研材料归档",
-      "note": "调研结束，事项已废弃",
-      "type": "待办",
-      "types": ["待办"],
-      "scene": "学校",
-      "scenes": ["学校"],
-      "time": "今年",
-      "deletedAt": Date.now() - 86400000
-    }
-  ],
+  "trash": [],
   "items": [
     {
       "id": "demo-01",
@@ -1182,17 +1153,9 @@ function loadTestDemoData(){
 function openTrashModal(){
   closeDrawer();
   pushLayer();
-  if(!Array.isArray(state.trash) || state.trash.length === 0){
-    if(typeof TEST_DEMO_DATA !== 'undefined' && Array.isArray(TEST_DEMO_DATA.trash) && TEST_DEMO_DATA.trash.length > 0){
-      state.trash = JSON.parse(JSON.stringify(TEST_DEMO_DATA.trash));
-    } else {
-      state.trash = [
-        { id: 'trash-01', title: '购买老款茶轴机械键盘', note: '已有更好选择，取消该采购计划', type: '购物', types: ['购物'], scene: '网上', scenes: ['网上'], time: '今年', cost: 299, deletedAt: Date.now() - 7200000 },
-        { id: 'trash-02', title: '旧版设计调研材料归档', note: '调研结束，事项已废弃', type: '待办', types: ['待办'], scene: '学校', scenes: ['学校'], time: '今年', deletedAt: Date.now() - 86400000 }
-      ];
-    }
+  if(!Array.isArray(state.trash)){
+    state.trash = [];
     save();
-    renderDrawer();
   }
   $('#trashMask').hidden = false;
   $('#trashModal').hidden = false;
@@ -1220,7 +1183,7 @@ function renderTrashModal(){
         <div class="trash-empty-ic"></div>
         <div class="trash-empty-title">回收站是空的</div>
         <div class="trash-empty-sub">删除的事项会暂存在这里，支持随时还原</div>
-        <button class="btn-line" id="trashSeedDemoBtn" style="margin-top:16px;font-size:13px;padding:8px 16px">加载示例已删除事项</button>
+        
       </div>
     `;
     return;
@@ -2045,7 +2008,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.8.2';
+const APP_VERSION='v1.8.3';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -3527,23 +3490,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       deleteForever(delForeverBtn.dataset.delForever);
       return;
     }
-    const seedBtn = e.target.closest('#trashSeedDemoBtn');
-    if(seedBtn){
-      e.stopPropagation();
-      if(typeof TEST_DEMO_DATA !== 'undefined' && Array.isArray(TEST_DEMO_DATA.trash)){
-        state.trash = JSON.parse(JSON.stringify(TEST_DEMO_DATA.trash));
-      } else {
-        state.trash = [
-          { id: 'trash-01', title: '购买老款茶轴机械键盘', note: '已有更好选择，取消该采购计划', type: '购物', types: ['购物'], scene: '网上', scenes: ['网上'], time: '今年', cost: 299, deletedAt: Date.now() - 7200000 },
-          { id: 'trash-02', title: '旧版设计调研材料归档', note: '调研结束，事项已废弃', type: '待办', types: ['待办'], scene: '学校', scenes: ['学校'], time: '今年', deletedAt: Date.now() - 86400000 }
-        ];
-      }
-      triggerHaptic('medium');
-      save();
-      renderDrawer();
-      renderTrashModal();
-      return;
-    }
+    
   });
 
   $('#modalClose').addEventListener('click',hideModal);
