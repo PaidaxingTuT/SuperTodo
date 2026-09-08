@@ -28,7 +28,7 @@ public class MainActivity extends BridgeActivity {
                     public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
                         try {
                             DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-                            if (dm != null && url != null && !url.isEmpty()) {
+                            if (dm != null && url != null && !url.isEmpty() && !url.startsWith("blob:") && !url.startsWith("data:")) {
                                 DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
                                 req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
                                 String fileName = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimeType);

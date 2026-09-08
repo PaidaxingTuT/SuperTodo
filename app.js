@@ -102,7 +102,7 @@ function load(){
     if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes;
     if(Array.isArray(d.times)&&d.times.length)state.times=d.times;
     if(d.groupBy)state.groupBy=d.groupBy;
-    if(d.theme)state.theme=d.theme;
+    if(Array.isArray(d.trash))state.trash=d.trash; if(d.theme)state.theme=d.theme;
     if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode;
     if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing);
     else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5};
@@ -2045,7 +2045,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.8.1';
+const APP_VERSION='v1.8.2';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -3434,10 +3434,72 @@ function initDrawerSortable(){
 
 /* ========== 导出/导入/清空 ========== */
 function exportData(){
-  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,spacing:state.spacing,devMode:state.devMode,autoCheckUpdate:state.autoCheckUpdate,autoInstallUpdate:state.autoInstallUpdate,widgetRemoveDone:state.widgetRemoveDone,hapticFeedback:state.hapticFeedback,trash:state.trash||[],ai:state.ai,quadrantWidget:state.quadrantWidget},null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  const d=new Date(), p=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-  a.download=`超级清单备份_${p}.json`; a.click(); URL.revokeObjectURL(a.href);
+  const d = new Date(), p = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  const fileName = `超级清单备份_${p}.json`;
+  const data = {
+    items: state.items,
+    types: state.types,
+    scenes: state.scenes,
+    times: state.times,
+    theme: state.theme,
+    colorMode: state.colorMode,
+    spacing: state.spacing,
+    devMode: state.devMode,
+    autoCheckUpdate: state.autoCheckUpdate,
+    autoInstallUpdate: state.autoInstallUpdate,
+    widgetRemoveDone: state.widgetRemoveDone,
+    hapticFeedback: state.hapticFeedback,
+    trash: state.trash || [],
+    ai: state.ai,
+    quadrantWidget: state.quadrantWidget
+  };
+  const jsonStr = JSON.stringify(data, null, 2);
+
+  // 1. Android 原生客户端桥梁优先（直接保存到存储并呼起系统分享/文件管理）
+  if (typeof window.AndroidWidgetBridge !== 'undefined' && typeof window.AndroidWidgetBridge.saveBackupFile === 'function') {
+    try {
+      const ok = window.AndroidWidgetBridge.saveBackupFile(jsonStr, fileName);
+      if (ok) {
+        triggerHaptic('medium');
+        return;
+      }
+    } catch(err) {
+      console.warn('Native export backup failed, fallback to Web:', err);
+    }
+  }
+
+  // 2. Web 浏览器安全下载机制
+  try {
+    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      try {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch(e){}
+    }, 3000);
+    triggerHaptic('medium');
+    alertDlg('备份已导出', `已成功生成备份文件：\n${fileName}\n\n请在浏览器的“下载”列表中查看或保存。`);
+  } catch(err) {
+    // 3. 兜底方案：复制到剪贴板
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(jsonStr).then(() => {
+          alertDlg('导出数据', '已将备份 JSON 数据复制到您的剪贴板，您可以粘贴保存至备忘录或文本文件。');
+        });
+      } else {
+        alertDlg('导出失败', '浏览器暂不支持自动下载。');
+      }
+    } catch(e) {
+      alertDlg('导出失败', '无法自动导出备份数据。');
+    }
+  }
 }
 function importData(e){
   const f=e.target.files[0]; if(!f)return;

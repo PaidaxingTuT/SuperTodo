@@ -219,6 +219,105 @@ public class WidgetBridge {
         });
     }
 
+        @JavascriptInterface
+    public boolean saveBackupFile(String jsonContent, String fileName) {
+        if (activity == null || jsonContent == null || jsonContent.isEmpty()) return false;
+        try {
+            final String safeName = (fileName != null && !fileName.trim().isEmpty())
+                    ? fileName.trim()
+                    : ("超级清单备份_" + new java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(new java.util.Date()) + ".json");
+
+            java.io.File targetFile = null;
+            boolean written = false;
+
+            // 1. 尝试直接写入公共 Download 目录
+            try {
+                java.io.File publicDownloads = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+                if (publicDownloads != null && (publicDownloads.exists() || publicDownloads.mkdirs())) {
+                    java.io.File f = new java.io.File(publicDownloads, safeName);
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(f);
+                    fos.write(jsonContent.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    fos.flush();
+                    fos.close();
+                    targetFile = f;
+                    written = true;
+                }
+            } catch (Throwable ignore) {}
+
+            // 2. 外部私有目录兜底（兼容 Android 10+ 分区存储机制）
+            if (!written) {
+                try {
+                    java.io.File extDownloads = activity.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS);
+                    if (extDownloads != null && (extDownloads.exists() || extDownloads.mkdirs())) {
+                        java.io.File f = new java.io.File(extDownloads, safeName);
+                        java.io.FileOutputStream fos = new java.io.FileOutputStream(f);
+                        fos.write(jsonContent.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        fos.flush();
+                        fos.close();
+                        targetFile = f;
+                        written = true;
+                    }
+                } catch (Throwable ignore) {}
+            }
+
+            // 3. 应用内部缓存目录最终兜底
+            if (!written) {
+                java.io.File cacheFile = new java.io.File(activity.getCacheDir(), safeName);
+                java.io.FileOutputStream fos = new java.io.FileOutputStream(cacheFile);
+                fos.write(jsonContent.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                fos.flush();
+                fos.close();
+                targetFile = cacheFile;
+                written = true;
+            }
+
+            final java.io.File finalFile = targetFile;
+            if (finalFile == null || !finalFile.exists()) return false;
+
+            // 触发媒体扫描广播，使备份文件立即显示在系统文件管理器中
+            try {
+                android.media.MediaScannerConnection.scanFile(
+                    activity,
+                    new String[]{ finalFile.getAbsolutePath() },
+                    new String[]{ "application/json" },
+                    null
+                );
+            } catch (Throwable ignore) {}
+
+            // 主线程调起系统分享选择器（可发送至微信/QQ/网盘/直接保存）
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        android.widget.Toast.makeText(activity, "备份已保存：" + safeName, android.widget.Toast.LENGTH_SHORT).show();
+
+                        android.net.Uri fileUri;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            String authority = activity.getPackageName() + ".fileprovider";
+                            fileUri = androidx.core.content.FileProvider.getUriForFile(activity, authority, finalFile);
+                        } else {
+                            fileUri = android.net.Uri.fromFile(finalFile);
+                        }
+
+                        android.content.Intent shareIntent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                        shareIntent.setType("application/json");
+                        shareIntent.putExtra(android.content.Intent.EXTRA_STREAM, fileUri);
+                        shareIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, safeName);
+                        shareIntent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                        android.content.Intent chooser = android.content.Intent.createChooser(shareIntent, "导出备份：" + safeName);
+                        chooser.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                        activity.startActivity(chooser);
+                    } catch (Throwable ignore) {}
+                }
+            });
+
+            return true;
+        } catch (Throwable e) {
+            return false;
+        }
+    }
+
     @JavascriptInterface
     public boolean installApk(String filePath) {
         if (activity == null) return false;
