@@ -28,6 +28,22 @@ function injectWidgetManifest() {
   }
 
   const widgetEntries = `
+        <!-- Android 原生桌面小部件 2x2 要事待办清单 -->
+        <receiver
+            android:name="com.dax.supertodo.widget.TodoWidget2x2Provider"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/widget_2x2_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.dax.supertodo.ACTION_2X2_COMPLETE" />
+                <action android:name="com.dax.supertodo.ACTION_REFRESH_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_2x2_info" />
+        </receiver>
+
         <!-- Android 原生桌面小部件 4x2（全面兼容小米澎湃OS / OPPO ColorOS / vivo OriginOS / 华为 / 荣耀等全部安卓系统，免应用商店审核） -->
         <receiver
             android:name="com.dax.supertodo.widget.TodoWidget4x2Provider"
