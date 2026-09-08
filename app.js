@@ -610,7 +610,6 @@ function inputDlg(title,placeholder,initial,onOk,onCancel){ dlgShow({title,type:
 
 /* ========== 触觉振动反馈 ========== */
 function triggerHaptic(type='light'){
-  if(state.hapticFeedback===false) return;
   try{
     let ms = 35;
     if(type==='heavy') ms = 85;
@@ -1513,10 +1512,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     state.type = item.dataset.t; state.view = {name:'home'};
     closeDrawer(); render();
   });
-  // 抽屉类型项：长按 → 上下文菜单
-  $('#drawerNav').addEventListener('touchstart',onNavPress,{passive:false});
-  $('#drawerNav').addEventListener('touchend',onNavRelease);
-  $('#drawerNav').addEventListener('touchmove',onNavMove);
+  // 抽屉类型项：长按 → 上下文菜单（配合全局防手势冲突）
+  $('#drawerNav').addEventListener('touchstart',onNavPress,{passive:true});
+  window.addEventListener('touchmove',onNavMove,{passive:true});
+  window.addEventListener('touchend',onNavRelease,{passive:true});
+  window.addEventListener('touchcancel',onNavRelease,{passive:true});
   $('#groupBySeg').addEventListener('click',e=>{
     const seg=e.target.closest('.seg'); if(!seg)return;
     state.groupBy=seg.dataset.gb; state.view={name:'home'}; save(); render();
@@ -1612,18 +1612,23 @@ document.addEventListener('DOMContentLoaded',()=>{
 /* ========== 抽屉类型项：长按管理 ========== */
 let navTimer=null, navPressItem=null, suppressNavClick=false, navMoved=false;
 function onNavPress(e){
-  const item=e.target.closest('.dnav-item'); if(!item)return;
+  // 如果点在拖拽手柄上，纯拖拽排序，绝不启动长按菜单定时器
+  if(e.target.closest('.dnav-drag')){
+    destroyTimer();
+    return;
+  }
+  const item=e.target.closest('.dnav-item[data-kind="type"]'); if(!item)return;
   if(item.classList.contains('dnav-all'))return; // "全部"不可管理
   navPressItem=item; navMoved=false; suppressNavClick=false;
   clearTimeout(navTimer);
   navTimer=setTimeout(()=>{
+    if(navMoved || !navPressItem) return;
     navPressItem.classList.add('press-hint');
     suppressNavClick=true;
     destroyTimer();
+    triggerHaptic('medium');
     openCtxMenu(item); // 打开上下文菜单
-  },480);
-  // 简单触觉反馈
-  if(navigator.vibrate)navigator.vibrate(15);
+  }, 480);
 }
 function onNavMove(){ if(navPressItem){ navMoved=true; destroyTimer(); navPressItem.classList.remove('press-hint'); } }
 function onNavRelease(){
@@ -2008,7 +2013,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.8.3';
+const APP_VERSION='v1.8.4';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -3187,7 +3192,7 @@ function initSwipeGestures(){
         try { frontEl.releasePointerCapture(pointerId); } catch(err){}
       }
       if(springBack){
-        frontEl.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        frontEl.style.transition = 'transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1)';
         frontEl.style.transform = 'translateX(0)';
       }
     }
@@ -3234,9 +3239,10 @@ function initSwipeGestures(){
     const dy = e.clientY - startY;
 
     if(!dirLocked){
-      if(Math.hypot(dx, dy) < 6) return;
+      if(Math.hypot(dx, dy) < 8) return;
       dirLocked = true;
-      if(Math.abs(dx) > Math.abs(dy)){
+      // 必须有明显的主导水平意图（水平位移大于垂直位移的 1.35 倍，且水平位移至少 10px），杜绝列表上下纵向滚动时误触
+      if(Math.abs(dx) >= 10 && Math.abs(dx) > Math.abs(dy) * 1.35){
         isHoriz = true;
         try { frontEl.setPointerCapture(pointerId); } catch(err){}
       } else {
@@ -3247,14 +3253,16 @@ function initSwipeGestures(){
     if(!isHoriz) return;
     if(e.cancelable) e.preventDefault();
 
+    // 弹性阻尼滑动，行程上限适度加宽
     let tx = dx;
-    if(tx > 130) tx = 130 + (tx - 130) * 0.35;
-    else if(tx < -130) tx = -130 + (tx + 130) * 0.35;
+    if(tx > 160) tx = 160 + (tx - 160) * 0.28;
+    else if(tx < -160) tx = -160 + (tx + 160) * 0.28;
     currentTx = tx;
 
     frontEl.style.transform = `translateX(${tx}px)`;
 
-    const THRESHOLD = 50;
+    // 触发幅度阈值由 50px 调整为 88px（更沉稳防误触）
+    const THRESHOLD = 88;
     if(tx > 0){
       if(compActEl){
         compActEl.classList.add('active');
@@ -3287,14 +3295,15 @@ function initSwipeGestures(){
 
   const onPointerUpOrCancel = e => {
     if(!isPointerDown || pointerId !== e.pointerId) return;
-    if(isHoriz && Math.abs(currentTx) > 8){
+    if(isHoriz && Math.abs(currentTx) > 10){
       suppressItemClickUntil = Date.now() + 350;
     }
 
     const row = activeRow;
     const front = frontEl;
     const finalTx = currentTx;
-    const THRESHOLD = 50;
+    // 触发幅度判定阈值：88px
+    const THRESHOLD = 88;
 
     if(isHoriz && row && front){
       const itemId = row.dataset.item;
@@ -3304,14 +3313,14 @@ function initSwipeGestures(){
 
       if(finalTx >= THRESHOLD){
         triggerHaptic('medium');
-        front.style.transition = 'transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        front.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
         front.style.transform = 'translateX(0)';
         resetState(false);
         toggleDone(itemId, kind, key);
         return;
       } else if(finalTx <= -THRESHOLD){
         triggerHaptic('heavy');
-        front.style.transition = 'transform 0.18s ease-out';
+        front.style.transition = 'transform 0.2s ease-out';
         front.style.transform = 'translateX(-105%)';
         row.style.maxHeight = row.offsetHeight + 'px';
         setTimeout(() => {
@@ -3377,20 +3386,38 @@ let drawerSortable=null;
 function initDrawerSortable(){
   if(drawerSortable){ drawerSortable.destroy(); drawerSortable=null; }
   if(typeof Sortable==='undefined') return;
-  drawerSortable=new Sortable($('#drawerNav'),{
+  const nav = $('#drawerNav');
+  if(!nav) return;
+  drawerSortable=new Sortable(nav,{
     draggable:'.dnav-item[data-kind="type"]',
-    filter:'.dnav-all',
+    filter:'.dnav-all, .dnav-add, .dnav-trash, .dnav-divider',
     animation:160,
-    delay:180,
+    delay:150,
     delayOnTouchOnly:true,
-    touchStartThreshold:5,
+    touchStartThreshold:4,
     ghostClass:'sortable-ghost',
-    onStart(){ suppressNavClick=true; triggerHaptic('light'); },
-    onEnd(){
+    onChoose(evt){
+      destroyTimer();
+      if(navPressItem){ navPressItem.classList.remove('press-hint'); navPressItem=null; }
+    },
+    onStart(evt){
+      destroyTimer();
+      suppressNavClick=true;
+      if(navPressItem){ navPressItem.classList.remove('press-hint'); navPressItem=null; }
+      triggerHaptic('light');
+    },
+    onMove(evt){
+      destroyTimer();
+      if(navPressItem){ navPressItem.classList.remove('press-hint'); navPressItem=null; }
+    },
+    onEnd(evt){
+      destroyTimer();
+      if(navPressItem){ navPressItem.classList.remove('press-hint'); navPressItem=null; }
       triggerHaptic('selection');
       state.types=$$('#drawerNav .dnav-item[data-kind="type"]').map(el=>el.dataset.t);
       save();
       render();
+      setTimeout(()=>{ suppressNavClick=false; }, 250);
     }
   });
 }
@@ -3575,15 +3602,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     triggerInstallApk();
   });
 
-  /* 交互与触觉设置项绑定 */
-  const chkHaptic=$('#hapticFeedback');
-  if(chkHaptic){
-    chkHaptic.addEventListener('change',e=>{
-      state.hapticFeedback=e.target.checked;
-      save();
-      if(state.hapticFeedback) triggerHaptic('medium');
-    });
-  }
+
 
   /* 更新与安装设置项绑定 */
   const chkCheck = $('#autoCheckUpdate');
