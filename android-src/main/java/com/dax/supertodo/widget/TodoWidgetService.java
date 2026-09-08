@@ -146,10 +146,12 @@ public class TodoWidgetService extends RemoteViewsService {
                 toggleIntent.putExtra("extra_item_id", item.id);
                 rv.setOnClickFillInIntent(R.id.item_checkbox, toggleIntent);
 
-                // 2. 点击右侧文字信息主体：打开 App 并定位编辑
+                // 2. 点击右侧文字信息主体或卡片空白处：打开 App 并定位编辑
                 Intent openIntent = new Intent();
                 openIntent.putExtra("extra_action", "open_item");
                 openIntent.putExtra("extra_item_id", item.id);
+                openIntent.setData(android.net.Uri.parse("supertodo://item?id=" + item.id));
+                rv.setOnClickFillInIntent(R.id.item_root, openIntent);
                 rv.setOnClickFillInIntent(R.id.item_body, openIntent);
                 rv.setOnClickFillInIntent(R.id.item_title, openIntent);
                 rv.setOnClickFillInIntent(R.id.item_title_done, openIntent);

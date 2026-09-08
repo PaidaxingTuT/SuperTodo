@@ -224,18 +224,27 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
                     );
                     views.setOnClickPendingIntent(checkIds[i], togglePI);
 
-                    Intent openIntent = new Intent(context, TodoWidget4x4Provider.class);
-                    openIntent.setAction(WidgetDataManager.ACTION_WIDGET_CLICK);
-                    openIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
-                    openIntent.putExtra("extra_action", "open_item");
-                    openIntent.putExtra("extra_item_id", it.id);
-                    PendingIntent openPI = PendingIntent.getBroadcast(
+                    // 点击条目主体（整个卡片及内部文本）：直接调起 MainActivity，杜绝后台广播被系统 BAL 拦截
+                    Intent openIntent = new Intent(context, MainActivity.class);
+                    openIntent.setAction(Intent.ACTION_VIEW);
+                    openIntent.setData(Uri.parse("supertodo://item?id=" + it.id));
+                    openIntent.putExtra("widget_action", "open_item");
+                    openIntent.putExtra("widget_item_id", it.id);
+                    openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    PendingIntent openPI = PendingIntent.getActivity(
                         context,
                         appWidgetId * 1000 + i * 2 + 1,
                         openIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
                     );
                     views.setOnClickPendingIntent(slotIds[i], openPI);
+                    views.setOnClickPendingIntent(titleIds[i], openPI);
+                    views.setOnClickPendingIntent(titleDoneIds[i], openPI);
+                    views.setOnClickPendingIntent(tagIds[i], openPI);
+                    views.setOnClickPendingIntent(dueIds[i], openPI);
+                    views.setOnClickPendingIntent(starIds[i], openPI);
+                    views.setOnClickPendingIntent(costIds[i], openPI);
+                    if (i == 0) views.setOnClickPendingIntent(R.id.slot_1_note, openPI);
                 } else {
                     views.setViewVisibility(slotIds[i], View.GONE);
                 }
@@ -301,7 +310,7 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
         );
         views.setOnClickPendingIntent(R.id.btn_widget_refresh, refreshPI);
 
-        // 点击标题区域打开 App
+        // 全方位绑定打开 App 的热区：根布局、顶部整栏、标题文字、分类徽标、统计概览、空状态卡片
         Intent mainIntent = new Intent(context, MainActivity.class);
         mainIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent mainPI = PendingIntent.getActivity(
@@ -310,7 +319,12 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
             mainIntent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
+        views.setOnClickPendingIntent(R.id.widget_root, mainPI);
+        views.setOnClickPendingIntent(R.id.widget_header, mainPI);
         views.setOnClickPendingIntent(R.id.widget_header_title, mainPI);
+        views.setOnClickPendingIntent(R.id.widget_filter_badge, mainPI);
+        views.setOnClickPendingIntent(R.id.widget_count_text, mainPI);
+        views.setOnClickPendingIntent(R.id.widget_empty_view, mainPI);
 
         appWidgetManager.updateAppWidget(appWidgetId, views);
         appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.widget_list);
@@ -347,10 +361,24 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
                 WidgetDataManager.notifyAllWidgets(context);
             } else if ("open_item".equals(itemAction) && itemId != null) {
                 Intent mainIntent = new Intent(context, MainActivity.class);
+                mainIntent.setAction(Intent.ACTION_VIEW);
+                mainIntent.setData(Uri.parse("supertodo://item?id=" + itemId));
                 mainIntent.putExtra("widget_action", "open_item");
                 mainIntent.putExtra("widget_item_id", itemId);
-                mainIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                context.startActivity(mainIntent);
+                mainIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                try {
+                    if (android.os.Build.VERSION.SDK_INT >= 34) {
+                        android.app.ActivityOptions opts = android.app.ActivityOptions.makeBasic();
+                        opts.setPendingIntentBackgroundActivityStartMode(android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+                        context.startActivity(mainIntent, opts.toBundle());
+                    } else {
+                        context.startActivity(mainIntent);
+                    }
+                } catch (Throwable t) {
+                    try {
+                        context.startActivity(mainIntent);
+                    } catch (Throwable ignore) {}
+                }
             }
         } else if (WidgetDataManager.ACTION_REFRESH_WIDGET.equals(action)) {
             AppWidgetManager mgr = AppWidgetManager.getInstance(context);

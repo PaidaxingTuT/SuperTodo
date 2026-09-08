@@ -145,6 +145,10 @@ public class TodoWidgetQuadrantProvider extends AppWidgetProvider {
             openAppIntent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
+        views.setOnClickPendingIntent(R.id.qw_root, openPI);
+        views.setOnClickPendingIntent(R.id.qw_grid_container, openPI);
+        views.setOnClickPendingIntent(R.id.qw_axis_x, openPI);
+        views.setOnClickPendingIntent(R.id.qw_axis_y, openPI);
         views.setOnClickPendingIntent(R.id.qw_card_q1, openPI);
         views.setOnClickPendingIntent(R.id.qw_card_q2, openPI);
         views.setOnClickPendingIntent(R.id.qw_card_q3, openPI);
