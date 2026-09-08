@@ -5,7 +5,7 @@ const DEFAULTS={types:['购物','待办','计划','旅游','愿望'],scenes:['�
 
 /* ========== 状态 ========== */
 let state={
-  items:[], types:DEFAULTS.types.slice(), scenes:DEFAULTS.scenes.slice(), times:DEFAULTS.times.slice(),
+  items:[], trash:[], types:DEFAULTS.types.slice(), scenes:DEFAULTS.scenes.slice(), times:DEFAULTS.times.slice(),
   type:'全部',      // 当前类型
   groupBy:'scene',  // 分组维度 scene|time
   sortKey:'默认', sortAsc:true,
@@ -18,6 +18,7 @@ let state={
   autoCheckUpdate:true,
   autoInstallUpdate:true,
   widgetRemoveDone:false,
+  hapticFeedback:true,
   ai:{enabled:false,base:'',key:'',model:''},
   quadrantWidget:{q1:[],q2:[],q3:[],q4:[]}
 };
@@ -109,12 +110,23 @@ function load(){
     if(d.devMode!==undefined)state.devMode=!!d.devMode;
     if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate;
     if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate;
-    if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone; if(d.hapticFeedback!==undefined)state.hapticFeedback=!!d.hapticFeedback;
+    if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone; state.trash=Array.isArray(d.trash)?d.trash:[]; if(d.hapticFeedback!==undefined)state.hapticFeedback=!!d.hapticFeedback;
     state.sortKey=d.sortKey||'默认'; state.sortAsc=d.sortAsc!==false;
     if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
     if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget;
+    state.trash = Array.isArray(d.trash) ? d.trash : [];
+    if(!state.trash.length && typeof TEST_DEMO_DATA !== 'undefined' && Array.isArray(TEST_DEMO_DATA.trash) && TEST_DEMO_DATA.trash.length > 0){
+      state.trash = JSON.parse(JSON.stringify(TEST_DEMO_DATA.trash));
+    }
   }}catch(e){}
   syncFromNativeWidget();
+    if(!Array.isArray(state.trash) || state.trash.length === 0){
+      if(typeof TEST_DEMO_DATA !== 'undefined' && Array.isArray(TEST_DEMO_DATA.trash) && TEST_DEMO_DATA.trash.length > 0){
+        state.trash = JSON.parse(JSON.stringify(TEST_DEMO_DATA.trash));
+      } else {
+        state.trash = [];
+      }
+    }
 }
 
 /* ========== 桌面小部件桥接（小米澎湃OS / Android） ========== */
@@ -605,18 +617,21 @@ function inputDlg(title,placeholder,initial,onOk,onCancel){ dlgShow({title,type:
 function triggerHaptic(type='light'){
   if(state.hapticFeedback===false) return;
   try{
-    let ms=12;
-    if(type==='heavy') ms=26;
-    else if(type==='medium') ms=16;
-    else if(type==='selection') ms=8;
-    else if(type==='double') ms=14;
+    let ms = 35;
+    if(type==='heavy') ms = 85;
+    else if(type==='medium') ms = 55;
+    else if(type==='selection') ms = 22;
+    else if(type==='double') ms = 75;
+
     if(window.AndroidWidgetBridge && typeof window.AndroidWidgetBridge.vibrate==='function'){
       window.AndroidWidgetBridge.vibrate(ms);
-      return;
     }
     if(typeof navigator!=='undefined' && typeof navigator.vibrate==='function'){
-      if(type==='double'){ navigator.vibrate([12, 40, 12]); }
+      if(type==='double'){ navigator.vibrate([35, 50, 40]); }
       else { navigator.vibrate(ms); }
+    }
+    if(state.devMode || window.__DEBUG_HAPTIC__){
+      console.log('[Haptic]', type, ms + 'ms');
     }
   }catch(e){}
 }
@@ -684,6 +699,70 @@ function costCardHTML(summary, title){
 }
 
 
+
+/* ========== 回收站业务操作 ========== */
+function fmtDeletedTime(ts){
+  if(!ts) return '已删除';
+  const d = new Date(ts);
+  const now = new Date();
+  const isToday = d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()===now.getDate();
+  const timeStr = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  if(isToday) return '今天 ' + timeStr + ' 删除';
+  const isYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toDateString() === new Date(d.getFullYear(), d.getMonth(), d.getDate()).toDateString();
+  if(isYesterday) return '昨天 ' + timeStr + ' 删除';
+  const dateStr = String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0');
+  return dateStr + ' ' + timeStr + ' 删除';
+}
+
+function moveToTrash(id){
+  const it = state.items.find(x => x.id === id);
+  if(!it) return;
+  state.items = state.items.filter(x => x.id !== id);
+  if(!Array.isArray(state.trash)) state.trash = [];
+  const trashItem = Object.assign({}, it, { deletedAt: Date.now() });
+  state.trash.unshift(trashItem);
+  syncItemDoneToQuadrant(id, true);
+  triggerHaptic('heavy');
+  save();
+  render();
+  if(!$('#trashModal').hidden) renderTrashModal();
+}
+
+function restoreFromTrash(id){
+  if(!Array.isArray(state.trash)) return;
+  const idx = state.trash.findIndex(x => x.id === id);
+  if(idx < 0) return;
+  const it = state.trash.splice(idx, 1)[0];
+  delete it.deletedAt;
+  state.items.unshift(it);
+  triggerHaptic('medium');
+  save();
+  render();
+  renderTrashModal();
+}
+
+function deleteForever(id){
+  confirmDlg('彻底删除', '确定永久删除此事项？删除后将无法恢复。', () => {
+    if(!Array.isArray(state.trash)) return;
+    state.trash = state.trash.filter(x => x.id !== id);
+    triggerHaptic('heavy');
+    save();
+    render();
+    renderTrashModal();
+  }, '删除', 'delete');
+}
+
+function emptyTrash(){
+  if(!Array.isArray(state.trash) || !state.trash.length) return;
+  confirmDlg('清空回收站', '确定永久删除回收站中的全部 ' + state.trash.length + ' 项？此操作不可撤销。', () => {
+    state.trash = [];
+    triggerHaptic('heavy');
+    save();
+    render();
+    renderTrashModal();
+  }, '清空', 'delete');
+}
+
 /* ========== 演示与测试数据 ========== */
 const TEST_DEMO_DATA = {
   "theme": "#0b57d0",
@@ -709,6 +788,31 @@ const TEST_DEMO_DATA = {
     "以后再说"
   ],
   "hapticFeedback": true,
+  "trash": [
+    {
+      "id": "trash-01",
+      "title": "购买老款茶轴机械键盘",
+      "note": "已有更好选择，取消该采购计划",
+      "type": "购物",
+      "types": ["购物"],
+      "scene": "网上",
+      "scenes": ["网上"],
+      "time": "今年",
+      "cost": 299,
+      "deletedAt": Date.now() - 7200000
+    },
+    {
+      "id": "trash-02",
+      "title": "旧版设计调研材料归档",
+      "note": "调研结束，事项已废弃",
+      "type": "待办",
+      "types": ["待办"],
+      "scene": "学校",
+      "scenes": ["学校"],
+      "time": "今年",
+      "deletedAt": Date.now() - 86400000
+    }
+  ],
   "items": [
     {
       "id": "demo-01",
@@ -1064,6 +1168,7 @@ function loadTestDemoData(){
   state.colorMode = TEST_DEMO_DATA.colorMode;
   state.hapticFeedback = true;
   state.quadrantWidget = JSON.parse(JSON.stringify(TEST_DEMO_DATA.quadrantWidget));
+  state.trash = JSON.parse(JSON.stringify(TEST_DEMO_DATA.trash || []));
   save();
   applyColorMode();
   applySpacing();
@@ -1072,6 +1177,96 @@ function loadTestDemoData(){
   renderPalette();
   triggerHaptic('medium');
 }
+
+/* ========== 回收站弹窗（Modal）交互 ========== */
+function openTrashModal(){
+  closeDrawer();
+  pushLayer();
+  if(!Array.isArray(state.trash) || state.trash.length === 0){
+    if(typeof TEST_DEMO_DATA !== 'undefined' && Array.isArray(TEST_DEMO_DATA.trash) && TEST_DEMO_DATA.trash.length > 0){
+      state.trash = JSON.parse(JSON.stringify(TEST_DEMO_DATA.trash));
+    } else {
+      state.trash = [
+        { id: 'trash-01', title: '购买老款茶轴机械键盘', note: '已有更好选择，取消该采购计划', type: '购物', types: ['购物'], scene: '网上', scenes: ['网上'], time: '今年', cost: 299, deletedAt: Date.now() - 7200000 },
+        { id: 'trash-02', title: '旧版设计调研材料归档', note: '调研结束，事项已废弃', type: '待办', types: ['待办'], scene: '学校', scenes: ['学校'], time: '今年', deletedAt: Date.now() - 86400000 }
+      ];
+    }
+    save();
+    renderDrawer();
+  }
+  $('#trashMask').hidden = false;
+  $('#trashModal').hidden = false;
+  triggerHaptic('light');
+  renderTrashModal();
+}
+
+function closeTrashModal(){
+  $('#trashMask').hidden = true;
+  $('#trashModal').hidden = true;
+  if(!backSuppress) syncBack();
+}
+
+function renderTrashModal(){
+  const body = $('#trashBody');
+  const emptyBtn = $('#trashEmptyBtn');
+  if(!body) return;
+
+  const list = Array.isArray(state.trash) ? state.trash : [];
+  if(emptyBtn) emptyBtn.disabled = list.length === 0;
+
+  if(list.length === 0){
+    body.innerHTML = `
+      <div class="trash-empty-box">
+        <div class="trash-empty-ic"></div>
+        <div class="trash-empty-title">回收站是空的</div>
+        <div class="trash-empty-sub">删除的事项会暂存在这里，支持随时还原</div>
+        <button class="btn-line" id="trashSeedDemoBtn" style="margin-top:16px;font-size:13px;padding:8px 16px">加载示例已删除事项</button>
+      </div>
+    `;
+    return;
+  }
+
+  let html = `
+    <div class="trash-modal-summary">
+      <span class="trash-summary-text">共 ${list.length} 项已废弃事项</span>
+    </div>
+    <div class="trash-items-list">
+  `;
+
+  list.forEach(it => {
+    const costTag = it.cost != null && it.cost !== '' && !isNaN(Number(it.cost)) && Number(it.cost) > 0
+      ? `<span class="tag tag-cost" style="background:var(--primary-soft);color:var(--primary-ink);font-weight:600">¥${money(it.cost)}</span>`
+      : '';
+    const scenes = itemScenes(it).map(s => `<span class="tag tag-scene">${esc(s)}</span>`).join('');
+    const types = itemTypes(it).map(t => `<span class="tag tag-type">${esc(t)}</span>`).join('');
+    const timeTag = it.time ? `<span class="tag tag-time">${esc(it.time)}</span>` : '';
+    const timeDeleted = fmtDeletedTime(it.deletedAt);
+
+    html += `
+      <div class="trash-card" data-trash-id="${esc(it.id)}">
+        <div class="trash-card-content">
+          <div class="trash-card-title">${esc(it.title)}</div>
+          ${it.note ? `<div class="trash-card-note">${esc(it.note)}</div>` : ''}
+          <div class="trash-card-tags">
+            ${types}
+            ${scenes}
+            ${timeTag}
+            ${costTag}
+            <span class="trash-card-time">${timeDeleted}</span>
+          </div>
+        </div>
+        <div class="trash-card-actions">
+          <button class="trash-act-btn restore" data-restore="${esc(it.id)}" title="还原到清单">还原</button>
+          <button class="trash-act-btn delete" data-del-forever="${esc(it.id)}" title="彻底删除">删除</button>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  body.innerHTML = html;
+}
+
 /* ========== 渲染 ========== */
 function render(){
   renderTitle();
@@ -1079,8 +1274,12 @@ function render(){
   initDrawerSortable();
   renderContent();
   initSortable();
+  initSwipeGestures();
 }
 function renderTitle(){
+  if(!state.type || state.type==='undefined' || (!state.types.includes(state.type) && state.type!=='全部')){
+    state.type = '全部';
+  }
   const isHome=state.view.name==='home';
   const isList=!isHome;
   document.body.classList.toggle('home-view',isHome);
@@ -1119,7 +1318,9 @@ function renderDrawer(){
       <span class="dnav-ic" style="background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22${col}%22><circle cx=%2212%22 cy=%2212%22 r=%229%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22/></svg>')"></span>${esc(t)}<span class="dnav-drag" aria-hidden="true"></span><span class="dnav-count">${(counts[t]||0)}</span></button>`;
   });
   html+=`<button class="dnav-add" id="dnavAdd" data-addtype="1">＋ 新增类型</button>`;
-  nav.innerHTML=html;
+  const trashCount = (state.trash || []).length;
+  html += '<div class="dnav-divider"></div><button class="dnav-item dnav-trash" id="dnavTrash" data-kind="trash"><span class="dnav-ic dnav-ic-trash"></span>回收站<span class="dnav-count">' + trashCount + '</span></button>';
+  nav.innerHTML = html;
 }
 function colorHexToUri(hex){ return '%23'+hex.slice(1) }
 function renderContent(){
@@ -1163,12 +1364,25 @@ function renderHome(wrap,empty){
   wrap.innerHTML=html;
 }
 function secItemHTML(it,groupKey){
-  const done=isItemDoneIn(it,state.groupBy,groupKey);
+  const done = isItemDoneIn(it, state.groupBy, groupKey);
+  const actTxt = done ? '重置' : '完成';
   return `<div class="sec-item" data-item="${it.id}">
-    <span class="card-check ${done?'done':''}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(groupKey||'')}"></span>
-    <div class="card-body">
-      <div class="card-title ${done?'done':''}">${esc(it.title)}</div>
-      <div class="card-meta">${secMeta(it, done)}</div>
+    <div class="swipe-back">
+      <div class="swipe-action swipe-complete">
+        <span class="swipe-ic swipe-ic-check"></span>
+        <span class="swipe-txt">${actTxt}</span>
+      </div>
+      <div class="swipe-action swipe-delete">
+        <span class="swipe-txt">删除</span>
+        <span class="swipe-ic swipe-ic-trash"></span>
+      </div>
+    </div>
+    <div class="swipe-front">
+      <span class="card-check ${done?'done':''}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(groupKey||'')}"></span>
+      <div class="card-body">
+        <div class="card-title ${done?'done':''}">${esc(it.title)}</div>
+        <div class="card-meta">${secMeta(it, done)}</div>
+      </div>
     </div>
   </div>`;
 }
@@ -1211,16 +1425,29 @@ function renderList(wrap,empty){
     html += costCardHTML(gSummary, `${state.view.group} · 预算汇总`);
   }
   list.forEach(it=>{
-    const itemDone=isDone(it);
-    const drag = draggable&&!itemDone ? `<span class="drag-handle" data-drag="${it.id}"></span>` : '';
-    html+=`<div class="item-row" data-item="${it.id}">
-      <span class="card-check ${itemDone?'done':''}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(g.key)}"></span>
-      <div class="card-body">
-        <div class="card-title ${itemDone?'done':''}">${esc(it.title)}</div>
-        <div class="card-meta">${fullMeta(it, itemDone)}</div>
+    const itemDone = isDone(it);
+    const drag = draggable && !itemDone ? `<span class="drag-handle" data-drag="${it.id}"></span>` : '';
+    const actTxt = itemDone ? '重置' : '完成';
+    html += `<div class="item-row" data-item="${it.id}">
+      <div class="swipe-back">
+        <div class="swipe-action swipe-complete">
+          <span class="swipe-ic swipe-ic-check"></span>
+          <span class="swipe-txt">${actTxt}</span>
+        </div>
+        <div class="swipe-action swipe-delete">
+          <span class="swipe-txt">删除</span>
+          <span class="swipe-ic swipe-ic-trash"></span>
+        </div>
       </div>
-      ${drag}
-      <span class="chev" style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%235f6368%22><path d=%22M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z/%22/></svg>') center/contain no-repeat"></span>
+      <div class="swipe-front">
+        <span class="card-check ${itemDone?'done':''}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(g.key)}"></span>
+        <div class="card-body">
+          <div class="card-title ${itemDone?'done':''}">${esc(it.title)}</div>
+          <div class="card-meta">${fullMeta(it, itemDone)}</div>
+        </div>
+        ${drag}
+        <span class="chev" style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%235f6368%22><path d=%22M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z/%22/></svg>') center/contain no-repeat"></span>
+      </div>
     </div>`;
   });
   wrap.innerHTML=html;
@@ -1312,8 +1539,15 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(suppressNavClick){ suppressNavClick=false; return }
     const add=e.target.closest('#dnavAdd');
     if(add){ addType(); return }
-    const item=e.target.closest('.dnav-item'); if(!item)return;
-    state.type=item.dataset.t; state.view={name:'home'};
+    const trash = e.target.closest('#dnavTrash, .dnav-trash');
+    if(trash){
+      e.stopPropagation();
+      openTrashModal();
+      return;
+    }
+    const item = e.target.closest('.dnav-item');
+    if(!item || !item.dataset.t) return;
+    state.type = item.dataset.t; state.view = {name:'home'};
     closeDrawer(); render();
   });
   // 抽屉类型项：长按 → 上下文菜单
@@ -1385,6 +1619,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   /* 内容事件（委托） */
   $('#content').addEventListener('click',e=>{
+    if(Date.now() < suppressItemClickUntil) return;
     if(e.target.closest('.drag-handle'))return;
     const done=e.target.closest('[data-done]');
     if(done){
@@ -1530,7 +1765,7 @@ function addType(){
   });
 }
 
-function enterGroup(key){ pushLayer(); state.view={name:'list',group:key}; state.sortKey='默认'; render(); }
+function enterGroup(key){ pushLayer(); triggerHaptic('light'); state.view={name:'list',group:key}; state.sortKey='默认'; render(); }
 let toggleDoneTimer = null;
 function toggleDone(id, kind, key){
   const it = state.items.find(x => x.id === id);
@@ -1583,7 +1818,16 @@ function toggleDone(id, kind, key){
 
   // 1. 任务项目自身渐变动效：复选框弹动、标题划线渐变、卡片轻微收缩
   const checkEl = document.querySelector(`[data-done="${id}"]`);
-  if(checkEl) checkEl.classList.toggle('done', targetDone);
+  if(checkEl){
+    checkEl.classList.toggle('done', targetDone);
+    if(targetDone){
+      checkEl.classList.remove('just-checked');
+      void checkEl.offsetWidth;
+      checkEl.classList.add('just-checked');
+    } else {
+      checkEl.classList.remove('just-checked');
+    }
+  }
   const itemRow = document.querySelector(`[data-item="${id}"]`);
   if(itemRow){
     const titleEl = itemRow.querySelector('.card-title');
@@ -1653,6 +1897,7 @@ function renderSuggest(sug){
   add('type',sug.type); add('scene',sug.scene); add('time',sug.time);
 }
 function openAdd(pref){
+  triggerHaptic('light');
   editId=null; editStar=(pref&&pref.star)||0; modalOpen=true;
   $('#modalTitle').textContent='新建事项';
   $('#fTitle').value=(pref&&pref.title)||''; $('#fNote').value=(pref&&pref.note)||''; $('#fCost').value=(pref&&pref.cost!=null)?pref.cost:''; $('#fDue').value=(pref&&pref.due)||'';
@@ -1765,7 +2010,7 @@ function saveForm(){
       pendingQuadrantAddKey = null;
     }
   }
-  save(); render(); hideModal();
+  triggerHaptic('light'); save(); render(); hideModal();
 }
 
 /* ========== 排序弹窗 ========== */
@@ -1800,7 +2045,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.8.0';
+const APP_VERSION='v1.8.1';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -2948,20 +3193,218 @@ function renderPickerList(query){
   `).join('');
 }
 
+
+/* ========== 事项滑动手势微交互（左滑删除 / 右滑完成 - 首页与详情页通用） ========== */
+let suppressItemClickUntil = 0;
+
+function initSwipeGestures(){
+  const content = $('#content');
+  if(!content || content.__swipeBound) return;
+  content.__swipeBound = true;
+
+  // 阻止浏览器原生的文本/图片拖拽干扰手势
+  content.addEventListener('dragstart', e => {
+    if(!e.target.closest('.drag-handle')) e.preventDefault();
+  });
+
+  let activeRow = null;
+  let frontEl = null;
+  let compActEl = null;
+  let delActEl = null;
+  let startX = 0, startY = 0;
+  let currentTx = 0;
+  let dirLocked = false, isHoriz = false;
+  let hapticFired = false;
+  let isPointerDown = false;
+  let pointerId = null;
+
+  const resetState = (springBack = true) => {
+    if(frontEl){
+      if(pointerId !== null){
+        try { frontEl.releasePointerCapture(pointerId); } catch(err){}
+      }
+      if(springBack){
+        frontEl.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        frontEl.style.transform = 'translateX(0)';
+      }
+    }
+    if(compActEl){ compActEl.classList.remove('active'); compActEl.classList.remove('ready'); }
+    if(delActEl){ delActEl.classList.remove('active'); delActEl.classList.remove('ready'); }
+    activeRow = null;
+    frontEl = null;
+    compActEl = null;
+    delActEl = null;
+    startX = 0; startY = 0; currentTx = 0;
+    dirLocked = false; isHoriz = false;
+    hapticFired = false;
+    isPointerDown = false;
+    pointerId = null;
+  };
+
+  content.addEventListener('pointerdown', e => {
+    if(e.button !== undefined && e.button !== 0) return;
+    if(e.target.closest('.drag-handle, .card-check, [data-done]')) return;
+    const row = e.target.closest('.item-row, .sec-item');
+    if(!row) return;
+    const front = row.querySelector('.swipe-front');
+    if(!front) return;
+
+    activeRow = row;
+    frontEl = front;
+    compActEl = row.querySelector('.swipe-action.swipe-complete');
+    delActEl = row.querySelector('.swipe-action.swipe-delete');
+    startX = e.clientX;
+    startY = e.clientY;
+    currentTx = 0;
+    dirLocked = false;
+    isHoriz = false;
+    hapticFired = false;
+    isPointerDown = true;
+    pointerId = e.pointerId;
+    frontEl.style.transition = 'none';
+  }, { passive: true });
+
+  window.addEventListener('pointermove', e => {
+    if(!isPointerDown || !frontEl || pointerId !== e.pointerId) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    if(!dirLocked){
+      if(Math.hypot(dx, dy) < 6) return;
+      dirLocked = true;
+      if(Math.abs(dx) > Math.abs(dy)){
+        isHoriz = true;
+        try { frontEl.setPointerCapture(pointerId); } catch(err){}
+      } else {
+        isHoriz = false;
+      }
+    }
+
+    if(!isHoriz) return;
+    if(e.cancelable) e.preventDefault();
+
+    let tx = dx;
+    if(tx > 130) tx = 130 + (tx - 130) * 0.35;
+    else if(tx < -130) tx = -130 + (tx + 130) * 0.35;
+    currentTx = tx;
+
+    frontEl.style.transform = `translateX(${tx}px)`;
+
+    const THRESHOLD = 50;
+    if(tx > 0){
+      if(compActEl){
+        compActEl.classList.add('active');
+        compActEl.classList.toggle('ready', tx >= THRESHOLD);
+      }
+      if(delActEl){ delActEl.classList.remove('active'); delActEl.classList.remove('ready'); }
+      if(tx >= THRESHOLD && !hapticFired){
+        triggerHaptic('medium');
+        hapticFired = true;
+      } else if(tx < THRESHOLD && hapticFired){
+        hapticFired = false;
+      }
+    } else if(tx < 0){
+      if(delActEl){
+        delActEl.classList.add('active');
+        delActEl.classList.toggle('ready', tx <= -THRESHOLD);
+      }
+      if(compActEl){ compActEl.classList.remove('active'); compActEl.classList.remove('ready'); }
+      if(tx <= -THRESHOLD && !hapticFired){
+        triggerHaptic('heavy');
+        hapticFired = true;
+      } else if(tx > -THRESHOLD && hapticFired){
+        hapticFired = false;
+      }
+    } else {
+      if(compActEl) compActEl.classList.remove('active');
+      if(delActEl) delActEl.classList.remove('active');
+    }
+  }, { passive: false });
+
+  const onPointerUpOrCancel = e => {
+    if(!isPointerDown || pointerId !== e.pointerId) return;
+    if(isHoriz && Math.abs(currentTx) > 8){
+      suppressItemClickUntil = Date.now() + 350;
+    }
+
+    const row = activeRow;
+    const front = frontEl;
+    const finalTx = currentTx;
+    const THRESHOLD = 50;
+
+    if(isHoriz && row && front){
+      const itemId = row.dataset.item;
+      const checkEl = row.querySelector('[data-done]');
+      const kind = checkEl ? checkEl.dataset.doneKind : state.groupBy;
+      const key = checkEl ? checkEl.dataset.doneKey : ((state.view && state.view.group) || '');
+
+      if(finalTx >= THRESHOLD){
+        triggerHaptic('medium');
+        front.style.transition = 'transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        front.style.transform = 'translateX(0)';
+        resetState(false);
+        toggleDone(itemId, kind, key);
+        return;
+      } else if(finalTx <= -THRESHOLD){
+        triggerHaptic('heavy');
+        front.style.transition = 'transform 0.18s ease-out';
+        front.style.transform = 'translateX(-105%)';
+        row.style.maxHeight = row.offsetHeight + 'px';
+        setTimeout(() => {
+          row.classList.add('swiping-delete');
+        }, 10);
+        resetState(false);
+        setTimeout(() => {
+          moveToTrash(itemId);
+        }, 220);
+        return;
+      }
+    }
+
+    resetState(true);
+  };
+
+  window.addEventListener('pointerup', onPointerUpOrCancel);
+  window.addEventListener('pointercancel', onPointerUpOrCancel);
+}
+
 /* ========== 拖拽排序（SortableJS，仅默认排序下可用） ========== */
 let sortable=null;
 function initSortable(){
   if(sortable){ sortable.destroy(); sortable=null; }
   if(state.view.name!=='list'||state.sortKey!=='默认'||typeof Sortable==='undefined') return;
-  sortable=new Sortable($('#content'),{
-    handle:'.drag-handle',
-    animation:160,
-    easing:'cubic-bezier(.2,.7,.2,1)',
-    ghostClass:'sortable-ghost',
+  const contentEl = $('#content');
+  if(!contentEl) return;
+  sortable = new Sortable(contentEl, {
+    draggable: '.item-row:not(.sec-item)',
+    filter: '.cost-summary-card, .done-section, .done-section-title, .empty',
+    preventOnFilter: false,
+    handle: '.drag-handle',
+    animation: 150,
+    easing: 'cubic-bezier(.2,.7,.2,1)',
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    dragClass: 'sortable-drag',
+    touchStartThreshold: 3,
+    onMove(evt){
+      if(evt.related && (
+        evt.related.classList.contains('cost-summary-card') ||
+        evt.related.classList.contains('done-section') ||
+        evt.related.classList.contains('done-section-title') ||
+        evt.related.classList.contains('empty')
+      )){
+        return false;
+      }
+    },
     onStart(){ triggerHaptic('light'); },
+    onChange(){ triggerHaptic('selection'); },
     onEnd(){
-      triggerHaptic('selection');
-      $$('#content .item-row').forEach((r,i)=>{ const it=state.items.find(x=>x.id===r.dataset.item); if(it&&!isItemDoneIn(it,state.groupBy,state.view.group))it.order=i; });
+      triggerHaptic('medium');
+      $$('#content .item-row:not(.sec-item)').forEach((r,i)=>{
+        const it = state.items.find(x => x.id === r.dataset.item);
+        if(it && !isItemDoneIn(it, state.groupBy, state.view.group)) it.order = i;
+      });
       save();
     }
   });
@@ -2991,7 +3434,7 @@ function initDrawerSortable(){
 
 /* ========== 导出/导入/清空 ========== */
 function exportData(){
-  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,spacing:state.spacing,devMode:state.devMode,autoCheckUpdate:state.autoCheckUpdate,autoInstallUpdate:state.autoInstallUpdate,widgetRemoveDone:state.widgetRemoveDone,hapticFeedback:state.hapticFeedback,ai:state.ai,quadrantWidget:state.quadrantWidget},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,spacing:state.spacing,devMode:state.devMode,autoCheckUpdate:state.autoCheckUpdate,autoInstallUpdate:state.autoInstallUpdate,widgetRemoveDone:state.widgetRemoveDone,hapticFeedback:state.hapticFeedback,trash:state.trash||[],ai:state.ai,quadrantWidget:state.quadrantWidget},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   const d=new Date(), p=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   a.download=`超级清单备份_${p}.json`; a.click(); URL.revokeObjectURL(a.href);
@@ -3000,15 +3443,52 @@ function importData(e){
   const f=e.target.files[0]; if(!f)return;
   const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); state.items=(d.items||[]).map(it=>{ const types=itemTypes(it); const scenes=itemScenes(it); const doneScenes=Array.isArray(it.doneScenes)?it.doneScenes:(it.done?scenes.slice():[]); const doneTypes=Array.isArray(it.doneTypes)?it.doneTypes:(it.done?types.slice():[]); const isDone=scenes.length>0?scenes.every(s=>doneScenes.includes(s)):!!it.done; return Object.assign({}, it, { types, scenes, doneScenes, doneTypes, done: isDone, type: it.type || (Array.isArray(types) && types[0]) || '', scene: it.scene || (Array.isArray(scenes) && scenes[0]) || '' }); }); if(Array.isArray(d.types)&&d.types.length)state.types=d.types; if(Array.isArray(d.scenes)&&d.scenes.length)state.scenes=d.scenes; if(Array.isArray(d.times)&&d.times.length)state.times=d.times; if(d.theme)state.theme=d.theme; if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode; if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing); else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5}; else state.spacing={preset:'standard',gap:10,pad:13,font:15}; if(d.devMode!==undefined)state.devMode=!!d.devMode; if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate; if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate; if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone; if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai); if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget; save(); applyColorMode(); applySpacing(); render(); renderSetGroups(); renderPalette(); renderUpdateSettings(); alertDlg('导入成功','数据已导入'); }catch(er){ alertDlg('导入失败','文件格式错误') } }; r.readAsText(f); e.target.value='';
 }
-function clearAll(){ confirmDlg('清空数据','确定清空全部数据？此操作不可撤销。',()=>{ state.items=[]; state.quadrantWidget={q1:[],q2:[],q3:[],q4:[]}; save(); render(); },'清空','delete'); }
+function clearAll(){ confirmDlg('清空数据','确定清空全部数据？此操作不可撤销。',()=>{ state.items=[]; state.trash=[]; state.quadrantWidget={q1:[],q2:[],q3:[],q4:[]}; save(); render(); },'清空','delete'); }
 
 /* ========== 弹窗事件（一次性绑定） ========== */
 document.addEventListener('DOMContentLoaded',()=>{
+  
+  $('#trashClose').addEventListener('click', closeTrashModal);
+  $('#trashDoneBtn').addEventListener('click', closeTrashModal);
+  $('#trashMask').addEventListener('click', closeTrashModal);
+  $('#trashEmptyBtn').addEventListener('click', emptyTrash);
+  $('#trashBody').addEventListener('click', e => {
+    const restoreBtn = e.target.closest('[data-restore]');
+    if(restoreBtn){
+      e.stopPropagation();
+      restoreFromTrash(restoreBtn.dataset.restore);
+      return;
+    }
+    const delForeverBtn = e.target.closest('[data-del-forever]');
+    if(delForeverBtn){
+      e.stopPropagation();
+      deleteForever(delForeverBtn.dataset.delForever);
+      return;
+    }
+    const seedBtn = e.target.closest('#trashSeedDemoBtn');
+    if(seedBtn){
+      e.stopPropagation();
+      if(typeof TEST_DEMO_DATA !== 'undefined' && Array.isArray(TEST_DEMO_DATA.trash)){
+        state.trash = JSON.parse(JSON.stringify(TEST_DEMO_DATA.trash));
+      } else {
+        state.trash = [
+          { id: 'trash-01', title: '购买老款茶轴机械键盘', note: '已有更好选择，取消该采购计划', type: '购物', types: ['购物'], scene: '网上', scenes: ['网上'], time: '今年', cost: 299, deletedAt: Date.now() - 7200000 },
+          { id: 'trash-02', title: '旧版设计调研材料归档', note: '调研结束，事项已废弃', type: '待办', types: ['待办'], scene: '学校', scenes: ['学校'], time: '今年', deletedAt: Date.now() - 86400000 }
+        ];
+      }
+      triggerHaptic('medium');
+      save();
+      renderDrawer();
+      renderTrashModal();
+      return;
+    }
+  });
+
   $('#modalClose').addEventListener('click',hideModal);
   $('#modalCancel').addEventListener('click',hideModal);
   $('#modalMask').addEventListener('click',hideModal);
   $('#modalSave').addEventListener('click',saveForm);
-  $('#modalDelete').addEventListener('click',()=>{ if(!editId)return; state.items=state.items.filter(x=>x.id!==editId); save(); render(); hideModal(); });
+  $('#modalDelete').addEventListener('click',()=>{ if(!editId)return; moveToTrash(editId); hideModal(); });
   $('#modal').addEventListener('click',e=>{
     const add=e.target.closest('.seg-chip.mini');
     if(add){ addTag(add.dataset.add); return }

@@ -182,6 +182,22 @@ try{
   </div>
 </div>
 
+
+<!-- ===== 回收站弹窗 ===== -->
+<div class="modal-mask" id="trashMask" hidden></div>
+<div class="modal trash-modal" id="trashModal" hidden>
+  <div class="modal-head">
+    <h2>回收站</h2>
+    <button class="md-close" id="trashClose" aria-label="关闭"></button>
+  </div>
+  <div class="modal-body trash-body" id="trashBody"></div>
+  <div class="modal-foot trash-foot" id="trashFoot">
+    <button class="btn-text danger" id="trashEmptyBtn">清空回收站</button>
+    <div class="spacer"></div>
+    <button class="btn-filled" id="trashDoneBtn">完成</button>
+  </div>
+</div>
+
 <!-- ===== 设置弹窗 ===== -->
 <div class="modal-mask" id="setMask" hidden></div>
 <div class="modal" id="setModal" hidden>
@@ -322,7 +338,7 @@ try{
         <img class="info-logo-dark" src="app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.8.0</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.8.1</div>
       <div class="info-desc">轻量 · 优雅 · 丝滑的待办与清单管理</div>
       <div class="info-author">Crafted with <span class="heart">♥</span> by <strong>派大星TuT</strong></div>
     </div>
