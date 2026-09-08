@@ -1227,7 +1227,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.10';
+const APP_VERSION='v1.7.11';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -1450,8 +1450,10 @@ function renderReleaseNotes(md){
 }
 
 let currentUpdateProgressTimer=null;
+let updateFinishTimer=null;
 let downloadedApkPath=null;
 let updateDownloadFinished=false;
+let displayedPct=0;
 
 function setUpdateStage(stage){
   // stage: 'info' | 'progress' | 'success'
@@ -1545,27 +1547,74 @@ function triggerInstallApk(){
       return;
     }
   }catch(e){}
-  toast('正在尝试调用系统安装程序…');
+  if(typeof alertDlg === 'function'){
+    alertDlg('安装提示', '已完成下载并尝试调用系统安装程序（当前为 Web 演示环境）');
+  } else {
+    console.log('正在尝试调用系统安装程序…', downloadedApkPath);
+  }
 }
 
 function onDownloadSuccess(filePath){
+  if(filePath && !downloadedApkPath){
+    downloadedApkPath = filePath;
+  }
   if(updateDownloadFinished) return;
   updateDownloadFinished=true;
   if(currentUpdateProgressTimer){
     clearInterval(currentUpdateProgressTimer);
     currentUpdateProgressTimer=null;
   }
-  downloadedApkPath=filePath||null;
-  const doneSizeStr = (updateTargetAsset && updateTargetAsset.size) ? ((updateTargetAsset.size / (1024 * 1024)).toFixed(1) + ' MB') : '已完成';
-  updateProgressBar(100, '下载完成', doneSizeStr);
-  setUpdateStage('success');
-
-  // 默认自动安装：若用户开启 autoInstallUpdate（默认 true），立即调起安装
-  if(state.autoInstallUpdate!==false){
-    setTimeout(()=>{
-      triggerInstallApk();
-    }, 400);
+  if(updateFinishTimer){
+    clearTimeout(updateFinishTimer);
+    updateFinishTimer=null;
   }
+  downloadedApkPath=filePath||downloadedApkPath||null;
+  const totalBytes = (updateTargetAsset && updateTargetAsset.size) ? updateTargetAsset.size : 16 * 1024 * 1024;
+  const doneSizeStr = (updateTargetAsset && updateTargetAsset.size) ? ((updateTargetAsset.size / (1024 * 1024)).toFixed(1) + ' MB') : '已完成';
+
+  function finalizeInstall(){
+    setUpdateStage('success');
+    if(state.autoInstallUpdate!==false){
+      updateFinishTimer = setTimeout(()=>{
+        updateFinishTimer = null;
+        triggerInstallApk();
+      }, 400);
+    }
+  }
+
+  // 若进度已达到 100%，直接提示完成并进入安装阶段
+  if(displayedPct >= 100){
+    updateProgressBar(100, '下载完成', doneSizeStr);
+    updateFinishTimer = setTimeout(()=>{
+      updateFinishTimer = null;
+      finalizeInstall();
+    }, 400);
+    return;
+  }
+
+  // 尽管安装包已经下载完成，但进度条必须平滑走到 100% 才能触发安装
+  const startPct = displayedPct;
+  const totalTicks = Math.max(20, Math.min(50, Math.round(((100 - startPct) / 100) * 45)));
+  let currentTick = 0;
+
+  currentUpdateProgressTimer = setInterval(()=>{
+    currentTick++;
+    if(currentTick >= totalTicks){
+      clearInterval(currentUpdateProgressTimer);
+      currentUpdateProgressTimer = null;
+      displayedPct = 100;
+      updateProgressBar(100, '下载完成', doneSizeStr);
+      updateFinishTimer = setTimeout(()=>{
+        updateFinishTimer = null;
+        finalizeInstall();
+      }, 400);
+    } else {
+      const nextPct = Math.round(startPct + (100 - startPct) * (currentTick / totalTicks));
+      displayedPct = Math.min(99, Math.max(displayedPct, nextPct));
+      const curBytes = Math.round(totalBytes * (displayedPct / 100));
+      updateProgressBar(displayedPct, '正在下载更新安装包…', formatSizeProg(curBytes, totalBytes));
+    }
+  }, 20);
 }
 
 function startUpdateDownload(){
@@ -1593,11 +1642,16 @@ function startUpdateDownload(){
 
   setUpdateStage('progress');
   updateDownloadFinished=false;
+  displayedPct=0;
   updateProgressBar(0, '正在连接更新服务器…', '0.0 MB / ' + totalMbStr);
 
   if(currentUpdateProgressTimer){
     clearInterval(currentUpdateProgressTimer);
     currentUpdateProgressTimer=null;
+  }
+  if(updateFinishTimer){
+    clearTimeout(updateFinishTimer);
+    updateFinishTimer=null;
   }
 
   // 原生 Android 桥梁触发下载
@@ -1611,7 +1665,6 @@ function startUpdateDownload(){
   if(nativeDownloadStarted){
     // 原生已启动系统 DownloadManager：
     // 通过定时轮询 window.AndroidWidgetBridge.getDownloadProgress() 获取真实字节数与状态
-    let displayedPct = 0;
 
     currentUpdateProgressTimer = setInterval(()=>{
       let progressInfo = null;
@@ -2612,8 +2665,12 @@ window.openSettings = openSettings;
 window.setUpdateStage = setUpdateStage;
 window.startUpdateDownload = startUpdateDownload;
 window.checkUpdate = checkUpdate;
+window.triggerInstallApk = triggerInstallApk;
+window.onDownloadSuccess = onDownloadSuccess;
 window.onUpdateDownloadProgress = function(percent, statusText, sizeText){
-  updateProgressBar(percent, statusText, sizeText);
+  const p = Math.max(0, Math.min(100, Math.round(percent)));
+  displayedPct = Math.max(displayedPct, p);
+  updateProgressBar(displayedPct, statusText, sizeText);
 };
 window.onUpdateDownloadComplete = function(filePath){
   onDownloadSuccess(filePath);

@@ -71,14 +71,17 @@ try{
   </div>
 </div>
 
-<!-- ===== 主内容区 ===== -->
-<main class="content" id="content"></main>
+<!-- ===== 主页面滚动容器 ===== -->
+<div class="main-scroll" id="mainScroll">
+  <!-- ===== 主内容区 ===== -->
+  <main class="content" id="content"></main>
 
-<!-- ===== 空状态 / 无结果 ===== -->
-<div class="empty" id="emptyState" hidden>
-  <div class="empty-icon"></div>
-  <p class="empty-title" id="emptyTitle">暂无事项</p>
-  <p class="empty-sub" id="emptySub">点击右下角的 + 添加</p>
+  <!-- ===== 空状态 / 无结果 ===== -->
+  <div class="empty" id="emptyState" hidden>
+    <div class="empty-icon"></div>
+    <p class="empty-title" id="emptyTitle">暂无事项</p>
+    <p class="empty-sub" id="emptySub">点击右下角的 + 添加</p>
+  </div>
 </div>
 
 <!-- ===== 事项编辑弹窗（居中，保证不超出屏幕） ===== -->
@@ -312,7 +315,7 @@ try{
         <img class="info-logo-dark" src="app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.10</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.7.11</div>
       <div class="info-desc">轻量 · 优雅 · 丝滑的待办与清单管理</div>
       <div class="info-author">Crafted with <span class="heart">♥</span> by <strong>派大星TuT</strong></div>
     </div>
