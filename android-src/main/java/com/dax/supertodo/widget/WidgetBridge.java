@@ -57,6 +57,22 @@ public class WidgetBridge {
         return false;
     }
 
+    @JavascriptInterface
+    public void vibrate(int milliseconds) {
+        if (activity == null) return;
+        try {
+            android.os.Vibrator v = (android.os.Vibrator) activity.getSystemService(android.content.Context.VIBRATOR_SERVICE);
+            if (v != null && v.hasVibrator()) {
+                int ms = Math.max(5, Math.min(1000, milliseconds));
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    v.vibrate(android.os.VibrationEffect.createOneShot(ms, android.os.VibrationEffect.DEFAULT_AMPLITUDE));
+                } else {
+                    v.vibrate(ms);
+                }
+            }
+        } catch (Throwable ignore) {}
+    }
+
     private long currentDownloadId = -1;
     private String currentDownloadFilename = "";
     private String currentDownloadPath = "";

@@ -32,6 +32,36 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const money=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:2});
 const isOverdue=d=>d&&new Date(d+'T23:59:59')<new Date();
 const fmtDue=d=>d?d.split('-')[1]+'/'+d.split('-')[2]:'';
+function getDueStatus(d, isDone){
+  if(!d) return null;
+  const parts = d.split('-');
+  if(parts.length < 3) return null;
+  const dueYear = parseInt(parts[0], 10);
+  const dueMonth = parseInt(parts[1], 10) - 1;
+  const dueDay = parseInt(parts[2], 10);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dueDate = new Date(dueYear, dueMonth, dueDay);
+  const diffMs = dueDate.getTime() - today.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  const shortDate = (dueMonth + 1).toString().padStart(2, '0') + '/' + dueDay.toString().padStart(2, '0');
+  if(isDone){
+    return { status: 'done', className: 'due-done', text: shortDate, title: '截止日期: ' + d + '（已完成）' };
+  }
+  if(diffDays < 0){
+    const days = Math.abs(diffDays);
+    const text = '已逾期 ' + days + ' 天';
+    return { status: 'overdue', className: 'due-overdue', text: text, days: diffDays, title: '已逾期 ' + days + ' 天（截止于 ' + d + '）' };
+  } else if(diffDays === 0){
+    return { status: 'today', className: 'due-today', text: '今天截止', days: 0, title: '今天到期（' + d + '）' };
+  } else if(diffDays === 1){
+    return { status: 'tomorrow', className: 'due-soon due-tomorrow', text: '明天截止', days: 1, title: '明天到期（' + d + '）' };
+  } else if(diffDays <= 3){
+    return { status: 'approaching', className: 'due-soon', text: '剩 ' + diffDays + ' 天', days: diffDays, title: '还剩 ' + diffDays + ' 天到期（' + d + '）' };
+  } else {
+    return { status: 'normal', className: 'due-normal', text: shortDate, days: diffDays, title: '截止日期: ' + d };
+  }
+}
 function itemTypes(it){
   if(!it) return [];
   if(Array.isArray(it.types)) return it.types.filter(Boolean);
@@ -79,7 +109,7 @@ function load(){
     if(d.devMode!==undefined)state.devMode=!!d.devMode;
     if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate;
     if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate;
-    if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone;
+    if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone; if(d.hapticFeedback!==undefined)state.hapticFeedback=!!d.hapticFeedback;
     state.sortKey=d.sortKey||'默认'; state.sortAsc=d.sortAsc!==false;
     if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
     if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget;
@@ -200,6 +230,11 @@ checkPendingWidgetAction();
 
 try {
   const urlParams = new URLSearchParams(window.location.search);
+    if(urlParams.get('seed')==='1'||urlParams.get('demo')==='1'||urlParams.get('test')==='1'){
+      loadTestDemoData();
+    } else if(!state.items || !state.items.length){
+      loadTestDemoData();
+    }
   if(urlParams.get('seed_quadrant')==='1'){
     state.quadrantWidget = {
       q1: [{ id: 'demo1', title: '完成紧急汇报材料', done: false }, { id: 'demo2', title: '提交项目最终审核', done: true }],
@@ -566,6 +601,477 @@ function alertDlg(title,msg){ dlgShow({title,msg,type:'alert',okText:'知道了'
 function confirmDlg(title,msg,onOk,okText,icon){ dlgShow({title,msg,type:'confirm',onOk,okText:okText||'确定',icon}); }
 function inputDlg(title,placeholder,initial,onOk,onCancel){ dlgShow({title,type:'input',placeholder,initial,onOk,onCancel}); }
 
+/* ========== 触觉振动反馈 ========== */
+function triggerHaptic(type='light'){
+  if(state.hapticFeedback===false) return;
+  try{
+    let ms=12;
+    if(type==='heavy') ms=26;
+    else if(type==='medium') ms=16;
+    else if(type==='selection') ms=8;
+    else if(type==='double') ms=14;
+    if(window.AndroidWidgetBridge && typeof window.AndroidWidgetBridge.vibrate==='function'){
+      window.AndroidWidgetBridge.vibrate(ms);
+      return;
+    }
+    if(typeof navigator!=='undefined' && typeof navigator.vibrate==='function'){
+      if(type==='double'){ navigator.vibrate([12, 40, 12]); }
+      else { navigator.vibrate(ms); }
+    }
+  }catch(e){}
+}
+
+/* ========== 预算与花费统计 ========== */
+function getItemCost(it){
+  if(!it) return 0;
+  if(typeof it.cost==='number' && !isNaN(it.cost)) return it.cost;
+  const p=parseFloat(it.cost);
+  return isNaN(p)?0:p;
+}
+function calcCostSummary(items, isDoneFn){
+  let totalCost=0, undoneCost=0, doneCost=0, costCount=0;
+  (items||[]).forEach(it=>{
+    const c=getItemCost(it);
+    if(c>0){
+      costCount++;
+      totalCost+=c;
+      const done = isDoneFn ? isDoneFn(it) : !!it.done;
+      if(done) doneCost+=c; else undoneCost+=c;
+    }
+  });
+  return {
+    hasCost: costCount>0,
+    costCount,
+    totalCost,
+    undoneCost,
+    doneCost,
+    pctDone: totalCost>0 ? Math.min(100, Math.round((doneCost/totalCost)*100)) : 0
+  };
+}
+function costCardHTML(summary, title){
+  if(!summary || !summary.hasCost) return '';
+  return `<div class="cost-summary-card">
+    <div class="csc-top">
+      <div class="csc-title-wrap">
+        <span class="csc-icon">¥</span>
+        <span class="csc-title">${esc(title||'预算与花费汇总')}</span>
+        <span class="csc-count-badge">${summary.costCount} 项含花费</span>
+      </div>
+      <div class="csc-total-wrap">
+        <span class="csc-total-label">总预算</span>
+        <span class="csc-total-val">¥${money(summary.totalCost)}</span>
+      </div>
+    </div>
+    <div class="csc-progress-track">
+      <div class="csc-progress-bar" style="width:${summary.pctDone}%"></div>
+    </div>
+    <div class="csc-bottom">
+      <div class="csc-stats">
+        <div class="csc-stat undone">
+          <span class="csc-dot"></span>
+          <span class="csc-stat-lbl">待支出</span>
+          <span class="csc-stat-num">¥${money(summary.undoneCost)}</span>
+        </div>
+        <div class="csc-stat done">
+          <span class="csc-dot"></span>
+          <span class="csc-stat-lbl">已支出</span>
+          <span class="csc-stat-num">¥${money(summary.doneCost)}</span>
+        </div>
+      </div>
+      <div class="csc-pct">${summary.pctDone}% 已支出</div>
+    </div>
+  </div>`;
+}
+
+
+/* ========== 演示与测试数据 ========== */
+const TEST_DEMO_DATA = {
+  "theme": "#0b57d0",
+  "colorMode": "system",
+  "groupBy": "scene",
+  "types": [
+    "购物",
+    "待办",
+    "计划",
+    "旅游",
+    "愿望"
+  ],
+  "scenes": [
+    "家里",
+    "网上",
+    "出差",
+    "学校",
+    "线下"
+  ],
+  "times": [
+    "今年",
+    "明年",
+    "以后再说"
+  ],
+  "hapticFeedback": true,
+  "items": [
+    {
+      "id": "demo-01",
+      "title": "买机械键盘与无线鼠标",
+      "note": "三模热插拔机械键盘，配轻音线性轴",
+      "type": "购物",
+      "types": [
+        "购物"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": 499,
+      "due": "2026-09-09",
+      "star": 4,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-02",
+      "title": "买秋季防风冲锋衣",
+      "note": "户外三合一防泼水透气冲锋衣",
+      "type": "购物",
+      "types": [
+        "购物"
+      ],
+      "scene": "线下",
+      "scenes": [
+        "线下"
+      ],
+      "time": "今年",
+      "cost": 680,
+      "due": "2026-09-04",
+      "star": 3,
+      "done": true,
+      "doneScenes": [
+        "线下"
+      ],
+      "doneTypes": [
+        "购物"
+      ]
+    },
+    {
+      "id": "demo-03",
+      "title": "囤猫粮与冻干宠物零食",
+      "note": "无谷鸡肉全价猫粮 10kg + 混合冻干生骨肉",
+      "type": "购物",
+      "types": [
+        "购物"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": 240,
+      "due": "2026-09-08",
+      "star": 5,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-04",
+      "title": "4K 显示器铝合金桌面支架",
+      "note": "气压式单臂悬臂支架，承重 9kg",
+      "type": "购物",
+      "types": [
+        "购物"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": 189,
+      "due": "2026-09-18",
+      "star": 2,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-05",
+      "title": "提交三季度运营数据总结报表",
+      "note": "汇总核心指标留存、获客成本及营收环比增长分析",
+      "type": "待办",
+      "types": [
+        "待办"
+      ],
+      "scene": "出差",
+      "scenes": [
+        "出差"
+      ],
+      "time": "今年",
+      "cost": null,
+      "due": "2026-09-05",
+      "star": 5,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-06",
+      "title": "汽车常规保养与更换机油",
+      "note": "全合成机油保养套餐，检查刹车片和胎压",
+      "type": "待办",
+      "types": [
+        "待办"
+      ],
+      "scene": "线下",
+      "scenes": [
+        "线下"
+      ],
+      "time": "今年",
+      "cost": 360,
+      "due": "2026-09-10",
+      "star": 4,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-07",
+      "title": "办理本年度城乡居民医保缴纳",
+      "note": "通过政务小程序完成缴费并留存电子凭证",
+      "type": "待办",
+      "types": [
+        "待办"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": null,
+      "due": "2026-09-07",
+      "star": 4,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-08",
+      "title": "整理卧室衣柜与收纳箱",
+      "note": "收纳夏季短袖，换出秋季薄外套和长裤",
+      "type": "待办",
+      "types": [
+        "待办"
+      ],
+      "scene": "家里",
+      "scenes": [
+        "家里"
+      ],
+      "time": "今年",
+      "cost": null,
+      "due": "2026-09-08",
+      "star": 3,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-09",
+      "title": "拜访华东合作客户确认项目合同",
+      "note": "现场洽谈并签署四季度联合开发协议",
+      "type": "待办",
+      "types": [
+        "待办"
+      ],
+      "scene": "出差",
+      "scenes": [
+        "出差"
+      ],
+      "time": "今年",
+      "cost": null,
+      "due": "2026-09-08",
+      "star": 5,
+      "done": true,
+      "doneScenes": [
+        "出差"
+      ],
+      "doneTypes": [
+        "待办"
+      ]
+    },
+    {
+      "id": "demo-10",
+      "title": "预订云南大理往返双人机票",
+      "note": "避开国庆返程最高峰，选择早班直飞航班",
+      "type": "旅游",
+      "types": [
+        "旅游"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": 2200,
+      "due": "2026-09-11",
+      "star": 5,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-11",
+      "title": "预订大理洱海海景客栈三晚",
+      "note": "海东沿线全景落地窗露台客栈",
+      "type": "旅游",
+      "types": [
+        "旅游"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": 1580,
+      "due": "2026-09-03",
+      "star": 4,
+      "done": true,
+      "doneScenes": [
+        "网上"
+      ],
+      "doneTypes": [
+        "旅游"
+      ]
+    },
+    {
+      "id": "demo-12",
+      "title": "采购高原户外防晒与氧气便携瓶",
+      "note": "高倍防晒乳、墨镜及医用便携式氧气瓶",
+      "type": "旅游",
+      "types": [
+        "旅游"
+      ],
+      "scene": "线下",
+      "scenes": [
+        "线下"
+      ],
+      "time": "今年",
+      "cost": 150,
+      "due": "2026-09-15",
+      "star": 3,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-13",
+      "title": "报名下半年软考系统架构设计师考试",
+      "note": "中国计算机技术职业资格网报考缴费",
+      "type": "计划",
+      "types": [
+        "计划"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": 260,
+      "due": "2026-10-15",
+      "star": 4,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-14",
+      "title": "精读《系统架构设计师教程》核心章节",
+      "note": "重点突破高可用分布式系统架构与微服务治理",
+      "type": "计划",
+      "types": [
+        "计划"
+      ],
+      "scene": "学校",
+      "scenes": [
+        "学校"
+      ],
+      "time": "今年",
+      "cost": null,
+      "due": "2026-12-31",
+      "star": 5,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    }
+  ],
+  "quadrantWidget": {
+    "q1": [
+      {
+        "id": "demo-05",
+        "title": "提交三季度运营数据总结报表",
+        "done": false
+      },
+      {
+        "id": "demo-08",
+        "title": "整理卧室衣柜与收纳箱",
+        "done": false
+      }
+    ],
+    "q2": [
+      {
+        "id": "demo-13",
+        "title": "报名下半年软考系统架构设计师考试",
+        "done": false
+      },
+      {
+        "id": "demo-14",
+        "title": "精读《系统架构设计师教程》核心章节",
+        "done": false
+      }
+    ],
+    "q3": [
+      {
+        "id": "demo-03",
+        "title": "囤猫粮与冻干宠物零食",
+        "done": false
+      },
+      {
+        "id": "demo-01",
+        "title": "买机械键盘与无线鼠标",
+        "done": false
+      }
+    ],
+    "q4": [
+      {
+        "id": "demo-04",
+        "title": "4K 显示器铝合金桌面支架",
+        "done": false
+      },
+      {
+        "id": "demo-10",
+        "title": "预订云南大理往返双人机票",
+        "done": false
+      }
+    ]
+  }
+};
+
+function loadTestDemoData(){
+  state.items = JSON.parse(JSON.stringify(TEST_DEMO_DATA.items));
+  state.types = TEST_DEMO_DATA.types.slice();
+  state.scenes = TEST_DEMO_DATA.scenes.slice();
+  state.times = TEST_DEMO_DATA.times.slice();
+  state.theme = TEST_DEMO_DATA.theme;
+  state.colorMode = TEST_DEMO_DATA.colorMode;
+  state.hapticFeedback = true;
+  state.quadrantWidget = JSON.parse(JSON.stringify(TEST_DEMO_DATA.quadrantWidget));
+  save();
+  applyColorMode();
+  applySpacing();
+  render();
+  renderSetGroups();
+  renderPalette();
+  triggerHaptic('medium');
+}
 /* ========== 渲染 ========== */
 function render(){
   renderTitle();
@@ -623,23 +1129,34 @@ function renderContent(){
 }
 function renderHome(wrap,empty){
   const groups=sectionGroups();
-  const items=currentItems().length;
-  if(!items){ empty.hidden=false; renderEmptyText(); wrap.innerHTML=''; return }
+  const allCurItems=currentItems();
+  if(!allCurItems.length){ empty.hidden=false; renderEmptyText(); wrap.innerHTML=''; return }
   empty.hidden=true;
   let html='';
+  // 只要用户弄的待办里面有预估花费，全都加上（首页总览预算卡片）
+  const allSummary=calcCostSummary(allCurItems, i=>!!i.done);
+  if(allSummary.hasCost){
+    const title = state.type==='全部' ? '全部分类 · 预算汇总' : `${state.type} · 预算汇总`;
+    html += costCardHTML(allSummary, title);
+  }
   groups.forEach(g=>{
-    const undone=g.items.filter(i=>!isItemDoneIn(i,state.groupBy,g.key)).slice().sort((a,b)=>(a.order??Infinity)-(b.order??Infinity)||a.created-b.created);
+    const isDone = i=>isItemDoneIn(i,state.groupBy,g.key);
+    const undone=g.items.filter(i=>!isDone(i)).slice().sort((a,b)=>(a.order??Infinity)-(b.order??Infinity)||a.created-b.created);
     const preview=undone.slice(0,3);
+    const gSummary=calcCostSummary(g.items, isDone);
+    const costBadge=gSummary.hasCost ? `<span class="sec-cost-pill" title="预估总额: ¥${money(gSummary.totalCost)}">¥${money(gSummary.undoneCost>0?gSummary.undoneCost:gSummary.totalCost)}</span>` : '';
+    const moreCost=gSummary.hasCost ? `<span class="sec-more-cost">· 预估 ¥${money(gSummary.totalCost)}</span>` : '';
     html+=`<div class="section">
       <div class="section-head" data-open="${esc(g.key)}">
         <span class="sec-caret" style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%235f6368%22><path d=%22M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z/%22/></svg>') center/contain no-repeat"></span>
         <span class="sec-title">${esc(g.key)}</span>
         <span class="sec-count">${g.items.length}</span>
+        ${costBadge}
         <span class="sec-right">${undone.length?'未完成 '+undone.length:'全完成'}</span>
       </div>
       <div class="section-card" data-open="${esc(g.key)}">
         ${preview.map(it=>secItemHTML(it,g.key)).join('')}
-        <div class="sec-more" data-open2="${esc(g.key)}">查看全部 ${g.items.length} 项 <span class="ci-arrow" style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%235f6368%22><path d=%22M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z/%22/></svg>') center/contain no-repeat;width:14px;height:14px"></span></div>
+        <div class="sec-more" data-open2="${esc(g.key)}">查看全部 ${g.items.length} 项 ${moreCost} <span class="ci-arrow" style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%235f6368%22><path d=%22M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z/%22/></svg>') center/contain no-repeat;width:14px;height:14px"></span></div>
       </div>
     </div>`;
   });
@@ -651,15 +1168,18 @@ function secItemHTML(it,groupKey){
     <span class="card-check ${done?'done':''}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(groupKey||'')}"></span>
     <div class="card-body">
       <div class="card-title ${done?'done':''}">${esc(it.title)}</div>
-      <div class="card-meta">${secMeta(it)}</div>
+      <div class="card-meta">${secMeta(it, done)}</div>
     </div>
   </div>`;
 }
-function secMeta(it){
+function secMeta(it, isDone){
   let h='';
   if(it.cost) h+=`<span class="cost">¥${money(it.cost)}</span>`;
   if(it.star) h+=`<span class="star">${'★'.repeat(it.star)}</span>`;
-  if(it.due) h+=`<span class="tag ${isOverdue(it.due)&&!it.done?'over':''}">${fmtDue(it.due)}</span>`;
+  if(it.due){
+    const ds = getDueStatus(it.due, isDone !== undefined ? isDone : !!it.done);
+    if(ds) h+=`<span class="tag ${ds.className}" title="${esc(ds.title)}">${esc(ds.text)}</span>`;
+  }
   if(state.type==='全部'){
     itemTypes(it).forEach(t=>{ h+=`<span class="tag type-blue">${esc(t)}</span>`; });
   }
@@ -685,6 +1205,11 @@ function renderList(wrap,empty){
   }
   const draggable = state.sortKey==='默认';
   let html='';
+  // 只要当前分组内的待办有预估花费，顶端自动展示汇总统计卡片
+  const gSummary=calcCostSummary(g.items, isDone);
+  if(gSummary.hasCost){
+    html += costCardHTML(gSummary, `${state.view.group} · 预算汇总`);
+  }
   list.forEach(it=>{
     const itemDone=isDone(it);
     const drag = draggable&&!itemDone ? `<span class="drag-handle" data-drag="${it.id}"></span>` : '';
@@ -692,7 +1217,7 @@ function renderList(wrap,empty){
       <span class="card-check ${itemDone?'done':''}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(g.key)}"></span>
       <div class="card-body">
         <div class="card-title ${itemDone?'done':''}">${esc(it.title)}</div>
-        <div class="card-meta">${fullMeta(it)}</div>
+        <div class="card-meta">${fullMeta(it, itemDone)}</div>
       </div>
       ${drag}
       <span class="chev" style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%235f6368%22><path d=%22M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z/%22/></svg>') center/contain no-repeat"></span>
@@ -700,7 +1225,7 @@ function renderList(wrap,empty){
   });
   wrap.innerHTML=html;
 }
-function fullMeta(it){
+function fullMeta(it, isDone){
   let h='';
   itemTypes(it).forEach(t=>{ h+=`<span class="tag type-blue">${esc(t)}</span>`; });
   if(state.groupBy!=='scene'){
@@ -709,7 +1234,10 @@ function fullMeta(it){
   if(state.groupBy!=='time' && it.time) h+=`<span class="tag">${esc(it.time)}</span>`;
   if(it.cost) h+=`<span class="cost">¥${money(it.cost)}</span>`;
   if(it.star) h+=`<span class="star">${'★'.repeat(it.star)}</span>`;
-  if(it.due) h+=`<span class="tag ${isOverdue(it.due)&&!it.done?'over':''}">${fmtDue(it.due)}</span>`;
+  if(it.due){
+    const ds = getDueStatus(it.due, isDone !== undefined ? isDone : !!it.done);
+    if(ds) h+=`<span class="tag ${ds.className}" title="${esc(ds.title)}">${esc(ds.text)}</span>`;
+  }
   return h;
 }
 function renderEmptyText(){
@@ -1003,52 +1531,97 @@ function addType(){
 }
 
 function enterGroup(key){ pushLayer(); state.view={name:'list',group:key}; state.sortKey='默认'; render(); }
+let toggleDoneTimer = null;
 function toggleDone(id, kind, key){
-  const it=state.items.find(x=>x.id===id);
+  const it = state.items.find(x => x.id === id);
   if(!it) return;
-  if(!Array.isArray(it.doneScenes)) it.doneScenes=it.done?itemScenes(it).slice():[];
-  if(!Array.isArray(it.doneTypes)) it.doneTypes=it.done?itemTypes(it).slice():[];
+  if(!Array.isArray(it.doneScenes)) it.doneScenes = it.done ? itemScenes(it).slice() : [];
+  if(!Array.isArray(it.doneTypes)) it.doneTypes = it.done ? itemTypes(it).slice() : [];
+  let targetDone = false;
 
-  if(kind==='scene' && key && key!=='未分组'){
-    const scenes=itemScenes(it);
+  if(kind === 'scene' && key && key !== '未分组'){
+    const scenes = itemScenes(it);
     if(scenes.includes(key)){
-      const idx=it.doneScenes.indexOf(key);
-      if(idx>=0){
-        it.doneScenes.splice(idx,1);
-      }else{
+      const idx = it.doneScenes.indexOf(key);
+      if(idx >= 0){
+        it.doneScenes.splice(idx, 1);
+        targetDone = false;
+      } else {
         it.doneScenes.push(key);
+        targetDone = true;
       }
-      it.done = scenes.length>0 && scenes.every(s=>it.doneScenes.includes(s));
-      syncItemDoneToQuadrant(it.id, it.done);
-      save(); render(); return;
+      it.done = scenes.length > 0 && scenes.every(s => it.doneScenes.includes(s));
     }
-  }
-
-  if(kind==='type' && key && key!=='全部'){
-    const types=itemTypes(it);
+  } else if(kind === 'type' && key && key !== '全部'){
+    const types = itemTypes(it);
     if(types.includes(key)){
-      const idx=it.doneTypes.indexOf(key);
-      if(idx>=0){
-        it.doneTypes.splice(idx,1);
-      }else{
+      const idx = it.doneTypes.indexOf(key);
+      if(idx >= 0){
+        it.doneTypes.splice(idx, 1);
+        targetDone = false;
+      } else {
         it.doneTypes.push(key);
+        targetDone = true;
       }
-      it.done = types.length>0 && types.every(t=>it.doneTypes.includes(t));
-      syncItemDoneToQuadrant(it.id, it.done);
-      save(); render(); return;
+      it.done = types.length > 0 && types.every(t => it.doneTypes.includes(t));
+    }
+  } else {
+    it.done = !it.done;
+    targetDone = it.done;
+    if(it.done){
+      it.doneScenes = itemScenes(it).slice();
+      it.doneTypes = itemTypes(it).slice();
+    } else {
+      it.doneScenes = [];
+      it.doneTypes = [];
     }
   }
 
-  it.done=!it.done;
-  if(it.done){
-    it.doneScenes=itemScenes(it).slice();
-    it.doneTypes=itemTypes(it).slice();
-  }else{
-    it.doneScenes=[];
-    it.doneTypes=[];
-  }
   syncItemDoneToQuadrant(it.id, it.done);
-  save(); render();
+  triggerHaptic(targetDone ? 'medium' : 'light');
+  save();
+
+  // 1. 任务项目自身渐变动效：复选框弹动、标题划线渐变、卡片轻微收缩
+  const checkEl = document.querySelector(`[data-done="${id}"]`);
+  if(checkEl) checkEl.classList.toggle('done', targetDone);
+  const itemRow = document.querySelector(`[data-item="${id}"]`);
+  if(itemRow){
+    const titleEl = itemRow.querySelector('.card-title');
+    if(titleEl) titleEl.classList.toggle('done', targetDone);
+    itemRow.classList.add('completing');
+    const dueTag = itemRow.querySelector('.tag[class*="due-"]');
+    if(dueTag && it.due){
+      const ds = getDueStatus(it.due, targetDone);
+      if(ds){
+        dueTag.className = 'tag ' + ds.className;
+        dueTag.textContent = ds.text;
+        dueTag.title = ds.title;
+      }
+    }
+  }
+
+  // 2. cost-summary-card 进度条与数值平滑渐变过渡
+  const curItems = currentItems();
+  const summary = (state.view.name === 'home')
+    ? calcCostSummary(curItems, i => !!i.done)
+    : calcCostSummary((sectionGroups().find(x=>x.key===state.view.group)||{}).items||[], i => isItemDoneIn(i, state.groupBy, state.view.group));
+  if(summary && summary.hasCost){
+    const bar = document.querySelector('.csc-progress-bar');
+    if(bar) bar.style.width = summary.pctDone + '%';
+    const pctEl = document.querySelector('.csc-pct');
+    if(pctEl) pctEl.textContent = summary.pctDone + '% 已支出';
+    const undoneNum = document.querySelector('.csc-stat.undone .csc-stat-num');
+    if(undoneNum) undoneNum.textContent = '¥' + money(summary.undoneCost);
+    const doneNum = document.querySelector('.csc-stat.done .csc-stat-num');
+    if(doneNum) doneNum.textContent = '¥' + money(summary.doneCost);
+  }
+
+  // 3. 待平滑渐变动效展现后，重排列表沉底与更新抽屉计数
+  if(toggleDoneTimer) clearTimeout(toggleDoneTimer);
+  toggleDoneTimer = setTimeout(()=>{
+    toggleDoneTimer = null;
+    render();
+  }, 260);
 }
 
 function syncItemDoneToQuadrant(itemId, isDone){
@@ -1227,7 +1800,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.7.11';
+const APP_VERSION='v1.8.0';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -2385,7 +2958,9 @@ function initSortable(){
     animation:160,
     easing:'cubic-bezier(.2,.7,.2,1)',
     ghostClass:'sortable-ghost',
+    onStart(){ triggerHaptic('light'); },
     onEnd(){
+      triggerHaptic('selection');
       $$('#content .item-row').forEach((r,i)=>{ const it=state.items.find(x=>x.id===r.dataset.item); if(it&&!isItemDoneIn(it,state.groupBy,state.view.group))it.order=i; });
       save();
     }
@@ -2404,8 +2979,9 @@ function initDrawerSortable(){
     delayOnTouchOnly:true,
     touchStartThreshold:5,
     ghostClass:'sortable-ghost',
-    onStart(){ suppressNavClick=true; },
+    onStart(){ suppressNavClick=true; triggerHaptic('light'); },
     onEnd(){
+      triggerHaptic('selection');
       state.types=$$('#drawerNav .dnav-item[data-kind="type"]').map(el=>el.dataset.t);
       save();
       render();
@@ -2415,7 +2991,7 @@ function initDrawerSortable(){
 
 /* ========== 导出/导入/清空 ========== */
 function exportData(){
-  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,spacing:state.spacing,devMode:state.devMode,autoCheckUpdate:state.autoCheckUpdate,autoInstallUpdate:state.autoInstallUpdate,widgetRemoveDone:state.widgetRemoveDone,ai:state.ai,quadrantWidget:state.quadrantWidget},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({items:state.items,types:state.types,scenes:state.scenes,times:state.times,theme:state.theme,colorMode:state.colorMode,spacing:state.spacing,devMode:state.devMode,autoCheckUpdate:state.autoCheckUpdate,autoInstallUpdate:state.autoInstallUpdate,widgetRemoveDone:state.widgetRemoveDone,hapticFeedback:state.hapticFeedback,ai:state.ai,quadrantWidget:state.quadrantWidget},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   const d=new Date(), p=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   a.download=`超级清单备份_${p}.json`; a.click(); URL.revokeObjectURL(a.href);
@@ -2509,6 +3085,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(upInstallBtn) upInstallBtn.addEventListener('click',()=>{
     triggerInstallApk();
   });
+
+  /* 交互与触觉设置项绑定 */
+  const chkHaptic=$('#hapticFeedback');
+  if(chkHaptic){
+    chkHaptic.addEventListener('change',e=>{
+      state.hapticFeedback=e.target.checked;
+      save();
+      if(state.hapticFeedback) triggerHaptic('medium');
+    });
+  }
 
   /* 更新与安装设置项绑定 */
   const chkCheck = $('#autoCheckUpdate');
@@ -2667,6 +3253,10 @@ window.startUpdateDownload = startUpdateDownload;
 window.checkUpdate = checkUpdate;
 window.triggerInstallApk = triggerInstallApk;
 window.onDownloadSuccess = onDownloadSuccess;
+window.triggerHaptic = triggerHaptic;
+window.calcCostSummary = calcCostSummary;
+window.getDueStatus = getDueStatus;
+window.loadTestDemoData = loadTestDemoData;
 window.onUpdateDownloadProgress = function(percent, statusText, sizeText){
   const p = Math.max(0, Math.min(100, Math.round(percent)));
   displayedPct = Math.max(displayedPct, p);

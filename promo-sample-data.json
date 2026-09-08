@@ -1,188 +1,7 @@
 {
-  "items": [
-    {
-      "id": "promo-001",
-      "done": false,
-      "created": 1788278400000,
-      "order": 0,
-      "title": "准备产品发布会演示",
-      "note": "完成演示稿、设备检查和现场彩排",
-      "type": "待办",
-      "scene": "线下",
-      "time": "今年",
-      "cost": null,
-      "due": "2026-09-12",
-      "star": 5
-    },
-    {
-      "id": "promo-002",
-      "done": false,
-      "created": 1788278460000,
-      "order": 1,
-      "title": "预订国庆杭州民宿",
-      "note": "选一家靠近西湖、可以看日落的民宿",
-      "type": "旅游",
-      "scene": "网上",
-      "time": "今年",
-      "cost": 1680,
-      "due": "2026-09-18",
-      "star": 4
-    },
-    {
-      "id": "promo-003",
-      "done": false,
-      "created": 1788278520000,
-      "order": 2,
-      "title": "年底前买 PS5",
-      "note": "关注国行光驱版价格和双十一优惠",
-      "type": "购物",
-      "scene": "网上",
-      "time": "今年",
-      "cost": 3499,
-      "due": "2026-12-31",
-      "star": 5
-    },
-    {
-      "id": "promo-004",
-      "done": false,
-      "created": 1788278580000,
-      "order": 3,
-      "title": "整理季度项目复盘",
-      "note": "汇总关键数据、用户反馈与下一阶段目标",
-      "type": "待办",
-      "scene": "出差",
-      "time": "今年",
-      "cost": null,
-      "due": "2026-09-06",
-      "star": 5
-    },
-    {
-      "id": "promo-005",
-      "done": false,
-      "created": 1788278640000,
-      "order": 4,
-      "title": "完成英语演讲练习",
-      "note": "录制三遍并调整语速和停顿",
-      "type": "计划",
-      "scene": "学校",
-      "time": "今年",
-      "cost": null,
-      "due": "2026-09-05",
-      "star": 4
-    },
-    {
-      "id": "promo-006",
-      "done": false,
-      "created": 1788278700000,
-      "order": 5,
-      "title": "给爸妈准备中秋礼物",
-      "note": "挑选茶具和低糖月饼礼盒",
-      "type": "购物",
-      "scene": "网上",
-      "time": "今年",
-      "cost": 699,
-      "due": "2026-09-20",
-      "star": 4
-    },
-    {
-      "id": "promo-007",
-      "done": false,
-      "created": 1788278760000,
-      "order": 6,
-      "title": "周末整理衣柜",
-      "note": "换季收纳，把闲置衣物打包捐出",
-      "type": "待办",
-      "scene": "家里",
-      "time": "今年",
-      "cost": null,
-      "due": "2026-09-06",
-      "star": 2
-    },
-    {
-      "id": "promo-008",
-      "done": false,
-      "created": 1788278820000,
-      "order": 7,
-      "title": "学会做三道拿手菜",
-      "note": "番茄牛腩、照烧鸡腿和提拉米苏",
-      "type": "计划",
-      "scene": "家里",
-      "time": "今年",
-      "cost": 300,
-      "due": "2026-11-30",
-      "star": 3
-    },
-    {
-      "id": "promo-009",
-      "done": false,
-      "created": 1788278880000,
-      "order": 8,
-      "title": "添置客厅绿植",
-      "note": "选龟背竹和琴叶榕，顺便买两个陶盆",
-      "type": "购物",
-      "scene": "线下",
-      "time": "今年",
-      "cost": 268,
-      "due": "2026-09-08",
-      "star": 2
-    },
-    {
-      "id": "promo-010",
-      "done": false,
-      "created": 1788278940000,
-      "order": 9,
-      "title": "跑完人生第一个半马",
-      "note": "每周完成三次训练，目标两小时内完赛",
-      "type": "愿望",
-      "scene": "线下",
-      "time": "明年",
-      "cost": 399,
-      "due": "2027-04-18",
-      "star": 5
-    },
-    {
-      "id": "promo-011",
-      "done": false,
-      "created": 1788279000000,
-      "order": 10,
-      "title": "去冰岛看一次极光",
-      "note": "攒旅行基金，计划冬季环岛自驾",
-      "type": "愿望",
-      "scene": "出差",
-      "time": "以后再说",
-      "cost": 24000,
-      "due": "",
-      "star": 5
-    },
-    {
-      "id": "promo-012",
-      "done": true,
-      "created": 1788279060000,
-      "order": 11,
-      "title": "订阅年度云存储",
-      "note": "照片和项目文件已完成自动备份",
-      "type": "购物",
-      "scene": "网上",
-      "time": "今年",
-      "cost": 199,
-      "due": "2026-09-01",
-      "star": 3
-    },
-    {
-      "id": "promo-013",
-      "done": true,
-      "created": 1788279120000,
-      "order": 12,
-      "title": "读完《设计中的设计》",
-      "note": "摘录了十条值得反复看的设计观点",
-      "type": "计划",
-      "scene": "学校",
-      "time": "今年",
-      "cost": 68,
-      "due": "2026-08-30",
-      "star": 4
-    }
-  ],
+  "theme": "#0b57d0",
+  "colorMode": "system",
+  "groupBy": "scene",
   "types": [
     "购物",
     "待办",
@@ -192,9 +11,9 @@
   ],
   "scenes": [
     "家里",
-    "学校",
-    "出差",
     "网上",
+    "出差",
+    "学校",
     "线下"
   ],
   "times": [
@@ -202,12 +21,349 @@
     "明年",
     "以后再说"
   ],
-  "theme": "#0b57d0",
-  "colorMode": "system",
-  "ai": {
-    "enabled": false,
-    "base": "",
-    "key": "",
-    "model": ""
+  "hapticFeedback": true,
+  "items": [
+    {
+      "id": "demo-01",
+      "title": "买机械键盘与无线鼠标",
+      "note": "三模热插拔机械键盘，配轻音线性轴",
+      "type": "购物",
+      "types": [
+        "购物"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": 499,
+      "due": "2026-09-09",
+      "star": 4,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-02",
+      "title": "买秋季防风冲锋衣",
+      "note": "户外三合一防泼水透气冲锋衣",
+      "type": "购物",
+      "types": [
+        "购物"
+      ],
+      "scene": "线下",
+      "scenes": [
+        "线下"
+      ],
+      "time": "今年",
+      "cost": 680,
+      "due": "2026-09-04",
+      "star": 3,
+      "done": true,
+      "doneScenes": [
+        "线下"
+      ],
+      "doneTypes": [
+        "购物"
+      ]
+    },
+    {
+      "id": "demo-03",
+      "title": "囤猫粮与冻干宠物零食",
+      "note": "无谷鸡肉全价猫粮 10kg + 混合冻干生骨肉",
+      "type": "购物",
+      "types": [
+        "购物"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": 240,
+      "due": "2026-09-08",
+      "star": 5,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-04",
+      "title": "4K 显示器铝合金桌面支架",
+      "note": "气压式单臂悬臂支架，承重 9kg",
+      "type": "购物",
+      "types": [
+        "购物"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": 189,
+      "due": "2026-09-18",
+      "star": 2,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-05",
+      "title": "提交三季度运营数据总结报表",
+      "note": "汇总核心指标留存、获客成本及营收环比增长分析",
+      "type": "待办",
+      "types": [
+        "待办"
+      ],
+      "scene": "出差",
+      "scenes": [
+        "出差"
+      ],
+      "time": "今年",
+      "cost": null,
+      "due": "2026-09-05",
+      "star": 5,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-06",
+      "title": "汽车常规保养与更换机油",
+      "note": "全合成机油保养套餐，检查刹车片和胎压",
+      "type": "待办",
+      "types": [
+        "待办"
+      ],
+      "scene": "线下",
+      "scenes": [
+        "线下"
+      ],
+      "time": "今年",
+      "cost": 360,
+      "due": "2026-09-10",
+      "star": 4,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-07",
+      "title": "办理本年度城乡居民医保缴纳",
+      "note": "通过政务小程序完成缴费并留存电子凭证",
+      "type": "待办",
+      "types": [
+        "待办"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": null,
+      "due": "2026-09-07",
+      "star": 4,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-08",
+      "title": "整理卧室衣柜与收纳箱",
+      "note": "收纳夏季短袖，换出秋季薄外套和长裤",
+      "type": "待办",
+      "types": [
+        "待办"
+      ],
+      "scene": "家里",
+      "scenes": [
+        "家里"
+      ],
+      "time": "今年",
+      "cost": null,
+      "due": "2026-09-08",
+      "star": 3,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-09",
+      "title": "拜访华东合作客户确认项目合同",
+      "note": "现场洽谈并签署四季度联合开发协议",
+      "type": "待办",
+      "types": [
+        "待办"
+      ],
+      "scene": "出差",
+      "scenes": [
+        "出差"
+      ],
+      "time": "今年",
+      "cost": null,
+      "due": "2026-09-08",
+      "star": 5,
+      "done": true,
+      "doneScenes": [
+        "出差"
+      ],
+      "doneTypes": [
+        "待办"
+      ]
+    },
+    {
+      "id": "demo-10",
+      "title": "预订云南大理往返双人机票",
+      "note": "避开国庆返程最高峰，选择早班直飞航班",
+      "type": "旅游",
+      "types": [
+        "旅游"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": 2200,
+      "due": "2026-09-11",
+      "star": 5,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-11",
+      "title": "预订大理洱海海景客栈三晚",
+      "note": "海东沿线全景落地窗露台客栈",
+      "type": "旅游",
+      "types": [
+        "旅游"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": 1580,
+      "due": "2026-09-03",
+      "star": 4,
+      "done": true,
+      "doneScenes": [
+        "网上"
+      ],
+      "doneTypes": [
+        "旅游"
+      ]
+    },
+    {
+      "id": "demo-12",
+      "title": "采购高原户外防晒与氧气便携瓶",
+      "note": "高倍防晒乳、墨镜及医用便携式氧气瓶",
+      "type": "旅游",
+      "types": [
+        "旅游"
+      ],
+      "scene": "线下",
+      "scenes": [
+        "线下"
+      ],
+      "time": "今年",
+      "cost": 150,
+      "due": "2026-09-15",
+      "star": 3,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-13",
+      "title": "报名下半年软考系统架构设计师考试",
+      "note": "中国计算机技术职业资格网报考缴费",
+      "type": "计划",
+      "types": [
+        "计划"
+      ],
+      "scene": "网上",
+      "scenes": [
+        "网上"
+      ],
+      "time": "今年",
+      "cost": 260,
+      "due": "2026-10-15",
+      "star": 4,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    },
+    {
+      "id": "demo-14",
+      "title": "精读《系统架构设计师教程》核心章节",
+      "note": "重点突破高可用分布式系统架构与微服务治理",
+      "type": "计划",
+      "types": [
+        "计划"
+      ],
+      "scene": "学校",
+      "scenes": [
+        "学校"
+      ],
+      "time": "今年",
+      "cost": null,
+      "due": "2026-12-31",
+      "star": 5,
+      "done": false,
+      "doneScenes": [],
+      "doneTypes": []
+    }
+  ],
+  "quadrantWidget": {
+    "q1": [
+      {
+        "id": "demo-05",
+        "title": "提交三季度运营数据总结报表",
+        "done": false
+      },
+      {
+        "id": "demo-08",
+        "title": "整理卧室衣柜与收纳箱",
+        "done": false
+      }
+    ],
+    "q2": [
+      {
+        "id": "demo-13",
+        "title": "报名下半年软考系统架构设计师考试",
+        "done": false
+      },
+      {
+        "id": "demo-14",
+        "title": "精读《系统架构设计师教程》核心章节",
+        "done": false
+      }
+    ],
+    "q3": [
+      {
+        "id": "demo-03",
+        "title": "囤猫粮与冻干宠物零食",
+        "done": false
+      },
+      {
+        "id": "demo-01",
+        "title": "买机械键盘与无线鼠标",
+        "done": false
+      }
+    ],
+    "q4": [
+      {
+        "id": "demo-04",
+        "title": "4K 显示器铝合金桌面支架",
+        "done": false
+      },
+      {
+        "id": "demo-10",
+        "title": "预订云南大理往返双人机票",
+        "done": false
+      }
+    ]
   }
 }
