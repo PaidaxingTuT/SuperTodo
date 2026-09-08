@@ -6,9 +6,11 @@
     android:targetCellHeight="2"
     android:minResizeWidth="140dp"
     android:minResizeHeight="140dp"
+    android:maxResizeWidth="140dp"
+    android:maxResizeHeight="140dp"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_2x2"
     android:widgetCategory="home_screen"
     android:previewImage="@drawable/widget_2x2_preview"
     android:previewLayout="@layout/widget_2x2"
-    android:resizeMode="none" />
+    android:resizeMode="horizontal|vertical" />

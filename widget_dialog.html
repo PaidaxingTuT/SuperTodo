@@ -52,49 +52,64 @@
       -webkit-user-select: none;
     }
 
-    /* 全屏遮罩层：点击遮罩空白区域直接关闭弹窗返回手机桌面 */
+    /* 全屏遮罩层：更柔和深邃的丝滑淡入 */
     .dialog-overlay {
       width: 100%;
       height: 100%;
       background: var(--bg-mask);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 18px 16px;
       opacity: 0;
-      animation: fadeIn .22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: maskFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    @keyframes fadeIn {
+    .dialog-overlay.closing {
+      opacity: 0 !important;
+      pointer-events: none;
+    }
+
+    @keyframes maskFadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
     }
 
-    /* 居中悬浮卡片 */
+    /* 居中悬浮卡片：带有高质感弹性回弹曲线 (Spring-like popIn) */
     .floating-card {
       width: 100%;
       max-width: 360px;
       max-height: 84vh;
       background: var(--card-bg);
       border: 1px solid var(--card-stroke);
-      border-radius: 24px;
+      border-radius: 26px;
       padding: 18px 16px 16px;
-      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.38);
       display: flex;
       flex-direction: column;
-      transform: scale(0.92) translateY(12px);
-      animation: popIn .24s cubic-bezier(0.18, 0.9, 0.28, 1) forwards;
+      transform: scale(0.88) translateY(20px);
+      opacity: 0;
+      animation: cardPopIn 0.32s cubic-bezier(0.34, 1.25, 0.64, 1) forwards;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       color: var(--text-main);
     }
 
-    @keyframes popIn {
+    .dialog-overlay.closing .floating-card {
+      transform: scale(0.9) translateY(16px);
+      opacity: 0;
+    }
+
+    @keyframes cardPopIn {
       to {
         transform: scale(1) translateY(0);
+        opacity: 1;
       }
     }
 
+    /* 头部区域 */
     .card-head {
       display: flex;
       align-items: center;
@@ -112,6 +127,7 @@
       font-size: 16px;
       font-weight: 800;
       color: var(--text-main);
+      letter-spacing: -0.2px;
     }
     .card-badge {
       font-size: 11px;
@@ -120,6 +136,7 @@
       background: var(--primary-soft);
       padding: 2px 8px;
       border-radius: 999px;
+      transition: all 0.2s ease;
     }
     .btn-close {
       width: 28px;
@@ -132,11 +149,32 @@
       justify-content: center;
       cursor: pointer;
       border: none;
-      transition: background .15s;
+      transition: transform 0.18s cubic-bezier(0.34, 1.5, 0.64, 1), background 0.15s;
     }
-    .btn-close:hover, .btn-close:active {
+    .btn-close:active {
+      transform: scale(0.88);
       background: var(--item-hover);
       color: var(--text-main);
+    }
+
+    /* 视图滑入过渡 */
+    .view-page {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      animation: pageSlideIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes pageSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* 滚动列表 */
@@ -159,24 +197,25 @@
       border-radius: 4px;
     }
 
-    /* 待办项目卡片 */
+    /* 待办行样式与弹性点击动画 */
     .task-row {
       display: flex;
       align-items: flex-start;
       gap: 10px;
-      padding: 9px 10px;
+      padding: 9px 11px;
       background: var(--item-bg);
-      border-radius: 12px;
+      border-radius: 14px;
       border: 1px solid transparent;
       cursor: pointer;
-      transition: background .15s, border-color .15s, transform .15s;
       user-select: none;
+      transition: transform 0.18s cubic-bezier(0.34, 1.4, 0.64, 1), background 0.2s, opacity 0.22s, border-color 0.2s;
     }
     .task-row:active {
+      transform: scale(0.98);
       background: var(--item-hover);
     }
     .task-row.done {
-      opacity: 0.65;
+      opacity: 0.6;
     }
     .task-seq {
       font-size: 11px;
@@ -185,22 +224,32 @@
       min-width: 16px;
       margin-top: 2px;
     }
+    
+    /* 复选框带有弹性微弹动效 */
     .task-check {
-      width: 17px;
-      height: 17px;
-      border-radius: 5px;
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
       border: 1.8px solid var(--text-sec);
       flex-shrink: 0;
       margin-top: 1.5px;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all .15s;
+      transition: border-color 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.25s cubic-bezier(0.34, 1.6, 0.64, 1);
     }
     .task-row.done .task-check {
       background: var(--primary);
       border-color: var(--primary);
+      animation: checkPop 0.28s cubic-bezier(0.34, 1.6, 0.64, 1) forwards;
     }
+
+    @keyframes checkPop {
+      0% { transform: scale(0.85); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
     .task-row.done .task-check::after {
       content: '';
       width: 4px;
@@ -217,6 +266,7 @@
       line-height: 1.45;
       color: var(--text-main);
       word-break: break-all;
+      transition: color 0.2s ease, text-decoration 0.2s ease;
     }
     .task-row.done .task-title {
       text-decoration: line-through;
@@ -230,11 +280,12 @@
       gap: 8px;
       padding: 8px 10px;
       background: var(--item-bg);
-      border-radius: 12px;
+      border-radius: 14px;
       font-size: 12.5px;
       font-weight: 600;
       border: 1.5px solid transparent;
       user-select: none;
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s, background 0.15s;
     }
     .settings-row.sortable-ghost {
       opacity: 0.35;
@@ -243,6 +294,12 @@
     }
     .settings-row.sortable-chosen {
       background: var(--item-hover);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+    .settings-row.sortable-drag {
+      box-shadow: 0 16px 36px rgba(0,0,0,0.24);
+      transform: scale(1.02);
+      opacity: 0.96;
     }
     .settings-title {
       flex: 1;
@@ -252,9 +309,9 @@
       color: var(--text-main);
     }
     .tool-btn {
-      width: 26px;
-      height: 26px;
-      border-radius: 7px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
       background: var(--btn-bg);
       border: none;
       display: flex;
@@ -262,30 +319,33 @@
       justify-content: center;
       color: var(--text-sec);
       cursor: pointer;
-      transition: all .15s;
+      transition: all 0.15s cubic-bezier(0.34, 1.4, 0.64, 1);
     }
-    .tool-btn:hover, .tool-btn:active {
+    .tool-btn:active {
+      transform: scale(0.9);
       background: var(--item-hover);
       color: var(--text-main);
     }
-    .tool-btn.danger:hover, .tool-btn.danger:active {
+    .tool-btn.danger:active {
       background: var(--danger-bg);
       color: var(--danger);
     }
     .drag-handle {
-      width: 26px;
-      height: 26px;
-      border-radius: 7px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: var(--text-sec);
       cursor: grab;
       touch-action: none;
+      transition: transform 0.15s;
     }
     .drag-handle:active {
       cursor: grabbing;
       color: var(--primary);
+      transform: scale(0.92);
     }
 
     /* 底部功能区 */
@@ -299,11 +359,12 @@
     .action-btn-group {
       display: flex;
       gap: 8px;
+      transition: opacity 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
     .action-pill {
       flex: 1;
-      padding: 8px 12px;
-      border-radius: 10px;
+      padding: 9px 12px;
+      border-radius: 12px;
       font-size: 12px;
       font-weight: 700;
       border: 1px solid var(--card-stroke);
@@ -314,9 +375,10 @@
       justify-content: center;
       gap: 6px;
       cursor: pointer;
-      transition: all .15s;
+      transition: all 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
     }
     .action-pill:active {
+      transform: scale(0.97);
       background: var(--primary-soft);
       border-color: var(--primary);
       color: var(--primary);
@@ -326,21 +388,30 @@
       color: #FFF;
       border-color: var(--primary);
     }
+    .action-pill.primary:active {
+      opacity: 0.9;
+    }
 
-    /* 快捷新建输入行 */
+    /* 快捷新建输入行带平滑高度展开 */
     .input-row {
       display: flex;
       gap: 6px;
+      animation: inputRowSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes inputRowSlide {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .text-input {
       flex: 1;
       padding: 8px 12px;
       border-radius: 10px;
-      border: 1px solid var(--card-stroke);
+      border: 1.5px solid var(--card-stroke);
       background: var(--item-bg);
       color: var(--text-main);
       font-size: 12.5px;
       outline: none;
+      transition: border-color 0.2s;
     }
     .text-input:focus {
       border-color: var(--primary);
@@ -354,7 +425,9 @@
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
+      transition: transform 0.15s cubic-bezier(0.34, 1.4, 0.64, 1);
     }
+    .btn-submit:active { transform: scale(0.94); }
     .btn-cancel {
       padding: 8px 10px;
       border-radius: 10px;
@@ -363,9 +436,10 @@
       border: none;
       font-size: 12px;
       cursor: pointer;
+      transition: transform 0.15s cubic-bezier(0.34, 1.4, 0.64, 1);
     }
+    .btn-cancel:active { transform: scale(0.94); }
 
-    /* 空状态提示 */
     .empty-tip {
       text-align: center;
       color: var(--text-sec);
@@ -377,12 +451,12 @@
 </head>
 <body>
 
-  <!-- 全屏暗色模糊遮罩：点击空白处直接退出悬浮窗返回桌面 -->
+  <!-- 全屏暗色模糊遮罩：点击空白处平滑退场返回桌面 -->
   <div class="dialog-overlay" id="dialogOverlay" onclick="handleOverlayClick(event)">
     <div class="floating-card" onclick="event.stopPropagation()">
 
       <!-- 视图 A：展开清单 -->
-      <div id="viewList" style="display:none; flex-direction:column; width:100%; height:100%;">
+      <div id="viewList" class="view-page" style="display:none;">
         <div class="card-head">
           <div class="head-left">
             <span class="card-title">待办清单</span>
@@ -392,7 +466,7 @@
             <button class="tool-btn" onclick="switchToMode('settings')" title="自定义排序">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </button>
-            <button class="btn-close" onclick="closeSelf()" title="关闭">
+            <button class="btn-close" onclick="closeSelfWithAnimation()" title="关闭">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
           </div>
@@ -423,7 +497,7 @@
       </div>
 
       <!-- 视图 B：自定义与长按拖拽排序 -->
-      <div id="viewSettings" style="display:none; flex-direction:column; width:100%; height:100%;">
+      <div id="viewSettings" class="view-page" style="display:none;">
         <div class="card-head">
           <div class="head-left">
             <span class="card-title">自定义待办清单</span>
@@ -450,7 +524,7 @@
       </div>
 
       <!-- 视图 C：从已有待办库中挑选 -->
-      <div id="viewPicker" style="display:none; flex-direction:column; width:100%; height:100%;">
+      <div id="viewPicker" class="view-page" style="display:none;">
         <div class="card-head">
           <div class="head-left">
             <span class="card-title">挑选已有待办</span>
@@ -489,6 +563,7 @@
     let previousMode = 'list';
     let rootData = { items: [], widget2x2: [] };
     let sortableInstance = null;
+    let isExiting = false;
 
     // 从 Java Bridge 或 LocalStorage 读取数据
     function loadData() {
@@ -527,15 +602,22 @@
       }
     }
 
-    function closeSelf() {
-      if (window.Widget2x2Bridge && typeof window.Widget2x2Bridge.close === 'function') {
-        window.Widget2x2Bridge.close();
-      }
+    // 丝滑退场动效
+    function closeSelfWithAnimation() {
+      if (isExiting) return;
+      isExiting = true;
+      const overlay = document.getElementById('dialogOverlay');
+      overlay.classList.add('closing');
+      setTimeout(() => {
+        if (window.Widget2x2Bridge && typeof window.Widget2x2Bridge.close === 'function') {
+          window.Widget2x2Bridge.close();
+        }
+      }, 190);
     }
 
     function handleOverlayClick(e) {
       if (e.target === document.getElementById('dialogOverlay')) {
-        closeSelf();
+        closeSelfWithAnimation();
       }
     }
 
@@ -545,7 +627,7 @@
       } else if (currentMode === 'settings') {
         switchToMode('list');
       } else {
-        closeSelf();
+        closeSelfWithAnimation();
       }
     }
 
@@ -554,9 +636,14 @@
         previousMode = currentMode;
       }
       currentMode = mode;
-      document.getElementById('viewList').style.display = (mode === 'list') ? 'flex' : 'none';
-      document.getElementById('viewSettings').style.display = (mode === 'settings') ? 'flex' : 'none';
-      document.getElementById('viewPicker').style.display = (mode === 'picker') ? 'flex' : 'none';
+      
+      const vList = document.getElementById('viewList');
+      const vSettings = document.getElementById('viewSettings');
+      const vPicker = document.getElementById('viewPicker');
+
+      vList.style.display = (mode === 'list') ? 'flex' : 'none';
+      vSettings.style.display = (mode === 'settings') ? 'flex' : 'none';
+      vPicker.style.display = (mode === 'picker') ? 'flex' : 'none';
 
       if (mode === 'list') {
         renderList();
@@ -681,10 +768,12 @@
       if (typeof Sortable === 'undefined') return;
 
       sortableInstance = new Sortable(el, {
-        animation: 150,
+        animation: 200,
+        easing: "cubic-bezier(0.25, 1, 0.5, 1)",
         handle: '.drag-handle',
         ghostClass: 'sortable-ghost',
         chosenClass: 'sortable-chosen',
+        dragClass: 'sortable-drag',
         delay: 100,
         delayOnTouchOnly: true,
         touchStartThreshold: 3,
