@@ -18,6 +18,7 @@ let state={
   autoCheckUpdate:true,
   autoInstallUpdate:true,
   widgetRemoveDone:false,
+  showCostSummary:true,
   hapticFeedback:true,
   ai:{enabled:false,base:'',key:'',model:''},
   quadrantWidget:{q1:[],q2:[],q3:[],q4:[]}
@@ -110,7 +111,9 @@ function load(){
     if(d.devMode!==undefined)state.devMode=!!d.devMode;
     if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate;
     if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate;
-    if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone; state.trash=Array.isArray(d.trash)?d.trash:[]; if(d.hapticFeedback!==undefined)state.hapticFeedback=!!d.hapticFeedback;
+    if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone;
+    if(d.showCostSummary!==undefined)state.showCostSummary=!!d.showCostSummary;
+    state.trash=Array.isArray(d.trash)?d.trash:[]; if(d.hapticFeedback!==undefined)state.hapticFeedback=!!d.hapticFeedback;
     state.sortKey=d.sortKey||'默认'; state.sortAsc=d.sortAsc!==false;
     if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
     if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget;
@@ -658,6 +661,7 @@ function calcCostSummary(items, isDoneFn){
   };
 }
 function costCardHTML(summary, title){
+  if(state.showCostSummary === false) return '';
   if(!summary || !summary.hasCost) return '';
   return `<div class="cost-summary-card">
     <div class="csc-top">
@@ -1297,8 +1301,9 @@ function renderHome(wrap,empty){
   empty.hidden=true;
   let html='';
   // 只要用户弄的待办里面有预估花费，全都加上（首页总览预算卡片）
+  const showCost = state.showCostSummary !== false;
   const allSummary=calcCostSummary(allCurItems, i=>!!i.done);
-  if(allSummary.hasCost){
+  if(showCost && allSummary.hasCost){
     const title = state.type==='全部' ? '全部分类 · 预算汇总' : `${state.type} · 预算汇总`;
     html += costCardHTML(allSummary, title);
   }
@@ -1307,8 +1312,8 @@ function renderHome(wrap,empty){
     const undone=g.items.filter(i=>!isDone(i)).slice().sort((a,b)=>(a.order??Infinity)-(b.order??Infinity)||a.created-b.created);
     const preview=undone.slice(0,3);
     const gSummary=calcCostSummary(g.items, isDone);
-    const costBadge=gSummary.hasCost ? `<span class="sec-cost-pill" title="预估总额: ¥${money(gSummary.totalCost)}">¥${money(gSummary.undoneCost>0?gSummary.undoneCost:gSummary.totalCost)}</span>` : '';
-    const moreCost=gSummary.hasCost ? `<span class="sec-more-cost">· 预估 ¥${money(gSummary.totalCost)}</span>` : '';
+    const costBadge=(showCost && gSummary.hasCost) ? `<span class="sec-cost-pill" title="预估总额: ¥${money(gSummary.totalCost)}">¥${money(gSummary.undoneCost>0?gSummary.undoneCost:gSummary.totalCost)}</span>` : '';
+    const moreCost=(showCost && gSummary.hasCost) ? `<span class="sec-more-cost">· 预估 ¥${money(gSummary.totalCost)}</span>` : '';
     html+=`<div class="section">
       <div class="section-head" data-open="${esc(g.key)}">
         <span class="sec-caret" style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%235f6368%22><path d=%22M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z/%22/></svg>') center/contain no-repeat"></span>
@@ -1382,8 +1387,9 @@ function renderList(wrap,empty){
   const draggable = state.sortKey==='默认';
   let html='';
   // 只要当前分组内的待办有预估花费，顶端自动展示汇总统计卡片
+  const showCost = state.showCostSummary !== false;
   const gSummary=calcCostSummary(g.items, isDone);
-  if(gSummary.hasCost){
+  if(showCost && gSummary.hasCost){
     html += costCardHTML(gSummary, `${state.view.group} · 预算汇总`);
   }
   list.forEach(it=>{
@@ -1997,6 +2003,8 @@ function renderUpdateSettings(){
   if(chkInstall) chkInstall.checked=state.autoInstallUpdate!==false;
   const chkRemove=$('#widgetRemoveDone');
   if(chkRemove) chkRemove.checked=!!state.widgetRemoveDone;
+  const chkCost=$('#showCostSummary');
+  if(chkCost) chkCost.checked=state.showCostSummary!==false;
 }
 
 function openSettings(){
@@ -2013,7 +2021,7 @@ function openSettings(){
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.8.7';
+const APP_VERSION='v1.8.8';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -3448,6 +3456,7 @@ function exportData(){
     autoCheckUpdate: state.autoCheckUpdate,
     autoInstallUpdate: state.autoInstallUpdate,
     widgetRemoveDone: state.widgetRemoveDone,
+    showCostSummary: state.showCostSummary,
     hapticFeedback: state.hapticFeedback,
     trash: state.trash || [],
     ai: state.ai,
@@ -3527,6 +3536,7 @@ function applyImportedData(d){
   if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate;
   if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate;
   if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone;
+  if(d.showCostSummary!==undefined)state.showCostSummary=!!d.showCostSummary;
   if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
   if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget;
   save();
@@ -3709,6 +3719,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     chkInstall.addEventListener('change',e=>{
       state.autoInstallUpdate = e.target.checked;
       save();
+    });
+  }
+  const chkCost = $('#showCostSummary');
+  if(chkCost){
+    chkCost.addEventListener('change',e=>{
+      state.showCostSummary = e.target.checked;
+      save();
+      render();
     });
   }
   const chkRemove = $('#widgetRemoveDone');
