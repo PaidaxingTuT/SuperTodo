@@ -33,7 +33,7 @@ public class TodoWidget2x2Provider extends AppWidgetProvider {
     public static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_2x2);
 
-        List<TodoItem> items = WidgetDataManager.loadTasksForWidget(context, appWidgetId);
+        List<TodoItem> items = WidgetDataManager.load2x2Items(context);
         int activeCount = 0;
         TodoItem nextItem = null;
         for (TodoItem it : items) {
@@ -55,7 +55,6 @@ public class TodoWidget2x2Provider extends AppWidgetProvider {
 
             Intent completeIntent = new Intent(context, TodoWidget2x2Provider.class);
             completeIntent.setAction(ACTION_2X2_COMPLETE);
-            completeIntent.putExtra("extra_item_id", nextItem.id);
             completeIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
             PendingIntent completePI = PendingIntent.getBroadcast(
                 context,
@@ -70,7 +69,9 @@ public class TodoWidget2x2Provider extends AppWidgetProvider {
             views.setViewVisibility(R.id.widget_2x2_hero_title, View.GONE);
             views.setViewVisibility(R.id.widget_2x2_empty_view, View.VISIBLE);
 
-            Intent emptyIntent = new Intent(context, MainActivity.class);
+            Intent emptyIntent = new Intent(context, Widget2x2DialogActivity.class);
+            emptyIntent.putExtra("mode", "list");
+            emptyIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
             emptyIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             PendingIntent emptyPI = PendingIntent.getActivity(
                 context,
@@ -81,7 +82,10 @@ public class TodoWidget2x2Provider extends AppWidgetProvider {
             views.setOnClickPendingIntent(R.id.btn_2x2_complete, emptyPI);
         }
 
-        Intent expandIntent = new Intent(context, MainActivity.class);
+        // 展开清单：打开专属桌面悬浮窗 (mode = list)
+        Intent expandIntent = new Intent(context, Widget2x2DialogActivity.class);
+        expandIntent.putExtra("mode", "list");
+        expandIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
         expandIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent expandPI = PendingIntent.getActivity(
             context,
@@ -93,9 +97,11 @@ public class TodoWidget2x2Provider extends AppWidgetProvider {
         views.setOnClickPendingIntent(R.id.widget_2x2_body, expandPI);
         views.setOnClickPendingIntent(R.id.widget_2x2_root, expandPI);
 
-        Intent configIntent = new Intent(context, WidgetConfigActivity.class);
+        // 设置：打开专属待办排序与挑选桌面悬浮窗 (mode = settings)
+        Intent configIntent = new Intent(context, Widget2x2DialogActivity.class);
+        configIntent.putExtra("mode", "settings");
         configIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
-        configIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        configIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent configPI = PendingIntent.getActivity(
             context,
             7000 + appWidgetId,
@@ -114,11 +120,8 @@ public class TodoWidget2x2Provider extends AppWidgetProvider {
         if (action == null) return;
 
         if (ACTION_2X2_COMPLETE.equals(action)) {
-            String itemId = intent.getStringExtra("extra_item_id");
-            if (itemId != null && !itemId.isEmpty()) {
-                WidgetDataManager.toggleItemDone(context, itemId);
-                WidgetDataManager.notifyAllWidgets(context);
-            }
+            WidgetDataManager.completeNext2x2Item(context);
+            WidgetDataManager.notifyAllWidgets(context);
         } else if (WidgetDataManager.ACTION_REFRESH_WIDGET.equals(action)) {
             AppWidgetManager mgr = AppWidgetManager.getInstance(context);
             if (mgr != null) {

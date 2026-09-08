@@ -4,13 +4,11 @@
     android:minHeight="140dp"
     android:targetCellWidth="2"
     android:targetCellHeight="2"
-    android:minResizeWidth="120dp"
-    android:minResizeHeight="120dp"
+    android:minResizeWidth="140dp"
+    android:minResizeHeight="140dp"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_2x2"
-    android:configure="com.dax.supertodo.widget.WidgetConfigActivity"
     android:widgetCategory="home_screen"
-    android:widgetFeatures="reconfigurable|configuration_optional"
     android:previewImage="@drawable/widget_2x2_preview"
     android:previewLayout="@layout/widget_2x2"
-    android:resizeMode="horizontal|vertical" />
+    android:resizeMode="none" />

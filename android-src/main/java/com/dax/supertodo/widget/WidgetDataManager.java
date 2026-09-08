@@ -195,7 +195,115 @@ public class WidgetDataManager {
                     }
                 }
             }
+            // 同步更新 2x2 自定义清单中包含的同 ID 事项状态
+            JSONArray w2 = root.optJSONArray("widget2x2");
+            if (w2 != null) {
+                for (int m = 0; m < w2.length(); m++) {
+                    JSONObject wObj = w2.optJSONObject(m);
+                    if (wObj != null && itemId.equals(wObj.optString("id"))) {
+                        wObj.put("done", nextState);
+                        updated = true;
+                    }
+                }
+            }
             if (updated) {
+                saveWidgetData(context, root.toString());
+                return true;
+            }
+        } catch (Exception ignore) {}
+        return false;
+    }
+
+    public static synchronized List<TodoItem> load2x2Items(Context context) {
+        List<TodoItem> list = new ArrayList<>();
+        if (context == null) return list;
+        String json = getWidgetData(context);
+        if (json.isEmpty()) return list;
+        try {
+            JSONObject root = new JSONObject(json);
+            JSONArray arr = root.optJSONArray("widget2x2");
+            if (arr != null && arr.length() > 0) {
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject obj = arr.optJSONObject(i);
+                    if (obj != null) {
+                        list.add(TodoItem.fromJson(obj));
+                    }
+                }
+                return list;
+            }
+            // 若尚无 widget2x2，默认从 items 取未完成事项初始化
+            JSONArray items = root.optJSONArray("items");
+            if (items != null) {
+                JSONArray new2x2 = new JSONArray();
+                for (int i = 0; i < items.length(); i++) {
+                    JSONObject obj = items.optJSONObject(i);
+                    if (obj != null && !obj.optBoolean("done", false)) {
+                        TodoItem it = TodoItem.fromJson(obj);
+                        list.add(it);
+                        new2x2.put(obj);
+                        if (list.size() >= 10) break;
+                    }
+                }
+                if (new2x2.length() > 0) {
+                    root.put("widget2x2", new2x2);
+                    saveWidgetData(context, root.toString());
+                }
+            }
+        } catch (Exception ignore) {}
+        return list;
+    }
+
+    public static synchronized boolean completeNext2x2Item(Context context) {
+        if (context == null) return false;
+        String json = getWidgetData(context);
+        if (json.isEmpty()) return false;
+        try {
+            JSONObject root = new JSONObject(json);
+            JSONArray arr = root.optJSONArray("widget2x2");
+            if (arr == null || arr.length() == 0) {
+                load2x2Items(context);
+                json = getWidgetData(context);
+                root = new JSONObject(json);
+                arr = root.optJSONArray("widget2x2");
+            }
+            if (arr == null || arr.length() == 0) return false;
+
+            String completedId = null;
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject obj = arr.optJSONObject(i);
+                if (obj != null && !obj.optBoolean("done", false)) {
+                    obj.put("done", true);
+                    completedId = obj.optString("id");
+                    break;
+                }
+            }
+            if (completedId != null) {
+                // 同步更新 items
+                JSONArray items = root.optJSONArray("items");
+                if (items != null) {
+                    for (int j = 0; j < items.length(); j++) {
+                        JSONObject it = items.optJSONObject(j);
+                        if (it != null && completedId.equals(it.optString("id"))) {
+                            it.put("done", true);
+                            break;
+                        }
+                    }
+                }
+                // 同步更新四象限
+                JSONObject qw = root.optJSONObject("quadrantWidget");
+                if (qw != null) {
+                    String[] qKeys = new String[] { "q1", "q2", "q3", "q4" };
+                    for (String qKey : qKeys) {
+                        JSONArray qArr = qw.optJSONArray(qKey);
+                        if (qArr == null) continue;
+                        for (int k = 0; k < qArr.length(); k++) {
+                            JSONObject qObj = qArr.optJSONObject(k);
+                            if (qObj != null && completedId.equals(qObj.optString("id"))) {
+                                qObj.put("done", true);
+                            }
+                        }
+                    }
+                }
                 saveWidgetData(context, root.toString());
                 return true;
             }

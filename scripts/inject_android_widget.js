@@ -108,6 +108,16 @@ function injectWidgetManifest() {
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
+
+        <!-- 2x2 小部件专属悬浮弹窗（展开清单与自定义排序设置） -->
+        <activity
+            android:name="com.dax.supertodo.widget.Widget2x2DialogActivity"
+            android:exported="true"
+            android:theme="@style/Theme.SuperTodo.FloatingDialog"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
+            android:taskAffinity="com.dax.supertodo.widgetdialog"
+            android:windowSoftInputMode="adjustResize" />
 `;
 
   const appEnd = '</application>';
@@ -165,6 +175,18 @@ function injectWidgetManifest() {
   content = content.replace(appEnd, widgetEntries + '\n    ' + appEnd);
   fs.writeFileSync(manifestPath, content, 'utf8');
   console.log('Successfully injected widget components, file intent-filters and permissions into AndroidManifest.xml');
+
+  // 3. 同步 widget_dialog.html 与 Sortable.min.js 至 android assets
+  const assetsDir = path.join('android', 'app', 'src', 'main', 'assets');
+  if (!fs.existsSync(assetsDir)) {
+    fs.mkdirSync(assetsDir, { recursive: true });
+  }
+  ['widget_dialog.html', 'Sortable.min.js'].forEach(file => {
+    if (fs.existsSync(file)) {
+      fs.copyFileSync(file, path.join(assetsDir, file));
+      console.log(`Copied ${file} to ${assetsDir}`);
+    }
+  });
 }
 
 if (require.main === module) {
