@@ -52,7 +52,7 @@
       -webkit-user-select: none;
     }
 
-    /* 全屏遮罩层：更柔和深邃的丝滑淡入 */
+    /* 全屏遮罩层 */
     .dialog-overlay {
       width: 100%;
       height: 100%;
@@ -64,8 +64,8 @@
       justify-content: center;
       padding: 18px 16px;
       opacity: 0;
-      animation: maskFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: maskFadeIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .dialog-overlay.closing {
@@ -78,7 +78,7 @@
       to { opacity: 1; }
     }
 
-    /* 居中悬浮卡片：带有高质感弹性回弹曲线 (Spring-like popIn) */
+    /* 居中悬浮卡片：弹性回弹曲线 */
     .floating-card {
       width: 100%;
       max-width: 360px;
@@ -92,13 +92,13 @@
       flex-direction: column;
       transform: scale(0.88) translateY(20px);
       opacity: 0;
-      animation: cardPopIn 0.32s cubic-bezier(0.34, 1.25, 0.64, 1) forwards;
-      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: cardPopIn 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) forwards;
+      transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1);
       color: var(--text-main);
     }
 
     .dialog-overlay.closing .floating-card {
-      transform: scale(0.9) translateY(16px);
+      transform: scale(0.9) translateY(14px);
       opacity: 0;
     }
 
@@ -149,7 +149,7 @@
       justify-content: center;
       cursor: pointer;
       border: none;
-      transition: transform 0.18s cubic-bezier(0.34, 1.5, 0.64, 1), background 0.15s;
+      transition: transform 0.16s cubic-bezier(0.34, 1.5, 0.64, 1), background 0.15s;
     }
     .btn-close:active {
       transform: scale(0.88);
@@ -163,13 +163,13 @@
       flex-direction: column;
       width: 100%;
       height: 100%;
-      animation: pageSlideIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: pageSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
     @keyframes pageSlideIn {
       from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(6px);
       }
       to {
         opacity: 1;
@@ -197,7 +197,7 @@
       border-radius: 4px;
     }
 
-    /* 待办行样式与弹性点击动画 */
+    /* 待办行样式 */
     .task-row {
       display: flex;
       align-items: flex-start;
@@ -208,7 +208,7 @@
       border: 1px solid transparent;
       cursor: pointer;
       user-select: none;
-      transition: transform 0.18s cubic-bezier(0.34, 1.4, 0.64, 1), background 0.2s, opacity 0.22s, border-color 0.2s;
+      transition: transform 0.18s cubic-bezier(0.34, 1.4, 0.64, 1), background 0.2s, opacity 0.22s;
     }
     .task-row:active {
       transform: scale(0.98);
@@ -225,7 +225,7 @@
       margin-top: 2px;
     }
     
-    /* 复选框带有弹性微弹动效 */
+    /* 复选框弹性动画 */
     .task-check {
       width: 18px;
       height: 18px;
@@ -236,12 +236,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: border-color 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.25s cubic-bezier(0.34, 1.6, 0.64, 1);
+      transition: border-color 0.2s, background-color 0.2s;
     }
     .task-row.done .task-check {
       background: var(--primary);
       border-color: var(--primary);
-      animation: checkPop 0.28s cubic-bezier(0.34, 1.6, 0.64, 1) forwards;
+      animation: checkPop 0.26s cubic-bezier(0.34, 1.6, 0.64, 1) forwards;
     }
 
     @keyframes checkPop {
@@ -266,14 +266,14 @@
       line-height: 1.45;
       color: var(--text-main);
       word-break: break-all;
-      transition: color 0.2s ease, text-decoration 0.2s ease;
+      transition: color 0.2s, text-decoration 0.2s;
     }
     .task-row.done .task-title {
       text-decoration: line-through;
       color: var(--text-sec);
     }
 
-    /* 设置界面的拖拽与工具栏 */
+    /* 拖拽排序项：彻底禁用 transform transition，确保 100% 跟手 */
     .settings-row {
       display: flex;
       align-items: center;
@@ -285,21 +285,23 @@
       font-weight: 600;
       border: 1.5px solid transparent;
       user-select: none;
-      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s, background 0.15s;
+      touch-action: pan-y;
+      transition: background 0.15s, box-shadow 0.15s;
     }
     .settings-row.sortable-ghost {
-      opacity: 0.35;
-      background: var(--primary-soft);
-      border-color: var(--primary);
+      opacity: 0.25 !important;
+      background: var(--primary-soft) !important;
+      border: 1.5px dashed var(--primary) !important;
     }
     .settings-row.sortable-chosen {
-      background: var(--item-hover);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+      background: var(--item-hover) !important;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12) !important;
     }
     .settings-row.sortable-drag {
-      box-shadow: 0 16px 36px rgba(0,0,0,0.24);
-      transform: scale(1.02);
-      opacity: 0.96;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.26) !important;
+      opacity: 0.96 !important;
+      transform: none !important;
+      transition: none !important;
     }
     .settings-title {
       flex: 1;
@@ -319,6 +321,7 @@
       justify-content: center;
       color: var(--text-sec);
       cursor: pointer;
+      flex-shrink: 0;
       transition: all 0.15s cubic-bezier(0.34, 1.4, 0.64, 1);
     }
     .tool-btn:active {
@@ -340,12 +343,13 @@
       color: var(--text-sec);
       cursor: grab;
       touch-action: none;
-      transition: transform 0.15s;
+      flex-shrink: 0;
+      user-select: none;
+      -webkit-user-select: none;
     }
     .drag-handle:active {
       cursor: grabbing;
       color: var(--primary);
-      transform: scale(0.92);
     }
 
     /* 底部功能区 */
@@ -359,7 +363,7 @@
     .action-btn-group {
       display: flex;
       gap: 8px;
-      transition: opacity 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      width: 100%;
     }
     .action-pill {
       flex: 1;
@@ -379,9 +383,7 @@
     }
     .action-pill:active {
       transform: scale(0.97);
-      background: var(--primary-soft);
-      border-color: var(--primary);
-      color: var(--primary);
+      background: var(--item-hover);
     }
     .action-pill.primary {
       background: var(--primary);
@@ -392,10 +394,12 @@
       opacity: 0.9;
     }
 
-    /* 快捷新建输入行带平滑高度展开 */
+    /* 快捷新建输入行：强制 nowrap + flex-shrink: 0 杜绝文字竖排 */
     .input-row {
       display: flex;
+      align-items: center;
       gap: 6px;
+      width: 100%;
       animation: inputRowSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     @keyframes inputRowSlide {
@@ -404,7 +408,8 @@
     }
     .text-input {
       flex: 1;
-      padding: 8px 12px;
+      min-width: 0;
+      padding: 8px 10px;
       border-radius: 10px;
       border: 1.5px solid var(--card-stroke);
       background: var(--item-bg);
@@ -417,7 +422,10 @@
       border-color: var(--primary);
     }
     .btn-submit {
-      padding: 8px 14px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      word-break: keep-all;
+      padding: 8px 13px;
       border-radius: 10px;
       background: var(--primary);
       color: #FFF;
@@ -425,17 +433,22 @@
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
+      line-height: 1.2;
       transition: transform 0.15s cubic-bezier(0.34, 1.4, 0.64, 1);
     }
     .btn-submit:active { transform: scale(0.94); }
     .btn-cancel {
-      padding: 8px 10px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      word-break: keep-all;
+      padding: 8px 11px;
       border-radius: 10px;
       background: var(--btn-bg);
       color: var(--text-sec);
       border: none;
       font-size: 12px;
       cursor: pointer;
+      line-height: 1.2;
       transition: transform 0.15s cubic-bezier(0.34, 1.4, 0.64, 1);
     }
     .btn-cancel:active { transform: scale(0.94); }
@@ -451,7 +464,7 @@
 </head>
 <body>
 
-  <!-- 全屏暗色模糊遮罩：点击空白处平滑退场返回桌面 -->
+  <!-- 全屏暗色模糊遮罩：点击空白处直接退出悬浮窗返回桌面 -->
   <div class="dialog-overlay" id="dialogOverlay" onclick="handleOverlayClick(event)">
     <div class="floating-card" onclick="event.stopPropagation()">
 
@@ -496,13 +509,13 @@
         </div>
       </div>
 
-      <!-- 视图 B：自定义与长按拖拽排序 -->
+      <!-- 视图 B：自定义与长按拖拽排序（点击右上角关闭直接退出返回桌面） -->
       <div id="viewSettings" class="view-page" style="display:none;">
         <div class="card-head">
           <div class="head-left">
             <span class="card-title">自定义待办清单</span>
           </div>
-          <button class="btn-close" onclick="switchToMode('list')" title="返回清单">
+          <button class="btn-close" onclick="closeSelfWithAnimation()" title="关闭">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
@@ -515,8 +528,9 @@
           <!-- 动态渲染排序项 -->
         </div>
 
+        <!-- 底部添加按钮：自适应暗色背景，暗色模式下自然变深，不突兀 -->
         <div class="card-footer">
-          <button class="action-pill primary" style="width:100%;" onclick="switchToMode('picker')">
+          <button class="action-pill" style="width:100%; border-color:var(--primary); color:var(--primary);" onclick="switchToMode('picker')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             <span>从已有待办库中挑选添加</span>
           </button>
@@ -602,7 +616,7 @@
       }
     }
 
-    // 丝滑退场动效
+    // 丝滑退场动效并立即关闭
     function closeSelfWithAnimation() {
       if (isExiting) return;
       isExiting = true;
@@ -612,7 +626,7 @@
         if (window.Widget2x2Bridge && typeof window.Widget2x2Bridge.close === 'function') {
           window.Widget2x2Bridge.close();
         }
-      }, 190);
+      }, 180);
     }
 
     function handleOverlayClick(e) {
@@ -624,8 +638,6 @@
     function handleBackPressed() {
       if (currentMode === 'picker') {
         switchToMode(previousMode);
-      } else if (currentMode === 'settings') {
-        switchToMode('list');
       } else {
         closeSelfWithAnimation();
       }
@@ -682,7 +694,6 @@
       const task = (rootData.widget2x2 || []).find(t => t.id === id);
       if (task) {
         task.done = !task.done;
-        // 同步更新 items
         if (rootData.items) {
           const mainItem = rootData.items.find(it => it.id === id);
           if (mainItem) {
@@ -699,7 +710,7 @@
       document.getElementById('listInputRow').style.display = 'flex';
       setTimeout(() => {
         document.getElementById('newTodoInput').focus();
-      }, 80);
+      }, 60);
     }
 
     function hideInputRow() {
@@ -733,7 +744,7 @@
     }
 
     // ----------------------------------------------------
-    // 视图 B：设置与排序渲染
+    // 视图 B：设置与排序渲染（极致跟手优化）
     // ----------------------------------------------------
     function renderSettings() {
       const listEl = document.getElementById('settingsSortListEl');
@@ -752,7 +763,7 @@
         return '<div class="settings-row" data-id="' + t.id + '">' +
           '<span class="task-seq">' + (idx + 1) + '.</span>' +
           '<span class="settings-title">' + escapeHtml(t.title) + '</span>' +
-          '<div class="drag-handle" title="拖动排序"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="2"></circle><circle cx="15" cy="6" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="15" cy="12" r="2"></circle><circle cx="9" cy="18" r="2"></circle><circle cx="15" cy="18" r="2"></circle></svg></div>' +
+          '<div class="drag-handle" title="按住拖拽"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="2"></circle><circle cx="15" cy="6" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="15" cy="12" r="2"></circle><circle cx="9" cy="18" r="2"></circle><circle cx="15" cy="18" r="2"></circle></svg></div>' +
           '<button class="tool-btn danger" onclick="removeFromCurated(\'' + t.id + '\')" title="从清单移除"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>' +
         '</div>';
       }).join('');
@@ -767,16 +778,16 @@
       }
       if (typeof Sortable === 'undefined') return;
 
+      // 极致跟手：无延迟，纯净滑动
       sortableInstance = new Sortable(el, {
-        animation: 200,
-        easing: "cubic-bezier(0.25, 1, 0.5, 1)",
+        animation: 150,
         handle: '.drag-handle',
         ghostClass: 'sortable-ghost',
         chosenClass: 'sortable-chosen',
         dragClass: 'sortable-drag',
-        delay: 100,
-        delayOnTouchOnly: true,
-        touchStartThreshold: 3,
+        delay: 0,
+        touchStartThreshold: 0,
+        forceFallback: false,
         onEnd: function(evt) {
           const oldIdx = evt.oldIndex;
           const newIdx = evt.newIndex;
