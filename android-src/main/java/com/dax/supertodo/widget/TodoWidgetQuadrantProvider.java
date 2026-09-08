@@ -129,10 +129,11 @@ public class TodoWidgetQuadrantProvider extends AppWidgetProvider {
             maxPerQuadrant = 4;
         }
 
-        renderQuadrant(context, views, appWidgetId, "q1", itemsQ1, maxPerQuadrant, !showHeaders);
-        renderQuadrant(context, views, appWidgetId, "q2", itemsQ2, maxPerQuadrant, !showHeaders);
-        renderQuadrant(context, views, appWidgetId, "q3", itemsQ3, maxPerQuadrant, !showHeaders);
-        renderQuadrant(context, views, appWidgetId, "q4", itemsQ4, maxPerQuadrant, !showHeaders);
+        int themeColor = WidgetDataManager.getWidgetThemeColor(context);
+        renderQuadrant(context, views, appWidgetId, "q1", itemsQ1, maxPerQuadrant, !showHeaders, themeColor);
+        renderQuadrant(context, views, appWidgetId, "q2", itemsQ2, maxPerQuadrant, !showHeaders, themeColor);
+        renderQuadrant(context, views, appWidgetId, "q3", itemsQ3, maxPerQuadrant, !showHeaders, themeColor);
+        renderQuadrant(context, views, appWidgetId, "q4", itemsQ4, maxPerQuadrant, !showHeaders, themeColor);
 
         // 点击四象限卡片打开应用四象限配置页
         Intent openAppIntent = new Intent(context, MainActivity.class);
@@ -166,7 +167,7 @@ public class TodoWidgetQuadrantProvider extends AppWidgetProvider {
         return c;
     }
 
-    private static void renderQuadrant(Context context, RemoteViews views, int appWidgetId, String qKey, List<TodoItem> items, int maxItems, boolean colorizeTitle) {
+    private static void renderQuadrant(Context context, RemoteViews views, int appWidgetId, String qKey, List<TodoItem> items, int maxItems, boolean colorizeTitle, int themeColor) {
         if (items == null) items = WidgetDataManager.loadQuadrantItems(context, qKey);
         int total = items.size();
 
@@ -215,7 +216,9 @@ public class TodoWidgetQuadrantProvider extends AppWidgetProvider {
                         views.setViewVisibility(doneRes, View.VISIBLE);
                         views.setTextViewText(doneRes, ss);
                     }
-                    if (chkRes > 0) views.setImageViewResource(chkRes, R.drawable.widget_ic_check_box_checked);
+                    if (chkRes > 0) {
+                        views.setImageViewBitmap(chkRes, WidgetDataManager.getThemedCheckedIcon(themeColor));
+                    }
                 } else {
                     if (doneRes > 0) views.setViewVisibility(doneRes, View.GONE);
                     if (titleRes > 0) {
@@ -234,7 +237,9 @@ public class TodoWidgetQuadrantProvider extends AppWidgetProvider {
                             }
                         }
                     }
-                    if (chkRes > 0) views.setImageViewResource(chkRes, R.drawable.widget_ic_check_box_unchecked);
+                    if (chkRes > 0) {
+                        views.setImageViewResource(chkRes, R.drawable.widget_ic_check_box_unchecked);
+                    }
                 }
 
                 // 点击勾选框切换完成状态

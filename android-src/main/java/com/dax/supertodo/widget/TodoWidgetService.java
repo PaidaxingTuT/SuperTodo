@@ -29,11 +29,13 @@ public class TodoWidgetService extends RemoteViewsService {
         private final int appWidgetId;
         private final boolean is4x4;
         private final List<TodoItem> items = new ArrayList<>();
+        private int themeColor;
 
         public TodoRemoteViewsFactory(Context context, Intent intent) {
             this.context = context;
             this.appWidgetId = intent != null ? intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID) : AppWidgetManager.INVALID_APPWIDGET_ID;
             this.is4x4 = intent != null && intent.getBooleanExtra("is_4x4", false);
+            this.themeColor = WidgetDataManager.getWidgetThemeColor(context);
         }
 
         @Override
@@ -44,6 +46,7 @@ public class TodoWidgetService extends RemoteViewsService {
         @Override
         public void onDataSetChanged() {
             items.clear();
+            themeColor = WidgetDataManager.getWidgetThemeColor(context);
             try {
                 List<TodoItem> loaded = WidgetDataManager.loadTasksForWidget(context, appWidgetId);
                 if (loaded != null) {
@@ -83,7 +86,7 @@ public class TodoWidgetService extends RemoteViewsService {
                     rv.setViewVisibility(R.id.item_title, View.GONE);
                     rv.setViewVisibility(R.id.item_title_done, View.VISIBLE);
                     rv.setTextViewText(R.id.item_title_done, ss);
-                    rv.setImageViewResource(R.id.item_checkbox, R.drawable.widget_ic_check_box_checked);
+                    rv.setImageViewBitmap(R.id.item_checkbox, WidgetDataManager.getThemedCheckedIcon(themeColor));
                 } else {
                     rv.setViewVisibility(R.id.item_title_done, View.GONE);
                     rv.setViewVisibility(R.id.item_title, View.VISIBLE);
@@ -104,6 +107,7 @@ public class TodoWidgetService extends RemoteViewsService {
                 if (!tag.isEmpty()) {
                     rv.setViewVisibility(R.id.item_tag, View.VISIBLE);
                     rv.setTextViewText(R.id.item_tag, tag);
+                    rv.setTextColor(R.id.item_tag, themeColor);
                 } else {
                     rv.setViewVisibility(R.id.item_tag, View.GONE);
                 }

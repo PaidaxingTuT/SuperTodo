@@ -39,6 +39,8 @@ public class WidgetDataManager {
     public static final String SORT_UNDONE_FIRST = "undone_first";
 
     private static volatile String sCachedJson = null;
+    private static volatile int sCheckedIconColor = 0;
+    private static volatile android.graphics.Bitmap sCheckedIcon = null;
     private static final java.util.concurrent.ExecutorService sIoExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
 
     public static synchronized void saveWidgetData(Context context, String json) {
@@ -152,6 +154,41 @@ public class WidgetDataManager {
     public static boolean isWidgetRemoveDone(JSONObject root) {
         if (root == null) return false;
         return root.optBoolean("widgetRemoveDone", false);
+    }
+
+    public static int getWidgetThemeColor(Context context) {
+        int fallback = android.graphics.Color.rgb(11, 87, 208);
+        if (context == null) return fallback;
+        try {
+            fallback = androidx.core.content.ContextCompat.getColor(context, R.color.widget_primary);
+            String theme = new JSONObject(getWidgetData(context)).optString("theme", "");
+            if (theme.matches("^#[0-9a-fA-F]{6}$")) {
+                return android.graphics.Color.parseColor(theme);
+            }
+        } catch (Exception ignore) {}
+        return fallback;
+    }
+
+    public static synchronized android.graphics.Bitmap getThemedCheckedIcon(int color) {
+        if (sCheckedIcon != null && sCheckedIconColor == color) return sCheckedIcon;
+        android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(48, 48, android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
+        android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(color);
+        canvas.drawCircle(24, 24, 22, paint);
+        paint.setColor(android.graphics.Color.WHITE);
+        paint.setStyle(android.graphics.Paint.Style.STROKE);
+        paint.setStrokeWidth(5);
+        paint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+        paint.setStrokeJoin(android.graphics.Paint.Join.ROUND);
+        android.graphics.Path check = new android.graphics.Path();
+        check.moveTo(13, 25);
+        check.lineTo(21, 33);
+        check.lineTo(36, 16);
+        canvas.drawPath(check, paint);
+        sCheckedIconColor = color;
+        sCheckedIcon = bitmap;
+        return bitmap;
     }
 
     public static synchronized boolean toggleItemDone(Context context, String itemId) {

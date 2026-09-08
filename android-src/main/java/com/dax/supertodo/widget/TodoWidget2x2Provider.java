@@ -32,6 +32,10 @@ public class TodoWidget2x2Provider extends AppWidgetProvider {
 
     public static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_2x2);
+        int themeColor = WidgetDataManager.getWidgetThemeColor(context);
+        views.setTextColor(R.id.widget_2x2_count, themeColor);
+        views.setTextColor(R.id.btn_2x2_expand, themeColor);
+        views.setTextColor(R.id.widget_2x2_hero_label, themeColor);
 
         List<TodoItem> items = WidgetDataManager.load2x2Items(context);
         int activeCount = 0;

@@ -26,6 +26,9 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
 
     public static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_4x4);
+        int themeColor = WidgetDataManager.getWidgetThemeColor(context);
+        views.setTextColor(R.id.widget_filter_badge, themeColor);
+        views.setTextColor(R.id.compact_count_text, themeColor);
 
         int width = WidgetDataManager.getWidgetWidth(context, appWidgetManager, appWidgetId, 280);
         int height = WidgetDataManager.getWidgetHeight(context, appWidgetManager, appWidgetId, 280);
@@ -153,7 +156,7 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
                         views.setViewVisibility(titleIds[i], View.GONE);
                         views.setViewVisibility(titleDoneIds[i], View.VISIBLE);
                         views.setTextViewText(titleDoneIds[i], ss);
-                        views.setImageViewResource(checkIds[i], R.drawable.widget_ic_check_box_checked);
+                        views.setImageViewBitmap(checkIds[i], WidgetDataManager.getThemedCheckedIcon(themeColor));
                     } else {
                         views.setViewVisibility(titleDoneIds[i], View.GONE);
                         views.setViewVisibility(titleIds[i], View.VISIBLE);
@@ -178,6 +181,7 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
                     if (showItemDetails && !tag.isEmpty()) {
                         views.setViewVisibility(tagIds[i], View.VISIBLE);
                         views.setTextViewText(tagIds[i], tag);
+                        views.setTextColor(tagIds[i], themeColor);
                     } else {
                         views.setViewVisibility(tagIds[i], View.GONE);
                     }
