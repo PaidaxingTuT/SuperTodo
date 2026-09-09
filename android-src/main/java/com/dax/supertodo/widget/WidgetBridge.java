@@ -15,6 +15,7 @@ public class WidgetBridge {
     public WidgetBridge(Activity activity, WebView webView) {
         this.activity = activity;
         this.webView = webView;
+        restoreDownloadState();
     }
 
     @JavascriptInterface
@@ -103,14 +104,82 @@ public class WidgetBridge {
         } catch (Throwable ignore) {}
     }
 
+    private static final String PREF_NAME = "supertodo_download";
+    private static final String PREF_DL_ID = "download_id";
+    private static final String PREF_DL_FILENAME = "download_filename";
+    private static final String PREF_DL_PATH = "download_path";
+
     private long currentDownloadId = -1;
     private String currentDownloadFilename = "";
     private String currentDownloadPath = "";
+
+    private android.content.SharedPreferences getDownloadPrefs() {
+        return activity.getSharedPreferences(PREF_NAME, android.content.Context.MODE_PRIVATE);
+    }
 
     public synchronized void setDownloadTask(long id, String filename) {
         this.currentDownloadId = id;
         this.currentDownloadFilename = (filename != null && !filename.isEmpty()) ? filename : "SuperTodo-update.apk";
         this.currentDownloadPath = "";
+        android.content.SharedPreferences.Editor ed = getDownloadPrefs().edit();
+        ed.putLong(PREF_DL_ID, id);
+        ed.putString(PREF_DL_FILENAME, this.currentDownloadFilename);
+        ed.putString(PREF_DL_PATH, "");
+        ed.apply();
+    }
+
+    private synchronized void clearDownloadState() {
+        this.currentDownloadId = -1;
+        this.currentDownloadFilename = "";
+        this.currentDownloadPath = "";
+        android.content.SharedPreferences.Editor ed = getDownloadPrefs().edit();
+        ed.remove(PREF_DL_ID);
+        ed.remove(PREF_DL_FILENAME);
+        ed.remove(PREF_DL_PATH);
+        ed.apply();
+    }
+
+    private void restoreDownloadState() {
+        if (activity == null) return;
+        android.content.SharedPreferences prefs = getDownloadPrefs();
+        long savedId = prefs.getLong(PREF_DL_ID, -1);
+        if (savedId <= 0) return;
+        String savedFilename = prefs.getString(PREF_DL_FILENAME, "SuperTodo-update.apk");
+        String savedPath = prefs.getString(PREF_DL_PATH, "");
+        try {
+            android.app.DownloadManager dm = (android.app.DownloadManager) activity.getSystemService(android.content.Context.DOWNLOAD_SERVICE);
+            if (dm == null) { clearDownloadState(); return; }
+            android.app.DownloadManager.Query query = new android.app.DownloadManager.Query();
+            query.setFilterById(savedId);
+            android.database.Cursor cursor = dm.query(query);
+            if (cursor == null) { clearDownloadState(); return; }
+            try {
+                if (!cursor.moveToFirst()) { clearDownloadState(); return; }
+                int statusIdx = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_STATUS);
+                int status = statusIdx >= 0 ? cursor.getInt(statusIdx) : -1;
+                if (status == android.app.DownloadManager.STATUS_SUCCESSFUL) {
+                    synchronized (this) {
+                        this.currentDownloadId = savedId;
+                        this.currentDownloadFilename = savedFilename;
+                        this.currentDownloadPath = savedPath;
+                    }
+                    handleDownloadComplete(savedId);
+                } else if (status == android.app.DownloadManager.STATUS_FAILED || status == -1) {
+                    clearDownloadState();
+                } else {
+                    // still running — restore state so polling works
+                    synchronized (this) {
+                        this.currentDownloadId = savedId;
+                        this.currentDownloadFilename = savedFilename;
+                        this.currentDownloadPath = savedPath;
+                    }
+                }
+            } finally {
+                cursor.close();
+            }
+        } catch (Throwable t) {
+            clearDownloadState();
+        }
     }
 
     public synchronized long getCurrentDownloadId() {
@@ -167,16 +236,14 @@ public class WidgetBridge {
                             if (idxStatus >= 0) status = cursor.getInt(idxStatus);
                         } catch (Throwable ignore) {}
 
-                        // 尝试从存储目录物理文件探测真实已写入字节数（弥补系统数据库延迟刷新或权限限制问题）
-                        if (bytesDownloaded <= 0) {
-                            try {
-                                java.io.File pubDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
-                                java.io.File target = new java.io.File(pubDir, currentDownloadFilename);
-                                if (target.exists()) {
-                                    bytesDownloaded = target.length();
-                                }
-                            } catch (Throwable ignore) {}
-                        }
+                        // Always read the real file size to compensate for DownloadManager provider lag on some ROMs
+                        try {
+                            java.io.File pubDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+                            java.io.File target = new java.io.File(pubDir, currentDownloadFilename);
+                            if (target.exists()) {
+                                bytesDownloaded = Math.max(bytesDownloaded, target.length());
+                            }
+                        } catch (Throwable ignore) {}
 
                         String resolvedPath = currentDownloadPath;
                         if (status == android.app.DownloadManager.STATUS_SUCCESSFUL) {
@@ -195,9 +262,10 @@ public class WidgetBridge {
                                     resolvedPath = f.getAbsolutePath();
                                 }
                             }
-                            if (resolvedPath != null && !resolvedPath.isEmpty()) {
-                                currentDownloadPath = resolvedPath;
-                            }
+                        if (resolvedPath != null && !resolvedPath.isEmpty()) {
+                            currentDownloadPath = resolvedPath;
+                            getDownloadPrefs().edit().putString(PREF_DL_PATH, resolvedPath).apply();
+                        }
                         }
                         String safePath = resolvedPath != null ? resolvedPath.replace("\\", "\\\\").replace("\"", "\\\"") : "";
                         return "{\"active\":true,\"status\":" + status + ",\"downloaded\":" + bytesDownloaded + ",\"total\":" + bytesTotal + ",\"path\":\"" + safePath + "\"}";
@@ -258,6 +326,7 @@ public class WidgetBridge {
         }
 
         final String finalPath = resolvedPath != null ? resolvedPath : "";
+        clearDownloadState();
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {

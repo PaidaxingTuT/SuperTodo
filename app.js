@@ -2227,7 +2227,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.8.9-beta.10';
+const APP_VERSION='v1.8.9';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -2495,6 +2495,19 @@ function updateProgressBar(percent, statusText, sizeText){
   }
 }
 
+function setDownloadHint(msg){
+  let el=$('#updateProgressHint');
+  if(!el){
+    const progBody=$('#updateProgressStage');
+    if(!progBody) return;
+    el=document.createElement('div');
+    el.id='updateProgressHint';
+    el.style.cssText='font-size:0.78em;color:var(--c-warn,#e6a817);margin-top:6px;text-align:center;min-height:1.2em;';
+    progBody.appendChild(el);
+  }
+  el.textContent=msg||'';
+}
+
 function showUpdateModal(rel){
   if(!rel) return;
   const latest=rel.tag_name||'';
@@ -2560,6 +2573,7 @@ function onDownloadSuccess(filePath){
   }
   if(updateDownloadFinished) return;
   updateDownloadFinished=true;
+  setDownloadHint('');
   if(currentUpdateProgressTimer){
     clearInterval(currentUpdateProgressTimer);
     currentUpdateProgressTimer=null;
@@ -2656,7 +2670,7 @@ async function startWebStreamDownload(downloadUrl, fileName, totalBytes){
     onDownloadSuccess(fileName);
   } catch (err) {
     if (!streamSuccess) {
-      console.warn('Fetch stream download fallback to browser anchor:', err);
+      console.warn('Fetch stream download failed, handing off to system:', err);
       try {
         const a = document.createElement('a');
         a.href = downloadUrl;
@@ -2668,21 +2682,8 @@ async function startWebStreamDownload(downloadUrl, fileName, totalBytes){
       } catch (e) {
         window.open(downloadUrl, '_blank');
       }
-
-      currentUpdateProgressTimer = setInterval(() => {
-        if (displayedPct < 99) {
-          const step = Math.max(1, Math.round((100 - displayedPct) * 0.08));
-          displayedPct = Math.min(99, displayedPct + step);
-          const curBytes = Math.round(totalBytes * (displayedPct / 100));
-          const curMbStr = ((curBytes || 0) / (1024 * 1024)).toFixed(1) + ' MB';
-          const totMbStr = ((totalBytes) / (1024 * 1024)).toFixed(1) + ' MB';
-          updateProgressBar(displayedPct, '正在下载更新安装包…', curMbStr + ' / ' + totMbStr);
-        } else {
-          clearInterval(currentUpdateProgressTimer);
-          currentUpdateProgressTimer = null;
-          onDownloadSuccess(fileName);
-        }
-      }, 80);
+      updateProgressBar(displayedPct, '已移交系统下载，应用内无法追踪进度', '');
+      setDownloadHint('下载进度请在系统通知栏或浏览器下载管理器中查看');
     }
   }
 }
@@ -2733,8 +2734,9 @@ function startUpdateDownload(){
   }catch(e){}
 
   if(nativeDownloadStarted){
-    // 原生已启动系统 DownloadManager：
-    // 通过定时轮询 window.AndroidWidgetBridge.getDownloadProgress() 获取真实字节数与状态
+    // Poll window.AndroidWidgetBridge.getDownloadProgress() for real byte counts
+    let lastProgressBytes = -1;
+    let lastProgressTime = Date.now();
     currentUpdateProgressTimer = setInterval(()=>{
       let progressInfo = null;
       try{
@@ -2765,6 +2767,11 @@ function startUpdateDownload(){
         const downloaded = progressInfo.downloaded || 0;
         const total = (progressInfo.total > 0) ? progressInfo.total : totalBytes;
         if(total > 0 && downloaded > 0){
+          if(downloaded !== lastProgressBytes){
+            lastProgressBytes = downloaded;
+            lastProgressTime = Date.now();
+            setDownloadHint('');
+          }
           const realPct = Math.min(99, Math.max(1, Math.round((downloaded / total) * 100)));
           displayedPct = Math.max(displayedPct, realPct);
           updateProgressBar(displayedPct, '正在下载更新安装包…', formatSizeProg(downloaded, total));
@@ -2772,7 +2779,13 @@ function startUpdateDownload(){
         }
       }
 
-      // 连接建立或系统缓冲状态：平滑步进向前，确保不卡在 1%
+      // Stall detection: if no byte progress for 9 seconds, show hint
+      const stallMs = Date.now() - lastProgressTime;
+      if(stallMs >= 9000){
+        setDownloadHint('下载较慢或连接异常，可稍后在系统通知栏/下载管理器中查看');
+      }
+
+      // connecting / buffering: step toward 15% ceiling
       if(displayedPct < 15){
         displayedPct += 1;
         const curBytes = Math.round(totalBytes * (displayedPct / 100));
