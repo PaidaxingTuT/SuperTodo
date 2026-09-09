@@ -2227,7 +2227,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.8.9-beta.7';
+const APP_VERSION='v1.8.9-beta.8';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -2453,7 +2453,7 @@ let currentUpdateProgressTimer=null;
 let updateFinishTimer=null;
 let downloadedApkPath=null;
 let updateDownloadFinished=false;
-let displayedPct=0;
+let displayedPct=1;
 
 function setUpdateStage(stage){
   // stage: 'info' | 'progress' | 'success'
@@ -2582,8 +2582,10 @@ function onDownloadSuccess(filePath){
     }
   }
 
-  // 若进度已达到 100%，直接提示完成并进入安装阶段
-  if(displayedPct >= 100){
+  // 强制确保进度条从当前进度平滑连贯递增至 100%
+  const startPct = Math.max(1, displayedPct);
+  if(startPct >= 100){
+    displayedPct = 100;
     updateProgressBar(100, '下载完成', doneSizeStr);
     updateFinishTimer = setTimeout(()=>{
       updateFinishTimer = null;
@@ -2592,16 +2594,17 @@ function onDownloadSuccess(filePath){
     return;
   }
 
-  // 尽管安装包已经下载完成，但进度条必须平滑过渡到 100% 才能触发安装
-  const startPct = displayedPct;
-  const totalMs = Math.max(700, Math.min(1500, Math.round(((100 - startPct) / 100) * 1500)));
-  const intervalMs = 30;
-  const totalTicks = Math.max(20, Math.round(totalMs / intervalMs));
-  let currentTick = 0;
-
+  const totalSteps = Math.max(16, 100 - startPct);
+  let step = 0;
   currentUpdateProgressTimer = setInterval(()=>{
-    currentTick++;
-    if(currentTick >= totalTicks){
+    step++;
+    const progress = Math.min(1, step / totalSteps);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const nextPct = Math.min(100, Math.round(startPct + (100 - startPct) * ease));
+    displayedPct = Math.max(displayedPct, nextPct);
+    const curBytes = Math.round(totalBytes * (displayedPct / 100));
+
+    if(displayedPct >= 100){
       clearInterval(currentUpdateProgressTimer);
       currentUpdateProgressTimer = null;
       displayedPct = 100;
@@ -2609,16 +2612,79 @@ function onDownloadSuccess(filePath){
       updateFinishTimer = setTimeout(()=>{
         updateFinishTimer = null;
         finalizeInstall();
-      }, 500);
+      }, 450);
     } else {
-      const progress = currentTick / totalTicks;
-      const ease = 1 - Math.pow(1 - progress, 2);
-      const nextPct = Math.min(99, Math.round(startPct + (100 - startPct) * ease));
-      displayedPct = Math.max(displayedPct, nextPct);
-      const curBytes = Math.round(totalBytes * (displayedPct / 100));
       updateProgressBar(displayedPct, '正在下载更新安装包…', formatSizeProg(curBytes, totalBytes));
     }
-  }, intervalMs);
+  }, 22);
+}
+
+async function startWebStreamDownload(downloadUrl, fileName, totalBytes){
+  let streamSuccess = false;
+  try {
+    const res = await fetch(downloadUrl);
+    if (!res.ok || !res.body) throw new Error('HTTP ' + res.status);
+    const contentLength = res.headers.get('content-length');
+    const total = contentLength ? parseInt(contentLength, 10) : totalBytes;
+    const reader = res.body.getReader();
+    let received = 0;
+    const chunks = [];
+    streamSuccess = true;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      received += value.length;
+      const realPct = Math.min(99, Math.max(1, Math.round((received / total) * 100)));
+      displayedPct = Math.max(displayedPct, realPct);
+      const curMbStr = ((received || 0) / (1024 * 1024)).toFixed(1) + ' MB';
+      const totMbStr = ((total || totalBytes) / (1024 * 1024)).toFixed(1) + ' MB';
+      updateProgressBar(displayedPct, '正在下载更新安装包…', curMbStr + ' / ' + totMbStr);
+    }
+
+    const blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+
+    onDownloadSuccess(fileName);
+  } catch (err) {
+    if (!streamSuccess) {
+      console.warn('Fetch stream download fallback to browser anchor:', err);
+      try {
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = fileName;
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch (e) {
+        window.open(downloadUrl, '_blank');
+      }
+
+      currentUpdateProgressTimer = setInterval(() => {
+        if (displayedPct < 99) {
+          const step = Math.max(1, Math.round((100 - displayedPct) * 0.08));
+          displayedPct = Math.min(99, displayedPct + step);
+          const curBytes = Math.round(totalBytes * (displayedPct / 100));
+          const curMbStr = ((curBytes || 0) / (1024 * 1024)).toFixed(1) + ' MB';
+          const totMbStr = ((totalBytes) / (1024 * 1024)).toFixed(1) + ' MB';
+          updateProgressBar(displayedPct, '正在下载更新安装包…', curMbStr + ' / ' + totMbStr);
+        } else {
+          clearInterval(currentUpdateProgressTimer);
+          currentUpdateProgressTimer = null;
+          onDownloadSuccess(fileName);
+        }
+      }, 80);
+    }
+  }
 }
 
 function startUpdateDownload(){
@@ -2646,8 +2712,8 @@ function startUpdateDownload(){
 
   setUpdateStage('progress');
   updateDownloadFinished=false;
-  displayedPct=0;
-  updateProgressBar(0, '正在连接更新服务器…', '0.0 MB / ' + totalMbStr);
+  displayedPct=1;
+  updateProgressBar(1, '正在连接更新服务器…', '0.1 MB / ' + totalMbStr);
 
   if(currentUpdateProgressTimer){
     clearInterval(currentUpdateProgressTimer);
@@ -2669,7 +2735,6 @@ function startUpdateDownload(){
   if(nativeDownloadStarted){
     // 原生已启动系统 DownloadManager：
     // 通过定时轮询 window.AndroidWidgetBridge.getDownloadProgress() 获取真实字节数与状态
-
     currentUpdateProgressTimer = setInterval(()=>{
       let progressInfo = null;
       try{
@@ -2682,19 +2747,16 @@ function startUpdateDownload(){
       }catch(e){}
 
       if(progressInfo && progressInfo.active){
-        // status 常量: 1: PENDING, 2: RUNNING, 4: PAUSED, 8: SUCCESSFUL, 16: FAILED
         if(progressInfo.status === 8){
-          // 真实下载完成！
           clearInterval(currentUpdateProgressTimer);
           currentUpdateProgressTimer = null;
           onDownloadSuccess(progressInfo.path || fileName);
           return;
         }
         if(progressInfo.status === 16){
-          // 下载失败
           clearInterval(currentUpdateProgressTimer);
           currentUpdateProgressTimer = null;
-          updateProgressBar(0, '下载失败', '');
+          updateProgressBar(1, '下载失败', '');
           alertDlg('下载失败', '安装包下载失败，请检查网络后重试，或前往浏览器下载。');
           setUpdateStage('info');
           return;
@@ -2709,28 +2771,17 @@ function startUpdateDownload(){
           return;
         }
       }
-    }, 200);
-  }else{
-    // Web / 备用环境（非原生 Android）：通过浏览器常规下载
-    let currentPct = 0;
-    currentUpdateProgressTimer = setInterval(()=>{
-      currentPct += Math.max(1.5, (98 - currentPct) * 0.08);
-      if(currentPct >= 96){
-        clearInterval(currentUpdateProgressTimer);
-        currentUpdateProgressTimer=null;
-        const curBytes = Math.round(totalBytes * 0.96);
-        updateProgressBar(96, '已调起浏览器下载', formatSizeProg(curBytes, totalBytes));
-      } else {
-        const curBytes = Math.round(totalBytes * (currentPct / 100));
-        updateProgressBar(currentPct, '正在调起下载…', formatSizeProg(curBytes, totalBytes));
-      }
-    }, 120);
 
-    try{
-      const a=document.createElement('a');
-      a.href=downloadUrl; a.download=fileName; a.rel='noopener';
-      document.body.appendChild(a); a.click(); a.remove();
-    }catch(e){ window.open(downloadUrl,'_blank'); }
+      // 连接建立或系统缓冲状态：平滑步进向前，确保不卡在 1%
+      if(displayedPct < 15){
+        displayedPct += 1;
+        const curBytes = Math.round(totalBytes * (displayedPct / 100));
+        updateProgressBar(displayedPct, '正在连接更新服务器…', formatSizeProg(curBytes, totalBytes));
+      }
+    }, 100);
+  }else{
+    // Web / 页面内下载：基于 Fetch + ReadableStream 实时流式读取下载进度
+    startWebStreamDownload(downloadUrl, fileName, totalBytes);
   }
 }
 
