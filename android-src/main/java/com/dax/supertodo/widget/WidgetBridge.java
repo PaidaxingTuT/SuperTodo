@@ -113,6 +113,12 @@ public class WidgetBridge {
     private String currentDownloadFilename = "";
     private String currentDownloadPath = "";
 
+    private volatile long nativeBytesDownloaded = 0;
+    private volatile long nativeBytesTotal = 0;
+    private volatile int nativeDownloadStatus = 0; // 0=none, 1=pending, 2=running, 8=successful, 16=failed
+    private volatile String nativeDownloadFilePath = "";
+    private Thread nativeDownloadThread = null;
+
     private android.content.SharedPreferences getDownloadPrefs() {
         return activity.getSharedPreferences(PREF_NAME, android.content.Context.MODE_PRIVATE);
     }
@@ -187,32 +193,157 @@ public class WidgetBridge {
     }
 
     @JavascriptInterface
-    public boolean downloadFile(String url, String filename) {
-        if (activity == null || url == null || url.isEmpty()) return false;
-        try {
-            android.app.DownloadManager dm = (android.app.DownloadManager) activity.getSystemService(android.content.Context.DOWNLOAD_SERVICE);
-            if (dm == null) return false;
-            android.net.Uri uri = android.net.Uri.parse(url);
-            android.app.DownloadManager.Request req = new android.app.DownloadManager.Request(uri);
-            req.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            String title = (filename != null && !filename.isEmpty()) ? filename : "SuperTodo 更新";
-            req.setTitle(title);
-            req.setDescription("正在下载更新安装包…");
-            if (filename != null && !filename.isEmpty()) {
-                req.setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, filename);
-            }
-            req.setMimeType("application/vnd.android.package-archive");
-            long id = dm.enqueue(req);
-            setDownloadTask(id, filename);
-            return true;
-        } catch (Throwable t) {
-            return false;
+    public boolean downloadFile(final String url, final String filename) {
+        if (activity == null || url == null || url.trim().isEmpty()) return false;
+
+        // Stop previous download thread if still alive
+        if (nativeDownloadThread != null && nativeDownloadThread.isAlive()) {
+            try {
+                nativeDownloadThread.interrupt();
+            } catch (Throwable ignore) {}
         }
+
+        final String targetName = (filename != null && !filename.trim().isEmpty()) ? filename : "SuperTodo-update.apk";
+        this.currentDownloadFilename = targetName;
+
+        nativeBytesDownloaded = 0;
+        nativeBytesTotal = 0;
+        nativeDownloadStatus = 1; // STATUS_PENDING
+
+        java.io.File dir = activity.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS);
+        if (dir == null) {
+            dir = activity.getCacheDir();
+        }
+        if (dir != null && !dir.exists()) {
+            dir.mkdirs();
+        }
+        final java.io.File targetFile = new java.io.File(dir, targetName);
+        nativeDownloadFilePath = targetFile.getAbsolutePath();
+        this.currentDownloadPath = targetFile.getAbsolutePath();
+
+        nativeDownloadThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                java.net.HttpURLConnection conn = null;
+                java.io.InputStream in = null;
+                java.io.FileOutputStream out = null;
+                try {
+                    nativeDownloadStatus = 2; // STATUS_RUNNING
+                    java.net.URL currentUrl = new java.net.URL(url);
+                    int redirects = 0;
+                    while (redirects < 8) {
+                        conn = (java.net.HttpURLConnection) currentUrl.openConnection();
+                        conn.setConnectTimeout(15000);
+                        conn.setReadTimeout(20000);
+                        conn.setInstanceFollowRedirects(true);
+                        conn.setRequestProperty("User-Agent", "SuperTodo-App/" + targetName);
+                        int code = conn.getResponseCode();
+                        if (code == java.net.HttpURLConnection.HTTP_MOVED_PERM 
+                            || code == java.net.HttpURLConnection.HTTP_MOVED_TEMP 
+                            || code == 307 
+                            || code == 308) {
+                            String loc = conn.getHeaderField("Location");
+                            if (loc != null && !loc.trim().isEmpty()) {
+                                conn.disconnect();
+                                currentUrl = new java.net.URL(loc);
+                                redirects++;
+                                continue;
+                            }
+                        }
+                        if (code < 200 || code >= 300) {
+                            throw new java.io.IOException("HTTP response " + code);
+                        }
+                        break;
+                    }
+
+                    long cl = conn.getContentLengthLong();
+                    if (cl > 0) {
+                        nativeBytesTotal = cl;
+                    }
+
+                    if (targetFile.exists()) {
+                        targetFile.delete();
+                    }
+
+                    in = new java.io.BufferedInputStream(conn.getInputStream());
+                    out = new java.io.FileOutputStream(targetFile);
+                    byte[] buffer = new byte[32768];
+                    int len;
+                    while ((len = in.read(buffer)) != -1) {
+                        if (Thread.currentThread().isInterrupted()) {
+                            throw new java.io.InterruptedIOException("Cancelled");
+                        }
+                        out.write(buffer, 0, len);
+                        nativeBytesDownloaded += len;
+                    }
+                    out.flush();
+
+                    nativeDownloadStatus = 8; // STATUS_SUCCESSFUL
+
+                    // Try copying to public downloads folder as a convenience if accessible
+                    try {
+                        java.io.File pubDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+                        if (pubDir != null && pubDir.exists() && pubDir.canWrite()) {
+                            java.io.File pubTarget = new java.io.File(pubDir, targetName);
+                            copyFile(targetFile, pubTarget);
+                        }
+                    } catch (Throwable ignore) {}
+
+                    // Notify webview on UI thread
+                    if (activity != null && webView != null) {
+                        final String finalPath = targetFile.getAbsolutePath();
+                        activity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    String script = "if(window.onDownloadSuccess){ window.onDownloadSuccess('" + finalPath.replace("\\", "\\\\").replace("'", "\\'") + "'); }";
+                                    webView.evaluateJavascript(script, null);
+                                } catch (Throwable ignore) {}
+                            }
+                        });
+                    }
+                } catch (Throwable t) {
+                    if (!Thread.currentThread().isInterrupted()) {
+                        nativeDownloadStatus = 16; // STATUS_FAILED
+                    }
+                } finally {
+                    if (in != null) try { in.close(); } catch (Throwable ignore) {}
+                    if (out != null) try { out.close(); } catch (Throwable ignore) {}
+                    if (conn != null) try { conn.disconnect(); } catch (Throwable ignore) {}
+                }
+            }
+        });
+        nativeDownloadThread.start();
+        return true;
     }
 
     @JavascriptInterface
     public String getDownloadProgress() {
-        if (activity == null || currentDownloadId <= 0) {
+        if (activity == null) {
+            return "{\"active\":false}";
+        }
+
+        // Live streaming download progress from native background thread
+        if (nativeDownloadStatus > 0) {
+            boolean active = (nativeDownloadStatus == 1 || nativeDownloadStatus == 2 || nativeDownloadStatus == 8);
+            String safePath = (nativeDownloadFilePath != null) ? nativeDownloadFilePath.replace("\\", "\\\\").replace("\"", "\\\"") : "";
+            return "{\"active\":" + active 
+                + ",\"status\":" + nativeDownloadStatus 
+                + ",\"downloaded\":" + nativeBytesDownloaded 
+                + ",\"total\":" + nativeBytesTotal 
+                + ",\"path\":\"" + safePath + "\"}";
+        }
+
+        // Fallback to DownloadManager for system-initiated tasks
+        if (currentDownloadId <= 0) {
+            try {
+                java.io.File pubDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+                java.io.File target = new java.io.File(pubDir, currentDownloadFilename);
+                if (target.exists() && target.length() > 0) {
+                    String safeFn = currentDownloadFilename != null ? currentDownloadFilename.replace("\\", "\\\\").replace("\"", "\\\"") : "";
+                    return "{\"active\":true,\"status\":4,\"downloaded\":" + target.length() + ",\"total\":0,\"path\":\"\"}";
+                }
+            } catch (Throwable ignore) {}
             return "{\"active\":false}";
         }
         try {
@@ -262,10 +393,10 @@ public class WidgetBridge {
                                     resolvedPath = f.getAbsolutePath();
                                 }
                             }
-                        if (resolvedPath != null && !resolvedPath.isEmpty()) {
-                            currentDownloadPath = resolvedPath;
-                            getDownloadPrefs().edit().putString(PREF_DL_PATH, resolvedPath).apply();
-                        }
+                            if (resolvedPath != null && !resolvedPath.isEmpty()) {
+                                currentDownloadPath = resolvedPath;
+                                getDownloadPrefs().edit().putString(PREF_DL_PATH, resolvedPath).apply();
+                            }
                         }
                         String safePath = resolvedPath != null ? resolvedPath.replace("\\", "\\\\").replace("\"", "\\\"") : "";
                         return "{\"active\":true,\"status\":" + status + ",\"downloaded\":" + bytesDownloaded + ",\"total\":" + bytesTotal + ",\"path\":\"" + safePath + "\"}";
@@ -446,6 +577,24 @@ public class WidgetBridge {
                 apkFile = new java.io.File(filePath);
             }
             if (apkFile == null || !apkFile.exists()) {
+                if (nativeDownloadFilePath != null && !nativeDownloadFilePath.trim().isEmpty()) {
+                    java.io.File nf = new java.io.File(nativeDownloadFilePath);
+                    if (nf.exists()) {
+                        apkFile = nf;
+                    }
+                }
+            }
+            if (apkFile == null || !apkFile.exists()) {
+                java.io.File appDl = activity.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS);
+                if (appDl != null && appDl.exists()) {
+                    java.io.File[] files = appDl.listFiles((dir, name) -> name.toLowerCase().endsWith(".apk") && name.toLowerCase().contains("supertodo"));
+                    if (files != null && files.length > 0) {
+                        java.util.Arrays.sort(files, (f1, f2) -> Long.compare(f2.lastModified(), f1.lastModified()));
+                        apkFile = files[0];
+                    }
+                }
+            }
+            if (apkFile == null || !apkFile.exists()) {
                 java.io.File downloads = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
                 if (downloads != null && downloads.exists()) {
                     java.io.File[] files = downloads.listFiles((dir, name) -> name.toLowerCase().endsWith(".apk") && name.toLowerCase().contains("supertodo"));
@@ -484,6 +633,24 @@ public class WidgetBridge {
                 return true;
             } catch (Throwable ignore) {}
             return false;
+        }
+    }
+
+    private void copyFile(java.io.File src, java.io.File dst) throws java.io.IOException {
+        java.io.InputStream in = new java.io.FileInputStream(src);
+        try {
+            java.io.OutputStream out = new java.io.FileOutputStream(dst);
+            try {
+                byte[] buf = new byte[32768];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+            } finally {
+                out.close();
+            }
+        } finally {
+            in.close();
         }
     }
 

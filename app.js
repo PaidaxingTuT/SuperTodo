@@ -2227,7 +2227,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.8.10';
+const APP_VERSION='v1.9.0';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -2779,14 +2779,14 @@ function startUpdateDownload(){
         }
       }
 
-      // Stall detection: if no byte progress for 9 seconds, show hint
+      // Stall detection: if no byte progress for 15 seconds, show hint
       const stallMs = Date.now() - lastProgressTime;
-      if(stallMs >= 9000){
+      if(stallMs >= 15000){
         setDownloadHint('下载较慢或连接异常，可稍后在系统通知栏/下载管理器中查看');
       }
 
-      // connecting / buffering: step toward 15% ceiling
-      if(displayedPct < 15){
+      // connecting / buffering: gentle step toward 3% ceiling only
+      if(displayedPct < 3){
         displayedPct += 1;
         const curBytes = Math.round(totalBytes * (displayedPct / 100));
         updateProgressBar(displayedPct, '正在连接更新服务器…', formatSizeProg(curBytes, totalBytes));
