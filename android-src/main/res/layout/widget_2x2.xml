@@ -95,10 +95,10 @@
             android:layout_width="0dp"
             android:layout_height="32dp"
             android:layout_weight="1"
-            android:background="@drawable/widget_item_bg"
+            android:background="@drawable/widget_tag_bg"
             android:gravity="center"
             android:text="完成"
-            android:textColor="@color/widget_cost_color"
+            android:textColor="@color/widget_badge_text"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>

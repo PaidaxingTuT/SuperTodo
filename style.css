@@ -23,6 +23,10 @@
   --shadow:0 1px 3px rgba(25,45,90,.10),0 2px 10px rgba(25,45,90,.06);
   --shadow2:0 8px 22px rgba(25,45,90,.18);
   --radius:18px;
+  --surface-rgb:255,255,255;
+  --bg-rgb:242,245,251;
+  --bg-opacity:0.8;
+  --card-alpha:0.88;
   --safe-t:env(safe-area-inset-top,0px);
   --safe-b:env(safe-area-inset-bottom,0px);
   color-scheme:light;
@@ -44,6 +48,8 @@
   --star:#ffc34d;
   --star-off:#555d69;
   --switch-off:#4b525e;
+  --surface-rgb:27,30,36;
+  --bg-rgb:17,19,24;
   --muted-icon-filter:brightness(0) saturate(100%) invert(78%) sepia(8%) saturate(359%) hue-rotate(178deg) brightness(93%);
   --shadow:0 1px 3px rgba(0,0,0,.32),0 2px 12px rgba(0,0,0,.22);
   --shadow2:0 8px 24px rgba(0,0,0,.42);
@@ -1867,4 +1873,83 @@ body.home-view .empty{padding-top:calc(14vh + 40px)}
 }
 .card-check.just-checked{
   animation:check-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ===== 自定义主页面背景与透明度支持 ===== */
+.app-bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.3s ease, background 0.3s ease;
+}
+
+[data-has-custom-bg="true"] body {
+  background-image: none;
+}
+
+[data-has-custom-bg="true"] .app-bg-layer {
+  opacity: var(--bg-opacity, 0.8);
+}
+
+[data-has-custom-bg="true"] .main-scroll {
+  background: transparent;
+}
+
+[data-has-custom-bg="true"] .home-groupby {
+  background: rgba(var(--bg-rgb), 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+[data-has-custom-bg="true"] .home-groupby .db-seg {
+  background: rgba(var(--surface-rgb), 0.65);
+}
+
+[data-has-custom-bg="true"] .sec-card {
+  background: rgba(var(--surface-rgb), var(--card-alpha, 0.88));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-has-custom-bg="true"] .item {
+  background: rgba(var(--surface-rgb), var(--card-alpha, 0.88));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-has-custom-bg="true"] .item-row {
+  background: rgba(var(--surface-rgb), var(--card-alpha, 0.88));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-has-custom-bg="true"] .item-row .swipe-front {
+  background: rgba(var(--surface-rgb), var(--card-alpha, 0.88));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-has-custom-bg="true"] .sec-item {
+  background: transparent;
+}
+
+[data-has-custom-bg="true"] .sec-item .swipe-front {
+  background: transparent;
+}
+
+[data-has-custom-bg="true"] .cost-summary-card {
+  background: rgba(var(--surface-rgb), var(--card-alpha, 0.88));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-has-custom-bg="true"] .empty-card {
+  background: rgba(var(--surface-rgb), var(--card-alpha, 0.88));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }

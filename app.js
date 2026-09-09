@@ -20,6 +20,7 @@ let state={
   widgetRemoveDone:false,
   showCostSummary:true,
   hapticFeedback:true,
+  customBg:{type:'default',color:'#f2f5fb',image:'',opacity:80},
   ai:{enabled:false,base:'',key:'',model:''},
   quadrantWidget:{q1:[],q2:[],q3:[],q4:[]}
 };
@@ -78,7 +79,14 @@ function itemScenes(it){
 }
 
 function save(){
-  localStorage.setItem(KEY,JSON.stringify(state));
+  try{
+    localStorage.setItem(KEY,JSON.stringify(state));
+  }catch(err){
+    console.error('LocalStorage save failed:', err);
+    if(err && (err.name==='QuotaExceededError' || err.code===22)){
+      alertDlg('存储空间不足','背景图片可能过大，请尝试更换较小尺寸的图片。');
+    }
+  }
   syncToNativeWidget();
 }
 function load(){
@@ -113,6 +121,8 @@ function load(){
     if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate;
     if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone;
     if(d.showCostSummary!==undefined)state.showCostSummary=!!d.showCostSummary;
+    if(d.customBg&&typeof d.customBg==='object')state.customBg=Object.assign({type:'default',color:'#f2f5fb',image:'',opacity:80},d.customBg);
+    else if(!state.customBg)state.customBg={type:'default',color:'#f2f5fb',image:'',opacity:80};
     state.trash=Array.isArray(d.trash)?d.trash:[]; if(d.hapticFeedback!==undefined)state.hapticFeedback=!!d.hapticFeedback;
     state.sortKey=d.sortKey||'默认'; state.sortAsc=d.sortAsc!==false;
     if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
@@ -134,7 +144,18 @@ function syncToNativeWidget(){
   syncWidgetTimer=setTimeout(()=>{
     try{
       if(window.AndroidWidgetBridge&&window.AndroidWidgetBridge.syncData){
-        window.AndroidWidgetBridge.syncData(JSON.stringify(state));
+        let toSend = state;
+        if(state.customBg && state.customBg.image){
+          toSend = Object.assign({}, state, {
+            customBg: {
+              type: state.customBg.type,
+              color: state.customBg.color,
+              opacity: state.customBg.opacity,
+              image: ''
+            }
+          });
+        }
+        window.AndroidWidgetBridge.syncData(JSON.stringify(toSend));
       }
     }catch(e){}
   },100);
@@ -1482,6 +1503,7 @@ function renderSpacingControls(){
 function init(){
   load();
   applyColorMode();
+  applyCustomBg();
   applySpacing();
   buildStars();
   render();
@@ -1498,6 +1520,7 @@ function openDrawer(){ pushLayer(); $('#drawerMask').hidden=false; $('#drawer').
 function closeDrawer(){ $('#drawerMask').hidden=true; $('#drawer').hidden=true; renderDrawer(); if(!backSuppress)syncBack(); }
 document.addEventListener('DOMContentLoaded',()=>{
   init();
+  initCustomBgListeners();
   window.addEventListener('popstate',()=>{ if(codeBack){ codeBack=false; return } closeTopLayer(); });
   $('#hamburger').addEventListener('click',openDrawer);
   $('#backBtn').addEventListener('click',()=>{ backHome(); syncBack(); });
@@ -2009,6 +2032,7 @@ function renderUpdateSettings(){
 
 function openSettings(){
   pushLayer();
+  renderCustomBgSettings();
   renderColorModeSeg();
   renderSpacingControls();
   renderPalette();
@@ -2020,8 +2044,190 @@ function openSettings(){
 }
 function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
 
+
+
+/* ========== 自定义主页面背景与透明度支持 ========== */
+function applyCustomBg(){
+  const bg = state.customBg || (state.customBg = { type: 'default', color: '#f2f5fb', image: '', opacity: 80 });
+  const layer = document.getElementById('appBgLayer');
+  const root = document.documentElement;
+  const opacityVal = (typeof bg.opacity === 'number' ? bg.opacity : 80) / 100;
+  const cardAlpha = Math.max(0.45, Math.min(0.96, 0.65 + (opacityVal * 0.3)));
+
+  root.style.setProperty('--bg-opacity', opacityVal);
+  root.style.setProperty('--card-alpha', cardAlpha);
+
+  if (bg.type === 'color' && bg.color) {
+    root.setAttribute('data-has-custom-bg', 'true');
+    if (layer) {
+      layer.style.backgroundImage = 'none';
+      layer.style.backgroundColor = bg.color;
+      layer.style.opacity = opacityVal;
+    }
+  } else if (bg.type === 'image' && bg.image) {
+    root.setAttribute('data-has-custom-bg', 'true');
+    if (layer) {
+      layer.style.backgroundColor = 'transparent';
+      layer.style.backgroundImage = 'url("' + bg.image + '")';
+      layer.style.opacity = opacityVal;
+    }
+  } else {
+    root.removeAttribute('data-has-custom-bg');
+    if (layer) {
+      layer.style.backgroundImage = 'none';
+      layer.style.backgroundColor = 'transparent';
+      layer.style.opacity = '0';
+    }
+  }
+}
+
+function renderCustomBgSettings(){
+  const bg = state.customBg || (state.customBg = { type: 'default', color: '#f2f5fb', image: '', opacity: 80 });
+  const typeSeg = document.getElementById('bgTypeSeg');
+  if (typeSeg) {
+    typeSeg.querySelectorAll('.seg').forEach(btn => {
+      btn.classList.toggle('on', (bg.type || 'default') === btn.dataset.bg);
+    });
+  }
+  const colorPanel = document.getElementById('bgColorPanel');
+  const imagePanel = document.getElementById('bgImagePanel');
+  const opacityRow = document.getElementById('bgOpacityRow');
+  const opacitySlider = document.getElementById('sliderBgOpacity');
+  const opacityVal = document.getElementById('valBgOpacity');
+  const customBgColor = document.getElementById('customBgColor');
+  const bgThumb = document.getElementById('bgThumb');
+  const bgPreviewBox = document.getElementById('bgPreviewBox');
+  const removeBgBtn = document.getElementById('removeBgBtn');
+
+  if (colorPanel) colorPanel.style.display = (bg.type === 'color') ? 'block' : 'none';
+  if (imagePanel) imagePanel.style.display = (bg.type === 'image') ? 'block' : 'none';
+  if (opacityRow) opacityRow.style.display = (bg.type !== 'default') ? 'flex' : 'none';
+
+  if (opacitySlider) opacitySlider.value = bg.opacity || 80;
+  if (opacityVal) opacityVal.textContent = (bg.opacity || 80) + '%';
+  if (customBgColor && bg.color) customBgColor.value = bg.color;
+
+  if (bg.type === 'image' && bg.image) {
+    if (bgThumb) bgThumb.style.backgroundImage = 'url("' + bg.image + '")';
+    if (bgPreviewBox) bgPreviewBox.style.display = 'flex';
+    if (removeBgBtn) removeBgBtn.style.display = 'block';
+  } else {
+    if (bgPreviewBox) bgPreviewBox.style.display = 'none';
+    if (removeBgBtn) removeBgBtn.style.display = 'none';
+  }
+}
+
+function initCustomBgListeners(){
+  const typeSeg = document.getElementById('bgTypeSeg');
+  if (typeSeg) {
+    typeSeg.addEventListener('click', e => {
+      const btn = e.target.closest('.seg');
+      if (!btn) return;
+      const type = btn.dataset.bg;
+      if (!state.customBg) state.customBg = { type: 'default', color: '#f2f5fb', image: '', opacity: 80 };
+      state.customBg.type = type;
+      applyCustomBg();
+      save();
+      renderCustomBgSettings();
+    });
+  }
+
+  const customBgBtn = document.getElementById('customBgColorBtn');
+  const customBgInput = document.getElementById('customBgColor');
+  if (customBgBtn && customBgInput) {
+    customBgBtn.addEventListener('click', () => customBgInput.click());
+    customBgInput.addEventListener('input', e => {
+      if (!e.target.value) return;
+      if (!state.customBg) state.customBg = { type: 'color', color: e.target.value, image: '', opacity: 80 };
+      state.customBg.color = e.target.value;
+      state.customBg.type = 'color';
+      applyCustomBg();
+      save();
+    });
+  }
+
+  const uploadBgBtn = document.getElementById('uploadBgBtn');
+  const bgFileInput = document.getElementById('bgFileInput');
+  const removeBgBtn = document.getElementById('removeBgBtn');
+  if (uploadBgBtn && bgFileInput) {
+    uploadBgBtn.addEventListener('click', () => bgFileInput.click());
+    bgFileInput.addEventListener('change', e => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      compressImageFile(file, 1280, 0.82, base64Url => {
+        if (!state.customBg) state.customBg = { type: 'image', color: '#f2f5fb', image: '', opacity: 80 };
+        state.customBg.image = base64Url;
+        state.customBg.type = 'image';
+        applyCustomBg();
+        save();
+        renderCustomBgSettings();
+        bgFileInput.value = '';
+      });
+    });
+  }
+
+  if (removeBgBtn) {
+    removeBgBtn.addEventListener('click', () => {
+      if (state.customBg) {
+        state.customBg.image = '';
+      }
+      applyCustomBg();
+      save();
+      renderCustomBgSettings();
+    });
+  }
+
+  const opacitySlider = document.getElementById('sliderBgOpacity');
+  const opacityVal = document.getElementById('valBgOpacity');
+  if (opacitySlider) {
+    opacitySlider.addEventListener('input', e => {
+      const val = parseInt(e.target.value, 10) || 80;
+      if (opacityVal) opacityVal.textContent = val + '%';
+      if (!state.customBg) state.customBg = { type: 'default', color: '#f2f5fb', image: '', opacity: val };
+      state.customBg.opacity = val;
+      applyCustomBg();
+      save();
+    });
+  }
+}
+
+function compressImageFile(file, maxWidth, quality, callback){
+  try {
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      const img = new Image();
+      img.onload = function() {
+        let w = img.width, h = img.height;
+        if (w > maxWidth || h > maxWidth) {
+          if (w > h) {
+            h = Math.round((h * maxWidth) / w);
+            w = maxWidth;
+          } else {
+            w = Math.round((w * maxWidth) / h);
+            h = maxWidth;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        callback(dataUrl);
+      };
+      img.onerror = function() {
+        callback(evt.target.result);
+      };
+      img.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+  } catch (err) {
+    console.error('Image compression failed', err);
+  }
+}
+
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.8.9-beta.5';
+const APP_VERSION='v1.8.9-beta.6';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -3458,6 +3664,7 @@ function exportData(){
     widgetRemoveDone: state.widgetRemoveDone,
     showCostSummary: state.showCostSummary,
     hapticFeedback: state.hapticFeedback,
+    customBg: state.customBg,
     trash: state.trash || [],
     ai: state.ai,
     quadrantWidget: state.quadrantWidget
@@ -3539,12 +3746,16 @@ function applyImportedData(d){
   if(d.showCostSummary!==undefined)state.showCostSummary=!!d.showCostSummary;
   if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
   if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget;
+  if(d.customBg&&typeof d.customBg==='object')state.customBg=Object.assign({type:'default',color:'#f2f5fb',image:'',opacity:80},d.customBg);
+  else if(!state.customBg)state.customBg={type:'default',color:'#f2f5fb',image:'',opacity:80};
   save();
   applyColorMode();
+  applyCustomBg();
   applySpacing();
   render();
   renderSetGroups();
   renderPalette();
+  renderCustomBgSettings();
   renderUpdateSettings();
 }
 

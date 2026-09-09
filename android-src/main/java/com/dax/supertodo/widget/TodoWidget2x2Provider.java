@@ -35,6 +35,7 @@ public class TodoWidget2x2Provider extends AppWidgetProvider {
         int themeColor = WidgetDataManager.getWidgetThemeColor(context);
         views.setTextColor(R.id.widget_2x2_count, themeColor);
         views.setTextColor(R.id.btn_2x2_expand, themeColor);
+        views.setTextColor(R.id.btn_2x2_complete, themeColor);
         views.setTextColor(R.id.widget_2x2_hero_label, themeColor);
 
         List<TodoItem> items = WidgetDataManager.load2x2Items(context);

@@ -10,11 +10,17 @@ const widget4x2 = read('TodoWidget4x2Provider.java');
 const widget4x4 = read('TodoWidget4x4Provider.java');
 const quadrant = read('TodoWidgetQuadrantProvider.java');
 const service = read('TodoWidgetService.java');
+const layoutDir = 'android-src/main/res/layout/';
+const widget2x2Layout = fs.readFileSync(layoutDir + 'widget_2x2.xml', 'utf8');
+const quadrantLayout = fs.readFileSync(layoutDir + 'widget_quadrant.xml', 'utf8');
 
 assert(manager.includes('optString("theme", "")'), '必须从同步 JSON 读取主题色');
 assert(manager.includes('theme.matches("^#[0-9a-fA-F]{6}$")'), '主题色必须校验为六位十六进制');
 assert(manager.includes('getThemedCheckedIcon'), '必须保留白色对勾并只替换圆形主色');
 assert(widget2x2.includes('setTextColor(R.id.widget_2x2_count, themeColor)'), '2x2 数量徽标必须跟随主题色');
+assert(widget2x2.includes('setTextColor(R.id.btn_2x2_complete, themeColor)'), '2x2 完成按钮必须跟随主题色');
+assert(/id="@\+id\/btn_2x2_complete"[\s\S]*?background="@drawable\/widget_tag_bg"/.test(widget2x2Layout), '2x2 完成按钮必须与展开清单使用相同背景');
+assert(!quadrantLayout.includes('android:background="#FFFFFF"'), '四象限方向标签背景不能硬编码为日间白色');
 
 for (const source of [widget4x2, widget4x4, service]) {
     assert(source.includes('setTextColor') && source.includes('themeColor'), '列表标签必须跟随主题色');

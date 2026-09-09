@@ -28,6 +28,7 @@ try{
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="appBgLayer" class="app-bg-layer"></div>
 
 <!-- ===== 侧边汉堡抽屉（类型） ===== -->
 <div class="drawer-mask" id="drawerMask" hidden></div>
@@ -223,6 +224,47 @@ try{
     <div class="set-divide"></div>
 
     <div class="set-section">
+      <h3>主页面背景</h3>
+      <div class="db-seg" id="bgTypeSeg" style="margin: 8px 0 12px;">
+        <button class="seg on" data-bg="default">默认背景</button>
+        <button class="seg" data-bg="color">自定义纯色</button>
+        <button class="seg" data-bg="image">背景图片</button>
+      </div>
+
+      <!-- 自定义纯色配置面板 -->
+      <div id="bgColorPanel" style="display:none; margin-bottom: 12px;">
+        <div class="pal-custom" style="margin-top: 4px;">
+          <button class="btn-line" id="customBgColorBtn">选择背景颜色</button>
+          <input type="color" id="customBgColor" value="#f2f5fb" hidden>
+        </div>
+      </div>
+
+      <!-- 背景图片配置面板 -->
+      <div id="bgImagePanel" style="display:none; margin-bottom: 12px;">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="btn-line" id="uploadBgBtn" style="flex:1;">选择背景图片</button>
+          <button class="btn-line danger" id="removeBgBtn" style="flex:0 0 76px; display:none;">移除图片</button>
+          <input type="file" id="bgFileInput" accept="image/*" hidden>
+        </div>
+        <div id="bgPreviewBox" style="margin-top:10px; display:none; align-items:center; gap:10px;">
+          <div id="bgThumb" style="width:48px; height:48px; border-radius:12px; border:1px solid var(--line); background-size:cover; background-position:center; flex-shrink:0;"></div>
+          <span id="bgFileName" style="font-size:12px; color:var(--text2); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">已设置自定义背景图</span>
+        </div>
+      </div>
+
+      <!-- 背景透明度调节 -->
+      <div class="slider-row" id="bgOpacityRow" style="display:none; margin-top:10px;">
+        <div class="slider-label">
+          <span>背景透明度</span>
+          <span class="slider-val" id="valBgOpacity">80%</span>
+        </div>
+        <input type="range" class="density-slider" id="sliderBgOpacity" min="10" max="100" step="5" value="80">
+      </div>
+    </div>
+
+    <div class="set-divide"></div>
+
+    <div class="set-section">
       <h3>类型</h3>
       <div class="tags" id="setTypes"></div>
     </div>
@@ -340,7 +382,7 @@ try{
         <img class="info-logo-dark" src="app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.8.9-beta.5</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.8.9-beta.6</div>
       <div class="info-desc">轻量 · 优雅 · 丝滑的待办与清单管理</div>
       <div class="info-author">Crafted with <span class="heart">♥</span> by <strong>派大星TuT</strong></div>
     </div>
