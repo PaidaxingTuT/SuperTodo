@@ -1334,18 +1334,16 @@ function renderHome(wrap,empty){
     const preview=undone.slice(0,3);
     const gSummary=calcCostSummary(g.items, isDone);
     const costBadge=(showCost && gSummary.hasCost) ? `<span class="sec-cost-pill" title="预估总额: ¥${money(gSummary.totalCost)}">¥${money(gSummary.undoneCost>0?gSummary.undoneCost:gSummary.totalCost)}</span>` : '';
-    const moreCost=(showCost && gSummary.hasCost) ? `<span class="sec-more-cost">· 预估 ¥${money(gSummary.totalCost)}</span>` : '';
+    const arrowSvg=`<span class="sec-arrow" style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%235f6368%22><path d=%22M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z/%22/></svg>') center/contain no-repeat;width:15px;height:15px;display:inline-block;vertical-align:middle"></span>`;
     html+=`<div class="section">
-      <div class="section-head" data-open="${esc(g.key)}">
-        <span class="sec-caret" style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%235f6368%22><path d=%22M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z/%22/></svg>') center/contain no-repeat"></span>
-        <span class="sec-title">${esc(g.key)}</span>
-        <span class="sec-count">${g.items.length}</span>
-        ${costBadge}
-        <span class="sec-right">${undone.length?'未完成 '+undone.length:'全完成'}</span>
-      </div>
       <div class="section-card" data-open="${esc(g.key)}">
+        <div class="section-head" data-open="${esc(g.key)}">
+          <span class="sec-title">${esc(g.key)}</span>
+          <span class="sec-count">${g.items.length}</span>
+          ${costBadge}
+          <span class="sec-right">${undone.length?'未完成 '+undone.length:'全完成'}${arrowSvg}</span>
+        </div>
         ${preview.map(it=>secItemHTML(it,g.key)).join('')}
-        <div class="sec-more" data-open2="${esc(g.key)}">查看全部 ${g.items.length} 项 ${moreCost} <span class="ci-arrow" style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%235f6368%22><path d=%22M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z/%22/></svg>') center/contain no-repeat;width:14px;height:14px"></span></div>
       </div>
     </div>`;
   });
@@ -2227,7 +2225,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.9.0';
+const APP_VERSION='v1.9.1-beta.1';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -3469,6 +3467,8 @@ function initSwipeGestures(){
   let pointerId = null;
 
   const resetState = (springBack = true) => {
+    const prevRow = activeRow;
+    const prevFront = frontEl;
     if(frontEl){
       if(pointerId !== null){
         try { frontEl.releasePointerCapture(pointerId); } catch(err){}
@@ -3476,7 +3476,16 @@ function initSwipeGestures(){
       if(springBack){
         frontEl.style.transition = 'transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1)';
         frontEl.style.transform = 'translateX(0)';
+        setTimeout(() => {
+          if(prevRow) prevRow.classList.remove('swiping');
+          if(prevFront) prevFront.classList.remove('swiping');
+        }, 240);
+      } else {
+        if(prevRow) prevRow.classList.remove('swiping');
+        if(prevFront) prevFront.classList.remove('swiping');
       }
+    } else {
+      if(prevRow) prevRow.classList.remove('swiping');
     }
     if(compActEl){ compActEl.classList.remove('active'); compActEl.classList.remove('ready'); }
     if(delActEl){ delActEl.classList.remove('active'); delActEl.classList.remove('ready'); }
@@ -3531,6 +3540,8 @@ function initSwipeGestures(){
         dirLocked = true;
         isHoriz = true;
         try { frontEl.setPointerCapture(pointerId); } catch(err){}
+        if(activeRow) activeRow.classList.add('swiping');
+        if(frontEl) frontEl.classList.add('swiping');
       } else if(absDy >= 10 && absDy > absDx * 1.25){
         // 垂直位移达到 10px 且明显大于水平位移，锁定为纵向滚动
         dirLocked = true;
@@ -3540,6 +3551,8 @@ function initSwipeGestures(){
 
     if(!isHoriz) return;
     if(e.cancelable) e.preventDefault();
+    if(activeRow && !activeRow.classList.contains('swiping')) activeRow.classList.add('swiping');
+    if(frontEl && !frontEl.classList.contains('swiping')) frontEl.classList.add('swiping');
 
     // 弹性阻尼滑动，行程上限适度加宽
     let tx = dx;
@@ -3603,6 +3616,11 @@ function initSwipeGestures(){
         triggerHaptic('medium');
         front.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
         front.style.transform = 'translateX(0)';
+        const r = row, f = front;
+        setTimeout(() => {
+          if(r) r.classList.remove('swiping');
+          if(f) f.classList.remove('swiping');
+        }, 220);
         resetState(false);
         toggleDone(itemId, kind, key);
         return;
