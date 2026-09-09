@@ -3,7 +3,10 @@ package com.dax.supertodo.widget;
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -20,11 +23,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 小部件个性化配置页面（全面遵循 SuperTodo 现代卡片设计，与应用内弹窗风格统一）
+ * 小组件个性化配置页面（全面遵循 SuperTodo 现代卡片设计，与应用内弹窗风格统一）
  */
 public class WidgetConfigActivity extends Activity {
 
     private int appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
+    private int themeColor;
 
     // 分段胶囊选择器：展示维度
     private TextView btnPillScene, btnPillTime, btnPillAll;
@@ -88,6 +92,8 @@ public class WidgetConfigActivity extends Activity {
             return;
         }
 
+        themeColor = WidgetDataManager.getWidgetThemeColor(this);
+
         setContentView(R.layout.activity_widget_config);
 
         initViews();
@@ -117,6 +123,19 @@ public class WidgetConfigActivity extends Activity {
 
         btnCancel = findViewById(R.id.btn_config_cancel);
         btnSave = findViewById(R.id.btn_config_save);
+
+        // 主题颜色同步：保存按钮波纹背景与复选框强调色
+        GradientDrawable saveBg = new GradientDrawable();
+        saveBg.setShape(GradientDrawable.RECTANGLE);
+        saveBg.setColor(themeColor);
+        saveBg.setCornerRadius(getResources().getDisplayMetrics().density * 12f);
+        RippleDrawable ripple = new RippleDrawable(
+            ColorStateList.valueOf(Color.parseColor("#33FFFFFF")),
+            saveBg,
+            null
+        );
+        btnSave.setBackground(ripple);
+        cbHideDone.setButtonTintList(ColorStateList.valueOf(themeColor));
 
         // 1. 下拉框适配器（使用 SuperTodo 专属字体与内边距布局）
         ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(this, R.layout.config_spinner_item, SORT_LABELS);
@@ -213,19 +232,29 @@ public class WidgetConfigActivity extends Activity {
         });
     }
 
+    private void updatePill(TextView view, boolean selected) {
+        int unselectedColor = getColor(R.color.config_pill_text_unselected);
+        if (selected) {
+            GradientDrawable pillBg = new GradientDrawable();
+            pillBg.setShape(GradientDrawable.RECTANGLE);
+            pillBg.setColor(themeColor);
+            float radius = getResources().getDisplayMetrics().density * 10f;
+            pillBg.setCornerRadius(radius);
+            view.setBackground(pillBg);
+            view.setTextColor(Color.WHITE);
+        } else {
+            view.setBackgroundResource(R.drawable.config_pill_unselected);
+            view.setTextColor(unselectedColor);
+        }
+    }
+
     private void setGroupBy(String groupBy, String targetCategory, String targetTypeCategory) {
         selectedGroupBy = groupBy;
 
-        // 样式刷新
-        int unselectedColor = getColor(R.color.config_pill_text_unselected);
-        btnPillScene.setBackgroundResource("scene".equals(groupBy) ? R.drawable.config_pill_selected : R.drawable.config_pill_unselected);
-        btnPillScene.setTextColor("scene".equals(groupBy) ? Color.WHITE : unselectedColor);
-
-        btnPillTime.setBackgroundResource("time".equals(groupBy) ? R.drawable.config_pill_selected : R.drawable.config_pill_unselected);
-        btnPillTime.setTextColor("time".equals(groupBy) ? Color.WHITE : unselectedColor);
-
-        btnPillAll.setBackgroundResource("all".equals(groupBy) ? R.drawable.config_pill_selected : R.drawable.config_pill_unselected);
-        btnPillAll.setTextColor("all".equals(groupBy) ? Color.WHITE : unselectedColor);
+        // 样式刷新（动态同步主题色）
+        updatePill(btnPillScene, "scene".equals(groupBy));
+        updatePill(btnPillTime, "time".equals(groupBy));
+        updatePill(btnPillAll, "all".equals(groupBy));
 
         // 分类下拉框动态显隐与填充
         currentCategoryList.clear();
@@ -282,12 +311,8 @@ public class WidgetConfigActivity extends Activity {
 
     private void setSortAsc(boolean asc) {
         selectedSortAsc = asc;
-        int unselectedColor = getColor(R.color.config_pill_text_unselected);
-        btnPillAsc.setBackgroundResource(asc ? R.drawable.config_pill_selected : R.drawable.config_pill_unselected);
-        btnPillAsc.setTextColor(asc ? Color.WHITE : unselectedColor);
-
-        btnPillDesc.setBackgroundResource(!asc ? R.drawable.config_pill_selected : R.drawable.config_pill_unselected);
-        btnPillDesc.setTextColor(!asc ? Color.WHITE : unselectedColor);
+        updatePill(btnPillAsc, asc);
+        updatePill(btnPillDesc, !asc);
     }
 
     private void loadSavedConfig() {

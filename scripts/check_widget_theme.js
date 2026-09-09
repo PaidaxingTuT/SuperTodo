@@ -28,4 +28,13 @@ for (const source of [widget4x2, widget4x4, service]) {
 }
 assert(quadrant.includes('getThemedCheckedIcon(themeColor)'), '四象限完成图标必须跟随主题色');
 
+const configActivity = read('WidgetConfigActivity.java');
+const configLayout = fs.readFileSync(layoutDir + 'activity_widget_config.xml', 'utf8');
+assert(configLayout.includes('android:text="小组件设置"'), '弹窗标题必须为《小组件设置》');
+assert(configActivity.includes('WidgetDataManager.getWidgetThemeColor(this)'), '小组件设置弹窗必须动态获取当前主题色');
+assert(configActivity.includes('btnSave.setBackground(ripple)'), '保存按钮必须动态应用主题色背景');
+assert(configActivity.includes('cbHideDone.setButtonTintList'), '复选框勾选色必须动态应用主题色');
+assert(configActivity.includes('pillBg.setColor(themeColor)'), '选中胶囊必须动态应用主题色');
+
 console.log('widget theme checks: OK');
+
