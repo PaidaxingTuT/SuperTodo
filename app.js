@@ -2101,7 +2101,7 @@ function renderCustomBgSettings(){
 
   if (colorPanel) colorPanel.style.display = (bg.type === 'color') ? 'block' : 'none';
   if (imagePanel) imagePanel.style.display = (bg.type === 'image') ? 'block' : 'none';
-  if (opacityRow) opacityRow.style.display = (bg.type !== 'default') ? 'flex' : 'none';
+  if (opacityRow) opacityRow.style.display = (bg.type !== 'default') ? 'block' : 'none';
 
   if (opacitySlider) opacitySlider.value = bg.opacity || 80;
   if (opacityVal) opacityVal.textContent = (bg.opacity || 80) + '%';
@@ -2227,7 +2227,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.8.9';
+const APP_VERSION='v1.8.10';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
