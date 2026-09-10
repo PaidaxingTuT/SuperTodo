@@ -2225,7 +2225,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.9.1';
+const APP_VERSION='v1.9.2';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -3469,6 +3469,8 @@ function initSwipeGestures(){
   const resetState = (springBack = true) => {
     const prevRow = activeRow;
     const prevFront = frontEl;
+    const prevComp = compActEl;
+    const prevDel = delActEl;
     if(frontEl){
       if(pointerId !== null){
         try { frontEl.releasePointerCapture(pointerId); } catch(err){}
@@ -3476,19 +3478,33 @@ function initSwipeGestures(){
       if(springBack){
         frontEl.style.transition = 'transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1)';
         frontEl.style.transform = 'translateX(0)';
+        if(prevComp){
+          prevComp.style.transition = 'clip-path 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), -webkit-clip-path 0.24s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          prevComp.style.clipPath = 'inset(0 100% 0 0)';
+          prevComp.style.webkitClipPath = 'inset(0 100% 0 0)';
+        }
+        if(prevDel){
+          prevDel.style.transition = 'clip-path 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), -webkit-clip-path 0.24s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          prevDel.style.clipPath = 'inset(0 0 0 100%)';
+          prevDel.style.webkitClipPath = 'inset(0 0 0 100%)';
+        }
         setTimeout(() => {
           if(prevRow) prevRow.classList.remove('swiping');
           if(prevFront) prevFront.classList.remove('swiping');
+          if(prevComp){ prevComp.style.transition = ''; prevComp.style.clipPath = ''; prevComp.style.webkitClipPath = ''; }
+          if(prevDel){ prevDel.style.transition = ''; prevDel.style.clipPath = ''; prevDel.style.webkitClipPath = ''; }
         }, 240);
       } else {
         if(prevRow) prevRow.classList.remove('swiping');
         if(prevFront) prevFront.classList.remove('swiping');
+        if(prevComp){ prevComp.style.transition = ''; prevComp.style.clipPath = ''; prevComp.style.webkitClipPath = ''; }
+        if(prevDel){ prevDel.style.transition = ''; prevDel.style.clipPath = ''; prevDel.style.webkitClipPath = ''; }
       }
     } else {
       if(prevRow) prevRow.classList.remove('swiping');
     }
-    if(compActEl){ compActEl.classList.remove('active'); compActEl.classList.remove('ready'); }
-    if(delActEl){ delActEl.classList.remove('active'); delActEl.classList.remove('ready'); }
+    if(compActEl){ compActEl.classList.remove('active', 'ready'); compActEl.style.clipPath = ''; compActEl.style.webkitClipPath = ''; }
+    if(delActEl){ delActEl.classList.remove('active', 'ready'); delActEl.style.clipPath = ''; delActEl.style.webkitClipPath = ''; }
     activeRow = null;
     frontEl = null;
     compActEl = null;
@@ -3520,8 +3536,8 @@ function initSwipeGestures(){
           r.classList.remove('swiping');
           const ca = r.querySelector('.swipe-action.swipe-complete');
           const da = r.querySelector('.swipe-action.swipe-delete');
-          if(ca) ca.classList.remove('active', 'ready');
-          if(da) da.classList.remove('active', 'ready');
+          if(ca){ ca.classList.remove('active', 'ready'); ca.style.clipPath = ''; ca.style.webkitClipPath = ''; }
+          if(da){ da.classList.remove('active', 'ready'); da.style.clipPath = ''; da.style.webkitClipPath = ''; }
         }
       }
     });
@@ -3530,6 +3546,8 @@ function initSwipeGestures(){
     frontEl = front;
     compActEl = row.querySelector('.swipe-action.swipe-complete');
     delActEl = row.querySelector('.swipe-action.swipe-delete');
+    if(compActEl){ compActEl.style.transition = 'none'; compActEl.style.clipPath = 'inset(0 100% 0 0)'; compActEl.style.webkitClipPath = 'inset(0 100% 0 0)'; }
+    if(delActEl){ delActEl.style.transition = 'none'; delActEl.style.clipPath = 'inset(0 0 0 100%)'; delActEl.style.webkitClipPath = 'inset(0 0 0 100%)'; }
     startX = e.clientX;
     startY = e.clientY;
     currentTx = 0;
@@ -3586,8 +3604,14 @@ function initSwipeGestures(){
       if(compActEl){
         compActEl.classList.add('active');
         compActEl.classList.toggle('ready', tx >= THRESHOLD);
+        compActEl.style.clipPath = `inset(0 calc(100% - ${tx}px) 0 0)`;
+        compActEl.style.webkitClipPath = `inset(0 calc(100% - ${tx}px) 0 0)`;
       }
-      if(delActEl){ delActEl.classList.remove('active'); delActEl.classList.remove('ready'); }
+      if(delActEl){
+        delActEl.classList.remove('active', 'ready');
+        delActEl.style.clipPath = 'inset(0 0 0 100%)';
+        delActEl.style.webkitClipPath = 'inset(0 0 0 100%)';
+      }
       if(tx >= THRESHOLD && !hapticFired){
         triggerHaptic('medium');
         hapticFired = true;
@@ -3598,8 +3622,14 @@ function initSwipeGestures(){
       if(delActEl){
         delActEl.classList.add('active');
         delActEl.classList.toggle('ready', tx <= -THRESHOLD);
+        delActEl.style.clipPath = `inset(0 0 0 calc(100% - ${-tx}px))`;
+        delActEl.style.webkitClipPath = `inset(0 0 0 calc(100% - ${-tx}px))`;
       }
-      if(compActEl){ compActEl.classList.remove('active'); compActEl.classList.remove('ready'); }
+      if(compActEl){
+        compActEl.classList.remove('active', 'ready');
+        compActEl.style.clipPath = 'inset(0 100% 0 0)';
+        compActEl.style.webkitClipPath = 'inset(0 100% 0 0)';
+      }
       if(tx <= -THRESHOLD && !hapticFired){
         triggerHaptic('heavy');
         hapticFired = true;
@@ -3607,8 +3637,16 @@ function initSwipeGestures(){
         hapticFired = false;
       }
     } else {
-      if(compActEl) compActEl.classList.remove('active');
-      if(delActEl) delActEl.classList.remove('active');
+      if(compActEl){
+        compActEl.classList.remove('active', 'ready');
+        compActEl.style.clipPath = 'inset(0 100% 0 0)';
+        compActEl.style.webkitClipPath = 'inset(0 100% 0 0)';
+      }
+      if(delActEl){
+        delActEl.classList.remove('active', 'ready');
+        delActEl.style.clipPath = 'inset(0 0 0 100%)';
+        delActEl.style.webkitClipPath = 'inset(0 0 0 100%)';
+      }
     }
   }, { passive: false });
 
@@ -3634,10 +3672,16 @@ function initSwipeGestures(){
         triggerHaptic('medium');
         front.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
         front.style.transform = 'translateX(0)';
-        const r = row, f = front;
+        if(compActEl){
+          compActEl.style.transition = 'clip-path 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), -webkit-clip-path 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          compActEl.style.clipPath = 'inset(0 100% 0 0)';
+          compActEl.style.webkitClipPath = 'inset(0 100% 0 0)';
+        }
+        const r = row, f = front, ca = compActEl;
         setTimeout(() => {
           if(r) r.classList.remove('swiping');
           if(f) f.classList.remove('swiping');
+          if(ca){ ca.style.transition = ''; ca.style.clipPath = ''; ca.style.webkitClipPath = ''; }
         }, 220);
         resetState(false);
         toggleDone(itemId, kind, key);
@@ -3646,6 +3690,11 @@ function initSwipeGestures(){
         triggerHaptic('heavy');
         front.style.transition = 'transform 0.2s ease-out';
         front.style.transform = 'translateX(-105%)';
+        if(delActEl){
+          delActEl.style.transition = 'clip-path 0.2s ease-out, -webkit-clip-path 0.2s ease-out';
+          delActEl.style.clipPath = 'inset(0 0 0 0)';
+          delActEl.style.webkitClipPath = 'inset(0 0 0 0)';
+        }
         row.style.maxHeight = row.offsetHeight + 'px';
         setTimeout(() => {
           row.classList.add('swiping-delete');
