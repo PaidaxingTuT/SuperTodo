@@ -572,6 +572,7 @@ function closeTopLayer(){
   if(!$('#infoModal').hidden){ closeInfo(); backSuppress=false; return true; }
   if(!$('#setModal').hidden){ closeSettings(); backSuppress=false; return true; }
   if(!$('#sortModal').hidden){ closeSort(); backSuppress=false; return true; }
+  if(!$('#searchbar').hidden){ closeSearch(); backSuppress=false; return true; }
   if(!$('#drawer').hidden){ closeDrawer(); backSuppress=false; return true; }
   if(state.view.name==='list'){ backHome(); backSuppress=false; return true; }
   backSuppress=false;
@@ -1516,6 +1517,36 @@ function init(){
 /* 抽屉 */
 function openDrawer(){ pushLayer(); $('#drawerMask').hidden=false; $('#drawer').hidden=false; }
 function closeDrawer(){ $('#drawerMask').hidden=true; $('#drawer').hidden=true; renderDrawer(); if(!backSuppress)syncBack(); }
+
+/* 搜索栏 */
+function openSearch(){
+  pushLayer();
+  $('.appbar-top').hidden=true;
+  $('#searchbar').hidden=false;
+  const input=$('#searchInput');
+  if(input){
+    input.focus();
+  }
+  doSearch();
+}
+function closeSearch(){
+  $('#searchbar').hidden=true;
+  $('.appbar-top').hidden=false;
+  state.search='';
+  const input=$('#searchInput');
+  if(input) input.value='';
+  render();
+  if(!backSuppress)syncBack();
+}
+function doSearch(){
+  const input=$('#searchInput');
+  if(!input) return;
+  const val=input.value.trim();
+  if(state.search===val) return;
+  state.search=val;
+  if(state.view.name!=='home') state.view={name:'home'};
+  render();
+}
 document.addEventListener('DOMContentLoaded',()=>{
   init();
   initCustomBgListeners();
@@ -1626,9 +1657,22 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 
   /* 搜索 */
-  $('#searchBtn').addEventListener('click',()=>{ $('.appbar-top').hidden=true; $('#searchbar').hidden=false; $('#searchInput').focus(); });
-  $('#searchBackBtn').addEventListener('click',()=>{ $('#searchbar').hidden=true; $('.appbar-top').hidden=false; state.search=''; $('#searchInput').value=''; render(); });
-  $('#searchInput').addEventListener('input',e=>{ state.search=e.target.value.trim(); if(state.view.name!=='home')state.view={name:'home'}; render(); });
+  $('#searchBtn').addEventListener('click',openSearch);
+  $('#searchBackBtn').addEventListener('click',closeSearch);
+  const searchInput=$('#searchInput');
+  if(searchInput){
+    searchInput.addEventListener('input',doSearch);
+    searchInput.addEventListener('compositionupdate',doSearch);
+    searchInput.addEventListener('compositionend',()=>{
+      doSearch();
+      requestAnimationFrame(doSearch);
+    });
+    searchInput.addEventListener('change',doSearch);
+    searchInput.addEventListener('search',doSearch);
+    searchInput.addEventListener('keyup',e=>{
+      if(e.key==='Enter') doSearch();
+    });
+  }
 
   /* 新增 / 速记 / 排序 */
   $('#appbarSortBtn').addEventListener('click',openSort);
@@ -2225,7 +2269,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.9.3';
+const APP_VERSION='v1.9.4';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -3775,21 +3819,25 @@ function initDrawerSortable(){
     onChoose(evt){
       destroyTimer();
       if(navPressItem){ navPressItem.classList.remove('press-hint'); navPressItem=null; }
+      triggerHaptic('light');
     },
     onStart(evt){
       destroyTimer();
       suppressNavClick=true;
       if(navPressItem){ navPressItem.classList.remove('press-hint'); navPressItem=null; }
-      triggerHaptic('light');
+      triggerHaptic('medium');
     },
     onMove(evt){
       destroyTimer();
       if(navPressItem){ navPressItem.classList.remove('press-hint'); navPressItem=null; }
     },
+    onChange(evt){
+      triggerHaptic('selection');
+    },
     onEnd(evt){
       destroyTimer();
       if(navPressItem){ navPressItem.classList.remove('press-hint'); navPressItem=null; }
-      triggerHaptic('selection');
+      triggerHaptic('medium');
       state.types=$$('#drawerNav .dnav-item[data-kind="type"]').map(el=>el.dataset.t);
       save();
       render();
@@ -4204,7 +4252,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   /* 待办选择弹窗 */
   $('#pickerClose').addEventListener('click',closeItemPicker);
   $('#itemPickerMask').addEventListener('click',closeItemPicker);
-  $('#pickerSearch').addEventListener('input',e=>renderPickerList(e.target.value));
+  const pInput=$('#pickerSearch');
+  if(pInput){
+    const doPickSearch=()=>renderPickerList(pInput.value);
+    pInput.addEventListener('input',doPickSearch);
+    pInput.addEventListener('compositionupdate',doPickSearch);
+    pInput.addEventListener('compositionend',()=>{
+      doPickSearch();
+      requestAnimationFrame(doPickSearch);
+    });
+    pInput.addEventListener('change',doPickSearch);
+    pInput.addEventListener('search',doPickSearch);
+  }
   $('#pickerList').addEventListener('click',e=>{
     const row=e.target.closest('[data-pick-id]');
     if(row&&currentPickerQKey){
