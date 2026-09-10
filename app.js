@@ -2225,7 +2225,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.9.2';
+const APP_VERSION='v1.9.3';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -2992,6 +2992,7 @@ function addTagSilent(kind,name){
 /* ===== AI 速记 UI ===== */
 let aiRequestId=0, aiAbort=null;
 function openAi(){
+  triggerHaptic('light');
   aiRequestId++;
   if(aiAbort)aiAbort.abort();
   aiAbort=null;
@@ -3764,6 +3765,7 @@ function initDrawerSortable(){
   if(!nav) return;
   drawerSortable=new Sortable(nav,{
     draggable:'.dnav-item[data-kind="type"]',
+    handle:'.dnav-drag',
     filter:'.dnav-all, .dnav-add, .dnav-trash, .dnav-divider',
     animation:160,
     delay:150,
