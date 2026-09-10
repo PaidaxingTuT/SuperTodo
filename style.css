@@ -248,7 +248,6 @@ body.home-view .content{
 /* 列表视图 */
 /* item-row 基础样式已移入手势系统 */
 .item-row.completing, .sec-item.completing{opacity:0.65;transform:scale(0.985);transition:transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease}
-.item-row:active{background:var(--surface-hover)}
 .chev{width:calc(var(--item-font, 15px) + 5px);height:calc(var(--item-font, 15px) + 5px);flex-shrink:0;opacity:.5}
 
 /* ===== 自定义间距调节器面板 ===== */
@@ -304,8 +303,8 @@ body.home-view .content{
 .fab-stack{position:fixed;right:14px;bottom:calc(20px + var(--safe-b));z-index:35;display:flex;flex-direction:column;align-items:center;gap:12px}
 .fab{width:54px;height:54px;border-radius:16px;background:var(--primary);box-shadow:var(--shadow2);position:relative;flex-shrink:0}
 .fab:active{transform:scale(.94)}
-.fab::before{content:"";position:absolute;inset:0;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffffff"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>') center/contain no-repeat;margin:15px}
-:root[data-color-mode="dark"] .fab::before{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23000000"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>')}
+.fab:not(.fab-ai)::before{content:"";position:absolute;inset:0;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffffff"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>') center/contain no-repeat;margin:15px}
+:root[data-color-mode="dark"] .fab:not(.fab-ai)::before{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23000000"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>')}
 
 /* ===== 空状态 ===== */
 .empty{text-align:center;padding:14vh 24px 40px;color:var(--text3);max-width:640px;margin:0 auto}
@@ -505,7 +504,7 @@ body.home-view .empty{padding-top:calc(14vh + 40px)}
 /* ===== AI：一句话速记 ===== */
 .fab-ai{width:54px;height:54px;border-radius:16px;background:var(--primary-soft)}
 .fab-ai:active{transform:scale(.94)}
-.fab-ai::before{content:"";position:absolute;inset:0;margin:15px;background-color:var(--primary);-webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>') center/contain no-repeat;mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>') center/contain no-repeat}
+.fab-ai::before{content:"";position:absolute;inset:0;margin:15px;background:var(--primary);background-image:none !important;-webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>') center/contain no-repeat;mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>') center/contain no-repeat}
 #aiModal{width:min(92vw,560px)}
 .ai-sugbox{margin:2px 0 16px;display:flex;flex-direction:column;gap:6px}
 .ai-sug{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--primary-ink);background:var(--primary-soft);border-radius:8px;padding:8px 12px}
@@ -1858,18 +1857,17 @@ body.home-view .empty{padding-top:calc(14vh + 40px)}
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffffff"><path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"/></svg>');
 }
 
-.item-row:active .swipe-front, .sec-item:active .swipe-front{
-  background:var(--surface-hover);
-}
-
-.item-row.swiping .swipe-front,
-.sec-item.swiping .swipe-front,
-.swipe-front.swiping {
+.item-row.swiping .swipe-front {
   background: var(--surface) !important;
   opacity: 1 !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: var(--shadow2) !important;
+  box-shadow: var(--shadow) !important;
+  transition: none !important;
+}
+
+.sec-item.swiping .swipe-front {
+  background: var(--surface) !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
   transition: none !important;
 }
 
@@ -2011,22 +2009,21 @@ body.home-view .empty{padding-top:calc(14vh + 40px)}
   -webkit-backdrop-filter: none;
 }
 
-[data-has-custom-bg="true"] .item-row:active .swipe-front {
-  background: rgba(var(--surface-rgb), 0.95);
-}
-
-[data-has-custom-bg="true"] .sec-item:active .swipe-front {
-  background: rgba(var(--surface-rgb), 0.35);
-}
-
-[data-has-custom-bg="true"] .item-row.swiping .swipe-front,
-[data-has-custom-bg="true"] .sec-item.swiping .swipe-front,
-[data-has-custom-bg="true"] .swipe-front.swiping {
-  background: var(--surface) !important;
+[data-has-custom-bg="true"] .item-row.swiping .swipe-front {
+  background: rgba(var(--surface-rgb), var(--card-alpha, 0.88)) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: var(--shadow) !important;
   opacity: 1 !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: var(--shadow2) !important;
+  transition: none !important;
+}
+
+[data-has-custom-bg="true"] .sec-item.swiping .swipe-front {
+  background: rgba(var(--surface-rgb), var(--card-alpha, 0.88)) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
   transition: none !important;
 }
 

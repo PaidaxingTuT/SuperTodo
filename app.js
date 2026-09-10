@@ -2225,7 +2225,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.9.1-beta.2';
+const APP_VERSION='v1.9.1';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -3502,11 +3502,29 @@ function initSwipeGestures(){
 
   content.addEventListener('pointerdown', e => {
     if(e.button !== undefined && e.button !== 0) return;
+    // 单指针互斥：当已有手指在操作时，忽略任何后续触点，彻底杜绝多指冲突与卡死
+    if(isPointerDown) return;
     if(e.target.closest('.drag-handle, .card-check, [data-done]')) return;
     const row = e.target.closest('.item-row, .sec-item');
     if(!row) return;
     const front = row.querySelector('.swipe-front');
     if(!front) return;
+
+    // 防御性复位：若页面上有其他遗留未复位的侧滑卡片，令其平滑弹回原位
+    document.querySelectorAll('.swipe-front').forEach(f => {
+      if(f !== front && f.style.transform && f.style.transform !== 'translateX(0px)' && f.style.transform !== 'translateX(0)'){
+        f.style.transition = 'transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        f.style.transform = 'translateX(0)';
+        const r = f.closest('.item-row, .sec-item');
+        if(r){
+          r.classList.remove('swiping');
+          const ca = r.querySelector('.swipe-action.swipe-complete');
+          const da = r.querySelector('.swipe-action.swipe-delete');
+          if(ca) ca.classList.remove('active', 'ready');
+          if(da) da.classList.remove('active', 'ready');
+        }
+      }
+    });
 
     activeRow = row;
     frontEl = front;
@@ -3645,6 +3663,7 @@ function initSwipeGestures(){
 
   window.addEventListener('pointerup', onPointerUpOrCancel);
   window.addEventListener('pointercancel', onPointerUpOrCancel);
+  window.addEventListener('blur', () => { if(isPointerDown) resetState(true); });
 }
 
 /* ========== 拖拽排序（SortableJS，仅默认排序下可用） ========== */
