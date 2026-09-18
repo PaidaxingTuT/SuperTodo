@@ -55,7 +55,7 @@
 
 ## 功能预览
 
-| **软件首页** | **AI 速记** | **原生组件** | ** 高度个性化** |
+| **软件首页** | **AI 速记** | **原生组件** | **高度个性化** |
 | :---: | :---: | :---: | :---: |
 | <img src="screenshots/home.jpg" alt="软件首页" width="200" /> | <img src="screenshots/ai.jpg" alt="AI 一句话速记" width="200" /> | <img src="screenshots/desktop.jpg" alt="原生组件" width="200" /> | <img src="screenshots/diy.jpg" alt="个性化" width="200" /> |
 
