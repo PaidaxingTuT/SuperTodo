@@ -170,16 +170,36 @@ function syncFromNativeWidget(){
         let changed=false;
         d.items.forEach(natIt=>{
           const localIt=state.items.find(x=>x.id===natIt.id);
-          if(localIt&&localIt.done!==natIt.done){
-            localIt.done=natIt.done;
-            if(natIt.done){
-              localIt.doneScenes=itemScenes(localIt).slice();
-              localIt.doneTypes=itemTypes(localIt).slice();
-            }else{
-              localIt.doneScenes=[];
-              localIt.doneTypes=[];
+          if(localIt){
+            if(localIt.done!==natIt.done){
+              localIt.done=natIt.done;
+              if(natIt.done){
+                localIt.doneScenes=itemScenes(localIt).slice();
+                localIt.doneTypes=itemTypes(localIt).slice();
+              }else{
+                localIt.doneScenes=[];
+                localIt.doneTypes=[];
+              }
+              changed=true;
             }
-            changed=true;
+          }else{
+            const inTrash=Array.isArray(state.trash)&&state.trash.some(x=>x.id===natIt.id);
+            if(!inTrash&&natIt.id&&natIt.title){
+              const types=itemTypes(natIt);
+              const scenes=itemScenes(natIt);
+              const newItem=Object.assign({}, natIt, {
+                types: types,
+                scenes: scenes,
+                doneScenes: natIt.done ? scenes.slice() : [],
+                doneTypes: natIt.done ? types.slice() : [],
+                done: !!natIt.done,
+                created: natIt.created || Date.now(),
+                type: natIt.type || (Array.isArray(types) && types[0]) || '',
+                scene: natIt.scene || (Array.isArray(scenes) && scenes[0]) || ''
+              });
+              state.items.unshift(newItem);
+              changed=true;
+            }
           }
         });
         if(d.quadrantWidget&&typeof d.quadrantWidget==='object'){
@@ -2518,7 +2538,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.9.5';
+const APP_VERSION='v1.9.6';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -2576,6 +2596,10 @@ function renderChangelog(md){
   for(let line of lines){
     line=line.trim();
     if(!line || line.startsWith('# ')) continue;
+    if(/^(?:[-*_]\s*){3,}$/.test(line)){
+      if(inList){ html+='</ul>'; inList=false; }
+      continue;
+    }
 
     const verMatch=line.match(/^##\s+(v[^\s（(]+)(?:[（(]([^）)]+)[）)])?/);
     if(verMatch){
