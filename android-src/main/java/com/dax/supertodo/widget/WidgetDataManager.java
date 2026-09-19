@@ -258,34 +258,60 @@ public class WidgetDataManager {
         if (json.isEmpty()) return list;
         try {
             JSONObject root = new JSONObject(json);
+            List<TodoItem> allItems = loadAllItems(context);
+            java.util.Map<String, TodoItem> allItemMap = new java.util.HashMap<>();
+            for (TodoItem it : allItems) {
+                allItemMap.put(it.id, it);
+            }
+
             JSONArray arr = root.optJSONArray("widget2x2");
-            if (arr != null && arr.length() > 0) {
+            boolean isCustomized = root.optBoolean("widget2x2Customized", false);
+            boolean removeDone = isWidgetRemoveDone(root);
+
+            if (isCustomized && arr != null && arr.length() > 0) {
+                JSONArray cleanArr = new JSONArray();
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject obj = arr.optJSONObject(i);
                     if (obj != null) {
-                        list.add(TodoItem.fromJson(obj));
+                        String id = obj.optString("id");
+                        // 严格校验：若主事项已被删除，从 2x2 中彻底剔除！
+                        if (allItemMap.containsKey(id)) {
+                            TodoItem mainIt = allItemMap.get(id);
+                            obj.put("done", mainIt.done);
+                            obj.put("title", mainIt.title);
+                            cleanArr.put(obj);
+                            if (!removeDone || !mainIt.done) {
+                                list.add(TodoItem.fromJson(obj));
+                            }
+                        }
                     }
                 }
-                return list;
-            }
-            // 若尚无 widget2x2，默认从 items 取未完成事项初始化
-            JSONArray items = root.optJSONArray("items");
-            if (items != null) {
-                JSONArray new2x2 = new JSONArray();
-                for (int i = 0; i < items.length(); i++) {
-                    JSONObject obj = items.optJSONObject(i);
-                    if (obj != null && !obj.optBoolean("done", false)) {
-                        TodoItem it = TodoItem.fromJson(obj);
-                        list.add(it);
-                        new2x2.put(obj);
-                        if (list.size() >= 10) break;
-                    }
-                }
-                if (new2x2.length() > 0) {
-                    root.put("widget2x2", new2x2);
+                if (cleanArr.length() != arr.length()) {
+                    root.put("widget2x2", cleanArr);
                     saveWidgetData(context, root.toString());
                 }
+                if (cleanArr.length() > 0) {
+                    return list;
+                }
             }
+
+            // 若未定制，或定制项均已删除/无有效项，直接从全量事项中取未完成项
+            list.clear();
+            JSONArray auto2x2 = new JSONArray();
+            for (TodoItem it : allItems) {
+                if (!it.done) {
+                    list.add(it);
+                    JSONObject obj = new JSONObject();
+                    obj.put("id", it.id);
+                    obj.put("title", it.title);
+                    obj.put("done", false);
+                    auto2x2.put(obj);
+                    if (list.size() >= 20) break;
+                }
+            }
+            root.put("widget2x2", auto2x2);
+            root.put("widget2x2Customized", false);
+            saveWidgetData(context, root.toString());
         } catch (Exception ignore) {}
         return list;
     }
@@ -296,54 +322,73 @@ public class WidgetDataManager {
         if (json.isEmpty()) return false;
         try {
             JSONObject root = new JSONObject(json);
-            JSONArray arr = root.optJSONArray("widget2x2");
-            if (arr == null || arr.length() == 0) {
-                load2x2Items(context);
-                json = getWidgetData(context);
-                root = new JSONObject(json);
-                arr = root.optJSONArray("widget2x2");
-            }
-            if (arr == null || arr.length() == 0) return false;
+            List<TodoItem> items = load2x2Items(context);
+            if (items.isEmpty()) return false;
 
-            String completedId = null;
-            for (int i = 0; i < arr.length(); i++) {
-                JSONObject obj = arr.optJSONObject(i);
-                if (obj != null && !obj.optBoolean("done", false)) {
-                    obj.put("done", true);
-                    completedId = obj.optString("id");
+            TodoItem nextItem = null;
+            for (TodoItem it : items) {
+                if (!it.done) {
+                    nextItem = it;
                     break;
                 }
             }
-            if (completedId != null) {
-                // 同步更新 items
-                JSONArray items = root.optJSONArray("items");
-                if (items != null) {
-                    for (int j = 0; j < items.length(); j++) {
-                        JSONObject it = items.optJSONObject(j);
-                        if (it != null && completedId.equals(it.optString("id"))) {
-                            it.put("done", true);
-                            break;
-                        }
-                    }
-                }
-                // 同步更新四象限
-                JSONObject qw = root.optJSONObject("quadrantWidget");
-                if (qw != null) {
-                    String[] qKeys = new String[] { "q1", "q2", "q3", "q4" };
-                    for (String qKey : qKeys) {
-                        JSONArray qArr = qw.optJSONArray(qKey);
-                        if (qArr == null) continue;
-                        for (int k = 0; k < qArr.length(); k++) {
-                            JSONObject qObj = qArr.optJSONObject(k);
-                            if (qObj != null && completedId.equals(qObj.optString("id"))) {
-                                qObj.put("done", true);
+            if (nextItem == null) return false;
+
+            String completedId = nextItem.id;
+            // 重新读取最新 root（load2x2Items 可能更新了 root）
+            json = getWidgetData(context);
+            root = new JSONObject(json);
+            boolean removeDone = isWidgetRemoveDone(root);
+
+            // 1. 同步更新 widget2x2
+            JSONArray arr = root.optJSONArray("widget2x2");
+            if (arr != null) {
+                JSONArray newArr = new JSONArray();
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject obj = arr.optJSONObject(i);
+                    if (obj != null) {
+                        if (completedId.equals(obj.optString("id"))) {
+                            obj.put("done", true);
+                            if (!removeDone) {
+                                newArr.put(obj);
                             }
+                        } else {
+                            newArr.put(obj);
                         }
                     }
                 }
-                saveWidgetData(context, root.toString());
-                return true;
+                root.put("widget2x2", newArr);
             }
+
+            // 2. 同步更新 items
+            JSONArray mainItems = root.optJSONArray("items");
+            if (mainItems != null) {
+                for (int j = 0; j < mainItems.length(); j++) {
+                    JSONObject it = mainItems.optJSONObject(j);
+                    if (it != null && completedId.equals(it.optString("id"))) {
+                        it.put("done", true);
+                        break;
+                    }
+                }
+            }
+
+            // 3. 同步更新四象限
+            JSONObject qw = root.optJSONObject("quadrantWidget");
+            if (qw != null) {
+                String[] qKeys = new String[] { "q1", "q2", "q3", "q4" };
+                for (String qKey : qKeys) {
+                    JSONArray qArr = qw.optJSONArray(qKey);
+                    if (qArr == null) continue;
+                    for (int k = 0; k < qArr.length(); k++) {
+                        JSONObject qObj = qArr.optJSONObject(k);
+                        if (qObj != null && completedId.equals(qObj.optString("id"))) {
+                            qObj.put("done", true);
+                        }
+                    }
+                }
+            }
+            saveWidgetData(context, root.toString());
+            return true;
         } catch (Exception ignore) {}
         return false;
     }

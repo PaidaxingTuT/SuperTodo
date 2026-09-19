@@ -611,11 +611,45 @@
       }
       applyWidgetTheme(rootData.theme);
 
-      // 如果 2x2 尚未自定义过，默认取 items 中未完成的前若干项
-      if (rootData.widget2x2.length === 0 && rootData.items.length > 0) {
-        rootData.items.filter(it => !it.done).slice(0, 10).forEach(it => {
-          rootData.widget2x2.push({ id: it.id, title: it.title, done: false });
-        });
+      const isCustomized = !!rootData.widget2x2Customized;
+      const mainMap = new Map((rootData.items || []).map(it => [it.id, it]));
+      let needSave = false;
+
+      // 无论是否自定义，主软件中已删除的待办必须彻底从 2x2 清单中剔除，并同步主待办的完成状态与标题
+      const clean2x2 = [];
+      for (const w of rootData.widget2x2) {
+        if (w && w.id && mainMap.has(w.id)) {
+          const mainIt = mainMap.get(w.id);
+          w.title = mainIt.title || w.title;
+          w.done = !!mainIt.done;
+          clean2x2.push(w);
+        } else {
+          needSave = true;
+        }
+      }
+
+      if (clean2x2.length !== rootData.widget2x2.length) {
+        rootData.widget2x2 = clean2x2;
+        needSave = true;
+      }
+
+      // 若未手动定制过，或者手动定制的事项均已被删除，则自动与主软件未完成待办实时同步（最多20条）
+      if (!isCustomized || clean2x2.length === 0) {
+        const auto2x2 = [];
+        for (const it of rootData.items) {
+          if (!it.done) {
+            auto2x2.push({ id: it.id, title: it.title, done: false });
+            if (auto2x2.length >= 20) break;
+          }
+        }
+        rootData.widget2x2 = auto2x2;
+        if (rootData.widget2x2Customized) {
+          rootData.widget2x2Customized = false;
+          needSave = true;
+        }
+      }
+
+      if (needSave) {
         saveData();
       }
     }
@@ -713,6 +747,14 @@
             mainItem.done = task.done;
           }
         }
+        if (rootData.quadrantWidget && typeof rootData.quadrantWidget === 'object') {
+          ['q1', 'q2', 'q3', 'q4'].forEach(k => {
+            if (Array.isArray(rootData.quadrantWidget[k])) {
+              const qObj = rootData.quadrantWidget[k].find(x => x.id === id);
+              if (qObj) qObj.done = task.done;
+            }
+          });
+        }
         saveData();
         renderList();
       }
@@ -750,6 +792,7 @@
 
       if (!rootData.widget2x2) rootData.widget2x2 = [];
       rootData.widget2x2.push({ id: newId, title: text, done: false });
+      rootData.widget2x2Customized = true;
 
       saveData();
       hideInputRow();
@@ -815,6 +858,7 @@
           const seqEls = el.querySelectorAll('.task-seq');
           seqEls.forEach((seq, i) => { seq.textContent = (i + 1) + '.'; });
 
+          rootData.widget2x2Customized = true;
           saveData();
         }
       });
@@ -822,6 +866,7 @@
 
     function removeFromCurated(id) {
       rootData.widget2x2 = (rootData.widget2x2 || []).filter(t => t.id !== id);
+      rootData.widget2x2Customized = true;
       saveData();
       renderSettings();
     }
@@ -877,6 +922,7 @@
       });
 
       rootData.widget2x2 = newCurated;
+      rootData.widget2x2Customized = true;
       saveData();
       switchToMode(previousMode);
     }

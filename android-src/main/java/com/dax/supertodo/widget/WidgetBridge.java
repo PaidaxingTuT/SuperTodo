@@ -26,26 +26,57 @@ public class WidgetBridge {
             if (oldJson != null && !oldJson.isEmpty()) {
                 org.json.JSONObject oldObj = new org.json.JSONObject(oldJson);
                 org.json.JSONArray old2x2 = oldObj.optJSONArray("widget2x2");
-                if (old2x2 != null && old2x2.length() > 0) {
-                    org.json.JSONObject newObj = new org.json.JSONObject(json);
-                    if (!newObj.has("widget2x2")) {
-                        org.json.JSONArray newItems = newObj.optJSONArray("items");
-                        if (newItems != null) {
-                            java.util.Map<String, Boolean> statusMap = new java.util.HashMap<>();
-                            for (int i = 0; i < newItems.length(); i++) {
-                                org.json.JSONObject it = newItems.optJSONObject(i);
-                                if (it != null) {
-                                    statusMap.put(it.optString("id"), it.optBoolean("done", false));
-                                }
+                boolean isCustomized = oldObj.optBoolean("widget2x2Customized", false);
+                org.json.JSONObject newObj = new org.json.JSONObject(json);
+                if (!newObj.has("widget2x2")) {
+                    org.json.JSONArray newItems = newObj.optJSONArray("items");
+                    if (newItems != null) {
+                        java.util.Map<String, org.json.JSONObject> itemMap = new java.util.HashMap<>();
+                        for (int i = 0; i < newItems.length(); i++) {
+                            org.json.JSONObject it = newItems.optJSONObject(i);
+                            if (it != null) {
+                                itemMap.put(it.optString("id"), it);
                             }
+                        }
+
+                        org.json.JSONArray clean2x2 = new org.json.JSONArray();
+                        if (isCustomized && old2x2 != null && old2x2.length() > 0) {
+                            // 用户在 2x2 弹窗中手动定制过清单：严格剔除主软件已删除的事项，并同步最新的完成状态与标题
                             for (int j = 0; j < old2x2.length(); j++) {
                                 org.json.JSONObject w = old2x2.optJSONObject(j);
-                                if (w != null && statusMap.containsKey(w.optString("id"))) {
-                                    w.put("done", statusMap.get(w.optString("id")));
+                                if (w != null) {
+                                    String id = w.optString("id");
+                                    if (itemMap.containsKey(id)) {
+                                        org.json.JSONObject mainItem = itemMap.get(id);
+                                        w.put("done", mainItem.optBoolean("done", false));
+                                        w.put("title", mainItem.optString("title", w.optString("title")));
+                                        clean2x2.put(w);
+                                    }
                                 }
                             }
                         }
-                        newObj.put("widget2x2", old2x2);
+
+                        // 若未手动定制，或手动定制的事项已被主软件全部删除：
+                        // 直接动态同步主软件最新的未完成事项（最多取20条），保持与主软件实时同步，避免变成孤立记忆
+                        if (clean2x2.length() == 0 || !isCustomized) {
+                            clean2x2 = new org.json.JSONArray();
+                            for (int i = 0; i < newItems.length(); i++) {
+                                org.json.JSONObject it = newItems.optJSONObject(i);
+                                if (it != null && !it.optBoolean("done", false)) {
+                                    org.json.JSONObject w = new org.json.JSONObject();
+                                    w.put("id", it.optString("id"));
+                                    w.put("title", it.optString("title"));
+                                    w.put("done", false);
+                                    clean2x2.put(w);
+                                    if (clean2x2.length() >= 20) break;
+                                }
+                            }
+                            newObj.put("widget2x2Customized", false);
+                        } else {
+                            newObj.put("widget2x2Customized", true);
+                        }
+
+                        newObj.put("widget2x2", clean2x2);
                         json = newObj.toString();
                     }
                 }

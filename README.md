@@ -18,104 +18,123 @@
 
 ---
 
-## 核心特性
+- ## 核心特性
 
-- **三层清晰架构**：类型（购物 / 待办 / 计划 / 旅游 / 愿望等）→ 场景/时间分组 → 事项清单，告别杂乱无章。
-- **原生桌面小部件**：
-  - 提供 4×2、4×4 与 2×2 四象限三种规格，桌面可直接点击打勾标记完成。
-  - 支持按场景/时间筛选分组与自定义排序，支持待办金额价格显示，自适应系统日夜模式，颜色联动个性化主题色。
-- **自定义背景**：支持默认背景、自定义纯色与自定义背景图片三档切换，背景透明度自由调节，配备毛玻璃质感，备份含背景设置。
-- **自定义列表间距与字号**：内置「紧凑 / 标准 / 宽松」快捷预设，并支持自由调节卡片间距、内边距与字号大小，灵活适应不同屏幕尺寸。
-- **AI 智能增强**：
-  - **一句话速记**：自然语言输入即可自动提取分类、截止日期、预估花费与重要程度。
-  - **智能归类整理**：一键为未分类或待整理事项建议场景与标签，逐条预览采纳。
-- **丝滑拖拽排序**：集成 Sortable.js，在默认排序下随时长按/按住把手拖拽调整优先级，动画流畅，落位即存。
-- **高度个性化**：内置 10 款精致预设主题配色方案，并支持自定义调色板，全界面实时跟随。
-- **日夜间模式**：界面默认跟随系统深浅色，也可在侧栏中手动切换。
-- **本地安全与数据备份**：所有数据均保存在本地 `localStorage`，支持完整的 JSON 格式数据导出与导入备份。
+  - **三层任务架构与多维标签**
+    - 采用「类型 → 场景/时间分组 → 事项」的三层结构组织任务。
+    - 支持多类型、多场景关联，并可独立追踪各场景的完成状态。
+  - **自然流畅的手势交互**
+    - 支持左右滑动快速完成或删除事项。
+    - 支持长按拖拽调整事项及分类顺序。
+    - 核心操作配备触觉反馈，提升移动端操作体验。
+  - **原生桌面小组件与悬浮窗**
+    - 提供多种尺寸的桌面小组件，支持直接查看和完成事项。
+    - 支持桌面快捷新建、事项筛选、排序等操作。
+    - 支持毛玻璃桌面悬浮窗，无需进入应用即可快速管理任务。
+    - 小组件与应用主题及系统深浅色模式保持联动。
+  - **预算统计与智能提醒**
+    - 根据事项预估花费自动统计总预算、待支出及已支出金额。
+    - 智能识别逾期、今日截止、明日截止等时间状态。
+    - 支持按照花费、重要程度、截止日期等维度进行排序。
+  - **AI 智能增强**
+    - 支持一句话速记，通过自然语言快速创建任务。
+    - 自动提取分类、截止日期、预估花费和重要程度等信息。
+    - 支持智能整理未分类事项，自动推荐合适的场景与时间标签。
+  - **高度个性化**
+    - 支持自定义背景、透明度、毛玻璃效果及列表布局。
+    - 支持列表间距、内边距和字号等显示参数自由调整。
+    - 提供多种主题配色，并支持自定义颜色。
+    - 支持跟随系统或手动切换深浅色模式。
+  - **本地数据与备份**
+    - 数据本地存储，支持完整 JSON 格式导入与导出。
+    - 支持通过系统文件管理器、微信、QQ 等应用直接打开备份文件并导入。
+    - 支持系统分享及原生文件导出。
+    - 提供回收站机制，支持恢复或彻底删除已移除事项。
 
 ---
 
 ## 功能预览
 
-| **软件首页** | **AI 速记** | **添加事项** | **软件设置** |
+| **软件首页** | **AI 速记** | **原生组件** | **高度个性化** |
 | :---: | :---: | :---: | :---: |
-| <img src="screenshots/home.jpg" alt="软件首页" width="200" /> | <img src="screenshots/ai.jpg" alt="AI 一句话速记" width="200" /> | <img src="screenshots/add.jpg" alt="添加事项" width="200" /> | <img src="screenshots/settings.jpg" alt="软件设置" width="200" /> |
+| <img src="screenshots/home.jpg" alt="软件首页" width="200" /> | <img src="screenshots/ai.jpg" alt="AI 一句话速记" width="200" /> | <img src="screenshots/desktop.jpg" alt="原生组件" width="200" /> | <img src="screenshots/diy.jpg" alt="个性化" width="200" /> |
 
 ---
 
 ## 技术栈
 
-- **前端核心**：纯原生 HTML5 / CSS3（CSS Variables + Modern Flexbox/Grid）/ Vanilla JavaScript（ES6+），无任何重型前端框架依赖。
-- **拖拽交互**：[Sortable.js](https://github.com/SortableJS/Sortable)
-- **原生封装**：Capacitor（Android WebView 原生能力与下载支持）
-- **AI 接口**：标准 OpenAI 兼容接口（可在设置中自定义 Base URL / API Key / Model）
-- **自动化构建**：GitHub Actions（自动化打包 Android APK、固定签名校验并发布 Release）
+- **前端**：HTML5、CSS3、Vanilla JavaScript（ES6+），采用原生 Web 技术构建，无重型前端框架依赖。
+- **交互**：[Sortable.js](https://github.com/SortableJS/Sortable) —— 用于事项及分类的拖拽排序。
+- **原生能力**：Capacitor —— 将 Web 应用封装为 Android App，并提供文件系统、分享等原生能力。
+- **AI**：支持标准 OpenAI 兼容接口，可自定义 Base URL、API Key 和 Model。
+- **自动化构建**：GitHub Actions —— 自动完成 Android APK 构建及 Release 发布。
 
----
+------
 
 ## 快速开始
 
-本项目为纯原生前端架构，本地调试无需配置复杂的 Node.js 或构建工具环境。
+SuperTodo 采用纯原生 Web 技术构建，无需复杂的前端开发环境即可运行。
 
-### 1. 获取代码
+### 获取代码
 
-```bash
+```
 git clone https://github.com/PaidaxingTuT/SuperTodo.git
 cd SuperTodo
 ```
 
-### 2. 运行与体验
+### 本地运行
 
-- **方式一（直接打开）**：双击根目录下的 `index.html`，即可在浏览器中体验全部功能。
-- **方式二（本地静态服务器，推荐）**：
-  ```bash
-  # 使用 Python 启动本地 HTTP 服务
-  python -m http.server 8000
-  ```
-  在浏览器中访问 `http://localhost:8000` 即可。
+**方式一：直接打开**
 
-### 3. Android APK 安装
+直接打开项目根目录下的 `index.html` 即可体验基础功能。
 
-前往 [Releases 页面](https://github.com/PaidaxingTuT/SuperTodo/releases) 下载最新版本的 `SuperTodo-X.Y.Z.apk` 安装包即可。
+**方式二：使用本地静态服务器（推荐）**
 
----
+```
+python -m http.server 8000
+```
+
+然后访问：
+
+```
+http://localhost:8000
+```
+
+使用本地 HTTP 服务可以获得更稳定的浏览器运行环境。
+
+### Android
+
+前往 [Releases](https://github.com/PaidaxingTuT/SuperTodo/releases) 页面下载最新 Android APK。
+
+------
 
 ## 项目结构
 
-```plaintext
+```
 SuperTodo/
-├── .github/workflows/    # GitHub Actions 自动化构建与发布流程
-├── android-src/          # Android 原生桌面小部件源码、布局与资源
-├── app-icon.png          # 应用图标原图
-├── app-icon-dark.png     # 夜间模式应用图标
-├── app-icon-foreground.png # 夜间自适应前景与启动页纯透明小标
-├── app.js                # 核心业务逻辑、状态管理与本地持久化
-├── CHANGELOG.md          # 版本更新历史记录
-├── debug.keystore        # Android 固定签名证书
-├── index.html            # 页面 DOM 结构与弹窗模板
-├── widget_dialog.html    # 桌面小组件设置弹窗模板
-├── screenshots/          # 应用演示截图与效果图
-│   ├── add.jpg           # 添加事项
-│   ├── ai.jpg            # AI 一句话速记
-│   ├── home.jpg          # 软件首页
-│   ├── settings.jpg      # 软件设置
-│   └── title.png         # 项目顶部横幅
-├── scripts/              # CI 自动化构建注入脚本
-├── Sortable.min.js       # 拖拽排序核心依赖库
-├── style.css             # 响应式布局、动画与主题配色样式
-└── README.md             # 项目使用说明文档
+├── .github/workflows/     # GitHub Actions 自动化构建与发布
+├── android-src/           # Android 原生能力、桌面小组件及相关资源
+├── scripts/               # CI 自动化构建脚本
+├── screenshots/           # 项目截图与展示素材
+├── app.js                 # 核心业务逻辑、状态管理与数据持久化
+├── index.html             # 页面结构与组件模板
+├── widget_dialog.html     # 桌面悬浮窗界面
+├── style.css              # 响应式布局、动画与主题样式
+├── Sortable.min.js        # 拖拽排序依赖
+├── CHANGELOG.md           # 版本更新记录
+└── README.md              # 项目说明文档
 ```
 
----
+------
 
 ## 贡献与反馈
 
-欢迎提交 [Issue](https://github.com/PaidaxingTuT/SuperTodo/issues) 反馈 Bug 或提出功能建议！  
-如果你觉得这个项目对你有帮助，欢迎点个 **Star** 支持一下。
+欢迎通过 [Issues](https://github.com/PaidaxingTuT/SuperTodo/issues) 反馈 Bug、提出功能建议或分享使用体验。
 
----
+如果 SuperTodo 对你有所帮助，欢迎点个 **Star** 支持项目。
+
+------
 
 ## 开源许可
 
-本项目基于 [MIT License](LICENSE) 开源协议。
+本项目基于 [MIT License](https://chatgpt.com/c/LICENSE) 开源。

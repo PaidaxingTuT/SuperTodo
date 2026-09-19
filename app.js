@@ -170,16 +170,36 @@ function syncFromNativeWidget(){
         let changed=false;
         d.items.forEach(natIt=>{
           const localIt=state.items.find(x=>x.id===natIt.id);
-          if(localIt&&localIt.done!==natIt.done){
-            localIt.done=natIt.done;
-            if(natIt.done){
-              localIt.doneScenes=itemScenes(localIt).slice();
-              localIt.doneTypes=itemTypes(localIt).slice();
-            }else{
-              localIt.doneScenes=[];
-              localIt.doneTypes=[];
+          if(localIt){
+            if(localIt.done!==natIt.done){
+              localIt.done=natIt.done;
+              if(natIt.done){
+                localIt.doneScenes=itemScenes(localIt).slice();
+                localIt.doneTypes=itemTypes(localIt).slice();
+              }else{
+                localIt.doneScenes=[];
+                localIt.doneTypes=[];
+              }
+              changed=true;
             }
-            changed=true;
+          }else{
+            const inTrash=Array.isArray(state.trash)&&state.trash.some(x=>x.id===natIt.id);
+            if(!inTrash&&natIt.id&&natIt.title){
+              const types=itemTypes(natIt);
+              const scenes=itemScenes(natIt);
+              const newItem=Object.assign({}, natIt, {
+                types: types,
+                scenes: scenes,
+                doneScenes: natIt.done ? scenes.slice() : [],
+                doneTypes: natIt.done ? types.slice() : [],
+                done: !!natIt.done,
+                created: natIt.created || Date.now(),
+                type: natIt.type || (Array.isArray(types) && types[0]) || '',
+                scene: natIt.scene || (Array.isArray(scenes) && scenes[0]) || ''
+              });
+              state.items.unshift(newItem);
+              changed=true;
+            }
           }
         });
         if(d.quadrantWidget&&typeof d.quadrantWidget==='object'){
@@ -1550,6 +1570,7 @@ function doSearch(){
 document.addEventListener('DOMContentLoaded',()=>{
   init();
   initCustomBgListeners();
+  setupInteractiveSliderPreviews();
   window.addEventListener('popstate',()=>{ if(codeBack){ codeBack=false; return } closeTopLayer(); });
   $('#hamburger').addEventListener('click',openDrawer);
   $('#backBtn').addEventListener('click',()=>{ backHome(); syncBack(); });
@@ -1606,34 +1627,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       renderSpacingControls();
     });
   }
-  const onSliderInput=()=>{
-    const gap=parseFloat($('#sliderItemGap').value)||10;
-    const pad=parseFloat($('#sliderItemPad').value)||13;
-    const font=parseFloat($('#sliderItemFont').value)||15;
-    let preset='custom';
-    for(const [k,p] of Object.entries(SPACING_PRESETS)){
-      if(gap===p.gap&&pad===p.pad&&font===p.font){ preset=k; break; }
-    }
-    state.spacing={preset,gap,pad,font};
-    applySpacing();
-    const gVal=$('#valItemGap'), pVal=$('#valItemPad'), fVal=$('#valItemFont');
-    if(gVal)gVal.textContent=gap+'px';
-    if(pVal)pVal.textContent=pad+'px';
-    if(fVal)fVal.textContent=font+'px';
-    const box=$('#spacingPresetSeg');
-    if(box){
-      box.querySelectorAll('.seg').forEach(btn=>{
-        btn.classList.toggle('on',btn.dataset.preset===preset);
-      });
-    }
-  };
-  ['sliderItemGap','sliderItemPad','sliderItemFont'].forEach(id=>{
-    const el=$('#'+id);
-    if(el){
-      el.addEventListener('input',onSliderInput);
-      el.addEventListener('change',()=>{ save(); });
-    }
-  });
   $('#drawerInfo').addEventListener('click',()=>{ closeDrawer(); openInfo(); });
   const onSystemColorChange=()=>{ if(state.colorMode==='system')applyColorMode(); };
   if(colorModeQuery.addEventListener)colorModeQuery.addEventListener('change',onSystemColorChange); else colorModeQuery.addListener(onSystemColorChange);
@@ -2218,19 +2211,295 @@ function initCustomBgListeners(){
       renderCustomBgSettings();
     });
   }
+}
 
-  const opacitySlider = document.getElementById('sliderBgOpacity');
-  const opacityVal = document.getElementById('valBgOpacity');
-  if (opacitySlider) {
-    opacitySlider.addEventListener('input', e => {
-      const val = parseInt(e.target.value, 10) || 80;
-      if (opacityVal) opacityVal.textContent = val + '%';
-      if (!state.customBg) state.customBg = { type: 'default', color: '#f2f5fb', image: '', opacity: val };
-      state.customBg.opacity = val;
-      applyCustomBg();
-      save();
-    });
+/* ========== 交互滑块临时沉浸式预览系统（透明度 / 列表间距 / 内边距 / 字号） ========== */
+function setupInteractiveSliderPreviews() {
+  const previewBar = document.getElementById('opacityPreviewBar');
+  const previewIcon = document.getElementById('opPreviewIcon');
+  const previewTitleText = document.getElementById('opPreviewTitleText');
+  const previewVal = document.getElementById('opPreviewVal');
+  const previewSlider = document.getElementById('opPreviewSlider');
+  const floatBadge = document.getElementById('opFloatBadge');
+  if (!previewBar || !previewSlider) return;
+
+  let activeCfg = null;
+  let isDragging = false;
+  let pointerDown = false;
+  let startX = 0;
+  let startY = 0;
+  let closeTimer = null;
+
+  function syncPresetSeg() {
+    const s = state.spacing || SPACING_PRESETS.standard;
+    let preset = 'custom';
+    for (const [k, p] of Object.entries(SPACING_PRESETS)) {
+      if (s.gap === p.gap && s.pad === p.pad && s.font === p.font) { preset = k; break; }
+    }
+    s.preset = preset;
+    const box = document.getElementById('spacingPresetSeg');
+    if (box) {
+      box.querySelectorAll('.seg').forEach(btn => {
+        btn.classList.toggle('on', btn.dataset.preset === preset);
+      });
+    }
   }
+
+  const configs = [
+    {
+      id: 'sliderBgOpacity',
+      valId: 'valBgOpacity',
+      rowSelector: '#bgOpacityRow',
+      title: '背景透明度调节',
+      iconSvg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor"></path></svg>',
+      min: 10,
+      max: 100,
+      step: 5,
+      format: v => Math.round(v) + '%',
+      get: () => (state.customBg && typeof state.customBg.opacity === 'number') ? state.customBg.opacity : 80,
+      set: v => {
+        if (!state.customBg) state.customBg = { type: 'default', color: '#f2f5fb', image: '', opacity: v };
+        state.customBg.opacity = v;
+        applyCustomBg();
+      }
+    },
+    {
+      id: 'sliderItemGap',
+      valId: 'valItemGap',
+      rowSelector: null,
+      title: '卡片间距调节',
+      iconSvg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="2"></rect><rect x="3" y="14" width="18" height="6" rx="2"></rect></svg>',
+      min: 4,
+      max: 22,
+      step: 1,
+      format: v => Math.round(v) + 'px',
+      get: () => (state.spacing && typeof state.spacing.gap === 'number') ? state.spacing.gap : 10,
+      set: v => {
+        if (!state.spacing) state.spacing = Object.assign({}, SPACING_PRESETS.standard);
+        state.spacing.gap = v;
+        syncPresetSeg();
+        applySpacing();
+      }
+    },
+    {
+      id: 'sliderItemPad',
+      valId: 'valItemPad',
+      rowSelector: null,
+      title: '卡片内边距调节',
+      iconSvg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><rect x="7" y="7" width="10" height="10" rx="1"></rect></svg>',
+      min: 6,
+      max: 22,
+      step: 1,
+      format: v => Math.round(v) + 'px',
+      get: () => (state.spacing && typeof state.spacing.pad === 'number') ? state.spacing.pad : 13,
+      set: v => {
+        if (!state.spacing) state.spacing = Object.assign({}, SPACING_PRESETS.standard);
+        state.spacing.pad = v;
+        syncPresetSeg();
+        applySpacing();
+      }
+    },
+    {
+      id: 'sliderItemFont',
+      valId: 'valItemFont',
+      rowSelector: null,
+      title: '标题字号调节',
+      iconSvg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>',
+      min: 12,
+      max: 19,
+      step: 0.5,
+      format: v => (Math.round(v * 10) / 10) + 'px',
+      get: () => (state.spacing && typeof state.spacing.font === 'number') ? state.spacing.font : 15,
+      set: v => {
+        if (!state.spacing) state.spacing = Object.assign({}, SPACING_PRESETS.standard);
+        state.spacing.font = v;
+        syncPresetSeg();
+        applySpacing();
+      }
+    }
+  ];
+
+  function syncVal(cfg, rawVal, doSave = false) {
+    let v = Math.max(cfg.min, Math.min(cfg.max, Math.round((rawVal - cfg.min) / cfg.step) * cfg.step + cfg.min));
+    v = Math.round(v * 10) / 10;
+    const txt = cfg.format(v);
+
+    const valEl = document.getElementById(cfg.valId);
+    if (valEl) valEl.textContent = txt;
+    if (previewVal) previewVal.textContent = txt;
+
+    const origSlider = document.getElementById(cfg.id);
+    if (origSlider && parseFloat(origSlider.value) !== v) origSlider.value = v;
+    if (previewSlider && parseFloat(previewSlider.value) !== v) previewSlider.value = v;
+
+    if (floatBadge) {
+      floatBadge.textContent = txt;
+      const pct = Math.max(0, Math.min(1, (v - cfg.min) / (cfg.max - cfg.min)));
+      const badgeLeft = 6 + pct * 88;
+      floatBadge.style.left = badgeLeft + '%';
+    }
+
+    cfg.set(v);
+    if (doSave) save();
+  }
+
+  function enterPreview(cfg) {
+    if (isDragging) return;
+    if (closeTimer) {
+      clearTimeout(closeTimer);
+      closeTimer = null;
+    }
+    isDragging = true;
+    activeCfg = cfg;
+    triggerHaptic('light');
+
+    const setModal = document.getElementById('setModal');
+    const setMask = document.getElementById('setMask');
+    if (setModal) setModal.classList.add('preview-mode-hidden');
+    if (setMask) setMask.classList.add('preview-mode-hidden');
+
+    const origSlider = document.getElementById(cfg.id);
+    if (origSlider) {
+      const row = (cfg.rowSelector ? document.querySelector(cfg.rowSelector) : null) || origSlider.closest('.slider-row') || origSlider;
+      const rect = row.getBoundingClientRect();
+
+      // 原地吸附于用户手指操作的滑块原始位置，完全跟手，杜绝跳动到屏幕底部
+      const padX = 14;
+      const padY = 8;
+      const w = Math.min(window.innerWidth - 32, rect.width + padX * 2);
+      const l = Math.max(16, Math.min(window.innerWidth - w - 16, rect.left - padX));
+      const t = Math.max(16, Math.min(window.innerHeight - 110, rect.top - padY));
+
+      previewBar.style.left = l + 'px';
+      previewBar.style.top = t + 'px';
+      previewBar.style.width = w + 'px';
+      previewBar.style.bottom = 'auto';
+      previewBar.style.right = 'auto';
+
+      if (previewIcon) previewIcon.innerHTML = cfg.iconSvg;
+      if (previewTitleText) previewTitleText.textContent = cfg.title;
+
+      previewSlider.min = cfg.min;
+      previewSlider.max = cfg.max;
+      previewSlider.step = cfg.step;
+
+      const curVal = cfg.get();
+      syncVal(cfg, curVal, false);
+
+      previewBar.classList.remove('closing');
+      previewBar.hidden = false;
+    }
+  }
+
+  function exitPreview() {
+    if (!isDragging) return;
+    isDragging = false;
+    triggerHaptic('light');
+
+    previewBar.classList.add('closing');
+    closeTimer = setTimeout(() => {
+      if (!isDragging && previewBar) {
+        previewBar.hidden = true;
+        previewBar.classList.remove('closing');
+      }
+      closeTimer = null;
+    }, 180);
+
+    const setModal = document.getElementById('setModal');
+    const setMask = document.getElementById('setMask');
+    if (setModal) setModal.classList.remove('preview-mode-hidden');
+    if (setMask) setMask.classList.remove('preview-mode-hidden');
+
+    save();
+    activeCfg = null;
+  }
+
+  configs.forEach(cfg => {
+    const slider = document.getElementById(cfg.id);
+    if (!slider) return;
+
+    slider.addEventListener('input', e => {
+      if (!isDragging) {
+        syncVal(cfg, parseFloat(e.target.value), false);
+      }
+    });
+    slider.addEventListener('change', () => {
+      if (!isDragging) save();
+    });
+
+    const handleDown = (clientX, clientY) => {
+      pointerDown = true;
+      activeCfg = cfg;
+      startX = clientX;
+      startY = clientY;
+      isDragging = false;
+    };
+
+    if (window.PointerEvent) {
+      slider.addEventListener('pointerdown', e => handleDown(e.clientX, e.clientY));
+    } else {
+      slider.addEventListener('touchstart', e => {
+        if (e.touches && e.touches[0]) handleDown(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      slider.addEventListener('mousedown', e => handleDown(e.clientX, e.clientY));
+    }
+  });
+
+  const handleGlobalMove = (clientX, clientY, e) => {
+    if (!pointerDown || !activeCfg) return;
+    const dx = clientX - startX;
+    const dy = clientY - startY;
+    if (!isDragging && (Math.abs(dx) >= 6 || Math.hypot(dx, dy) >= 8)) {
+      enterPreview(activeCfg);
+    }
+    if (isDragging) {
+      if (e && e.cancelable) e.preventDefault();
+      const activeSlider = previewSlider || document.getElementById(activeCfg.id);
+      if (activeSlider) {
+        const rect = activeSlider.getBoundingClientRect();
+        if (rect.width > 0) {
+          const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+          const raw = activeCfg.min + ratio * (activeCfg.max - activeCfg.min);
+          syncVal(activeCfg, raw, false);
+        }
+      }
+    }
+  };
+
+  const handleGlobalUp = () => {
+    if (isDragging) {
+      exitPreview();
+    }
+    pointerDown = false;
+    isDragging = false;
+  };
+
+  if (window.PointerEvent) {
+    window.addEventListener('pointermove', e => { if (pointerDown) handleGlobalMove(e.clientX, e.clientY, e); }, { passive: false });
+    window.addEventListener('pointerup', handleGlobalUp);
+    window.addEventListener('pointercancel', handleGlobalUp);
+  } else {
+    window.addEventListener('touchmove', e => {
+      if (pointerDown && e.touches && e.touches[0]) handleGlobalMove(e.touches[0].clientX, e.touches[0].clientY, e);
+    }, { passive: false });
+    window.addEventListener('touchend', handleGlobalUp);
+    window.addEventListener('touchcancel', handleGlobalUp);
+
+    window.addEventListener('mousemove', e => { if (pointerDown) handleGlobalMove(e.clientX, e.clientY, e); });
+    window.addEventListener('mouseup', handleGlobalUp);
+  }
+
+  previewSlider.addEventListener('input', e => {
+    if (activeCfg) {
+      syncVal(activeCfg, parseFloat(e.target.value), false);
+    }
+  });
+  const onPreviewEnd = () => {
+    if (isDragging) exitPreview();
+  };
+  previewSlider.addEventListener('change', onPreviewEnd);
+  previewSlider.addEventListener('pointerup', onPreviewEnd);
+  previewSlider.addEventListener('touchend', onPreviewEnd);
 }
 
 function compressImageFile(file, maxWidth, quality, callback){
@@ -2269,7 +2538,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.9.4';
+const APP_VERSION='v1.9.6';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -2327,6 +2596,10 @@ function renderChangelog(md){
   for(let line of lines){
     line=line.trim();
     if(!line || line.startsWith('# ')) continue;
+    if(/^(?:[-*_]\s*){3,}$/.test(line)){
+      if(inList){ html+='</ul>'; inList=false; }
+      continue;
+    }
 
     const verMatch=line.match(/^##\s+(v[^\s（(]+)(?:[（(]([^）)]+)[）)])?/);
     if(verMatch){
@@ -2977,40 +3250,192 @@ function renameTag(kind,idx){
 /* ========== AI：一句话速记 + 智能整理（云端） ========== */
 /* ===== 云端解析（OpenAI 兼容） ===== */
 function hasCloudKey(){ return !!(state.ai&&state.ai.enabled&&state.ai.base&&state.ai.key) }
+
+/* 连接预热（DNS 预解析与 TCP/TLS 提前握手，节省首包网络建连开销） */
+function preconnectAi(){
+  if(!hasCloudKey()) return;
+  try{
+    const origin = new URL(state.ai.base).origin;
+    if(!document.querySelector(`link[data-ai-origin="${origin}"]`)){
+      const l1=document.createElement('link');
+      l1.rel='dns-prefetch'; l1.href=origin; l1.dataset.aiOrigin=origin;
+      document.head.appendChild(l1);
+      const l2=document.createElement('link');
+      l2.rel='preconnect'; l2.href=origin; l2.crossOrigin='anonymous'; l2.dataset.aiOrigin=origin;
+      document.head.appendChild(l2);
+    }
+  }catch(e){}
+}
+
+/* 高密度精简 Prompt，剔除冗余修饰与重复说明，加速模型 Prefill 计算 */
 function aiPrompt(){
   const now=new Date();
   const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-  return '你是清单应用的语义解析器。必须完整分析用户输入中的每个信息，只输出 JSON，不要解释。'+
-  '当前日期是 '+today+'（用户本地日期），所有相对时间都以此计算。'+
-  '现有类型：'+JSON.stringify(state.types)+'，现有场景：'+JSON.stringify(state.scenes)+'，现有时间：'+JSON.stringify(state.times)+'。'+
-  '输出格式：{"title":"简短事项主体","type":"类型或空","scene":"场景或空","time":"时间或空","cost":数字(元)或null,"due":"YYYY-MM-DD或空","star":1-5或0,"suggest":{"type":"建议新建类型或空","scene":"建议新建场景或空","time":"建议新建时间或空"}}。'+
-  '规则：1. title 只保留核心对象或任务，去掉时间、金额、地点、重要程度和“买/购买”等可由 type 表达的修饰；不要照抄整句。'+
-  '2. 根据语义推断所有字段，例如“买/购入”对应购物类型；不得漏掉可以明确推断的信息。'+
-  '3. 识别今天、明天、周末、月底、年底前、明年等相对时间并换算 due；“年底前/今年底/今年内”表示今年且 due 为当年 12-31。'+
-  '4. type/scene/time 必须从现有列表精确选择；没有合适项时该字段留空，并在 suggest 中给出简短建议。'+
-  '5. cost 只提取明确金额；star 按明确的重要程度映射到 1-5，未提及则为 0；不要臆造信息。'+
-  '示例：输入“年底前买ps5”，若现有列表包含购物和今年，则 title="ps5"、type="购物"、time="今年"、due="'+now.getFullYear()+'-12-31"，其他未提及字段保持空或 null。';
+  return `待办清单语义解析器。必须只输出纯JSON对象，不带解释说明。基准日期：${today}。
+可选类型：${JSON.stringify(state.types)}；可选场景：${JSON.stringify(state.scenes)}；可选时间：${JSON.stringify(state.times)}。
+JSON格式：{"title":"简短核心事项","type":"精确匹配项或空","scene":"精确匹配项或空","time":"精确匹配项或空","cost":数字或null,"due":"YYYY-MM-DD或空","star":0,"suggest":{"type":"","scene":"","time":""}}
+规则：
+1.title仅保留核心对象/事件，去掉时间、金额、地点、重要度及“买/购买”等动词，不照抄整句。
+2.type/scene/time优先从可选列表中精确匹配；无匹配项时对应字段留空，并在suggest对应字段简写建议。
+3.相对时间(今天/明天/周末/月底/年底前/明年等)推算为due具体日期(如年底前算为${now.getFullYear()}-12-31)；cost提取纯金额数字(元)；star重要度映射1-5(默认0)。无明确信息字段填null或""。`;
 }
+
+/* 快速安全提取 JSON（免疫模型 Markdown 代码块包裹或杂质字符） */
+function extractJson(raw){
+  if(!raw) return null;
+  const str = String(raw).trim();
+  try{ return JSON.parse(str); }catch(e){}
+  const uncode = str.replace(/```(?:json)?\s*([\s\S]*?)\s*```/gi, '$1').trim();
+  try{ return JSON.parse(uncode); }catch(e){}
+  const start = uncode.indexOf('{');
+  const end = uncode.lastIndexOf('}');
+  if(start !== -1 && end > start){
+    try{ return JSON.parse(uncode.slice(start, end + 1)); }catch(e){}
+  }
+  return null;
+}
+
+/* 内存快速缓存，相同输入即刻命中（0ms 响应） */
+const aiSpeedCache = new Map();
+function getCachedAi(text){
+  const today = new Date().toDateString();
+  const key = `${today}|${state.types.join(',')}|${state.scenes.join(',')}|${state.times.join(',')}|${text}`;
+  return aiSpeedCache.get(key) || null;
+}
+function setCachedAi(text, obj){
+  const today = new Date().toDateString();
+  const key = `${today}|${state.types.join(',')}|${state.scenes.join(',')}|${state.times.join(',')}|${text}`;
+  if(aiSpeedCache.size >= 60) aiSpeedCache.clear();
+  aiSpeedCache.set(key, obj);
+}
+
 async function parseWithCloud(text,signal){
   try{
-    const base=state.ai.base.replace(/\/+$/,'');
-    const res=await fetch(base+'/chat/completions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.ai.key},
+    const cached = getCachedAi(text);
+    if(cached) return cached;
+
+    const base = state.ai.base.replace(/\/+$/,'');
+    const model = state.ai.model || 'gpt-4o-mini';
+    const prompt = aiPrompt();
+
+    // 1. 优先尝试流式解析（SSE）：规避反向代理/API网关的全包缓冲等待，首字即传，显著降低端到端耗时
+    try {
+      const streamRes = await fetch(base + '/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + state.ai.key
+        },
+        signal,
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'system', content: prompt }, { role: 'user', content: text }],
+          temperature: 0,
+          max_tokens: 300,
+          stream: true
+        })
+      });
+
+      if (streamRes.ok && streamRes.body) {
+        const reader = streamRes.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+        let fullContent = '';
+        let isDone = false;
+
+        while (!isDone) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith(':')) continue;
+            if (trimmed === 'data: [DONE]') {
+              isDone = true;
+              break;
+            }
+            if (trimmed.startsWith('data: ')) {
+              try {
+                const chunk = JSON.parse(trimmed.slice(6));
+                const delta = chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content;
+                if (delta) fullContent += delta;
+              } catch (e) {}
+            }
+          }
+        }
+
+        const parsedStream = extractJson(fullContent);
+        if (parsedStream && typeof parsedStream === 'object') {
+          setCachedAi(text, parsedStream);
+          return parsedStream;
+        }
+      }
+    } catch (streamErr) {
+      if (signal && signal.aborted) return null;
+      // 若流式请求遭遇特殊代理不支持，平滑回退至非流式请求
+    }
+
+    // 2. 回退机制：标准非流式请求（兼顾不支持流式或 response_format 的各类兼容网关）
+    const res = await fetch(base + '/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + state.ai.key
+      },
       signal,
-      body:JSON.stringify({
-        model:state.ai.model||'gpt-4o-mini',
-        messages:[{role:'system',content:aiPrompt()},{role:'user',content:text}],
-        temperature:0,
-        response_format:{type:'json_object'}
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'system', content: prompt }, { role: 'user', content: text }],
+        temperature: 0,
+        max_tokens: 300,
+        response_format: { type: 'json_object' }
       })
     });
-    if(!res.ok) return null;
-    const data=await res.json();
-    const raw=data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
-    if(!raw) return null;
-    return JSON.parse(raw);
-  }catch(e){ return null }
+
+    if (!res.ok) {
+      // 容错重试：某些轻量模型可能对 response_format 报 400，去掉后单次重试
+      if (res.status === 400) {
+        const retryRes = await fetch(base + '/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + state.ai.key
+          },
+          signal,
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'system', content: prompt }, { role: 'user', content: text }],
+            temperature: 0,
+            max_tokens: 300
+          })
+        });
+        if (retryRes.ok) {
+          const data = await retryRes.json();
+          const raw = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+          const parsed = extractJson(raw);
+          if (parsed && typeof parsed === 'object') {
+            setCachedAi(text, parsed);
+            return parsed;
+          }
+        }
+      }
+      return null;
+    }
+
+    const data = await res.json();
+    const raw = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    const parsed = extractJson(raw);
+    if (parsed && typeof parsed === 'object') {
+      setCachedAi(text, parsed);
+      return parsed;
+    }
+    return null;
+  } catch(e) {
+    return null;
+  }
 }
 function normTag(v,dim){ if(!v)return {v:'',s:''}; const list=dim==='types'?state.types:dim==='scenes'?state.scenes:state.times; if(list.includes(v))return {v,s:''}; return {v:'',s:v}; }
 function normalizeCloud(r){
@@ -3037,6 +3462,7 @@ function addTagSilent(kind,name){
 let aiRequestId=0, aiAbort=null;
 function openAi(){
   triggerHaptic('light');
+  preconnectAi();
   aiRequestId++;
   if(aiAbort)aiAbort.abort();
   aiAbort=null;
@@ -3062,6 +3488,17 @@ async function runAi(){
   const controller=new AbortController();
   aiAbort=controller;
   $('#aiGo').disabled=true; $('#aiLoading').hidden=false; $('#aiStatus').textContent='正在解析…';
+
+  // 并行预渲染新建事项的分段标签与骨架，降低网络返回后渲染与主线程阻塞开销
+  setTimeout(()=>{
+    if(requestId===aiRequestId && !$('#aiModal').hidden){
+      const tSeg=$('#fTypeSeg'), sSeg=$('#fSceneSeg'), mSeg=$('#fTimeSeg');
+      if(tSeg && !tSeg.children.length) tSeg.innerHTML=segHTML('type');
+      if(sSeg && !sSeg.children.length) sSeg.innerHTML=segHTML('scene');
+      if(mSeg && !mSeg.children.length) mSeg.innerHTML=segHTML('time');
+    }
+  }, 10);
+
   const r=await parseAI(text,controller.signal);
   if(requestId!==aiRequestId||controller.signal.aborted||$('#aiModal').hidden)return;
   aiAbort=null;
