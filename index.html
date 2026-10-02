@@ -59,7 +59,8 @@ try{
   }
 }catch(e){}
 </script>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="air-datepicker.css">
+<link rel="stylesheet" href="style.css?v=air-date-picker">
 </head>
 <body>
 <div id="appBgLayer" class="app-bg-layer"></div>
@@ -136,6 +137,13 @@ try{
     </label>
 
     <div class="fld">
+      <label class="fld-label">子任务清单（可选）</label>
+      <div id="fSubtasks"></div>
+      <button type="button" class="btn-text" id="addSubtask">＋ 添加子任务</button>
+      <div class="ai-tip">全部子任务勾选后，主事项自动完成；取消任一子任务勾选，主事项恢复未完成。</div>
+    </div>
+
+    <div class="fld">
       <label class="fld-label">类型</label>
       <div class="segbg" id="fTypeSeg"></div>
     </div>
@@ -154,9 +162,19 @@ try{
         <input type="number" id="fCost" placeholder="0" min="0" step="any" inputmode="decimal">
       </div>
       <div class="fld-in">
-        <label class="fld-label">截止日期</label>
-        <input type="date" id="fDue">
+        <label class="fld-label" for="fDueDisplay">截止日期</label>
+        <div class="due-field">
+          <input type="hidden" id="fDue">
+          <input type="text" id="fDueDisplay" placeholder="选择日期" autocomplete="off" readonly aria-haspopup="dialog" aria-expanded="false">
+          <morph-icon data-icon="calendar" aria-hidden="true"></morph-icon>
+        </div>
       </div>
+    </div>
+
+    <div class="fld">
+      <label class="fld-label" for="fRepeatDays">每 X 天重复（可选）</label>
+      <input type="number" id="fRepeatDays" placeholder="不重复" min="1" max="36500" step="1" inputmode="numeric" aria-describedby="repeatHint">
+      <div class="ai-tip" id="repeatHint">留空则不重复。完成后按截止日期顺延；未设日期则从完成当天计算，逾期跳到下个周期。</div>
     </div>
 
     <div class="fld">
@@ -416,21 +434,21 @@ try{
         <img class="info-logo-dark" src="app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.9.6</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.9.7</div>
       <div class="info-desc">轻量 · 优雅 · 丝滑的待办与清单管理</div>
       <div class="info-author">Crafted with <span class="heart">♥</span> by <strong>派大星TuT</strong></div>
     </div>
     <div class="info-actions">
       <button class="info-pill" id="infoUpdateBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+        <morph-icon data-icon="refresh" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>
         <span>检查更新</span>
       </button>
       <button class="info-pill" id="infoChangelogBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+        <morph-icon data-icon="history" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>
         <span>更新日志</span>
       </button>
       <button class="info-pill" id="infoRepo" type="button">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        <morph-icon data-icon="github" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>
         <span>开源仓库</span>
       </button>
     </div>
@@ -514,7 +532,7 @@ try{
   <!-- 阶段二：应用内下载中（带进度条） -->
   <div class="modal-body update-body update-progress-stage" id="updateProgressStage" hidden>
     <div class="up-progress-icon">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+      <morph-icon data-icon="download" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>
     </div>
     <div class="up-progress-status" id="updateProgressStatus">正在下载新版本安装包…</div>
     <div class="up-bar-track">
@@ -533,7 +551,7 @@ try{
   <!-- 阶段三：下载完成（成功页面，取消与右下角胶囊包裹安装） -->
   <div class="modal-body update-body update-success-stage" id="updateSuccessStage" hidden>
     <div class="up-success-icon">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      <morph-icon data-icon="check" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>
     </div>
     <div class="up-success-title">新版本安装包下载完成！</div>
     <div class="up-success-desc" id="updateSuccessDesc">安装包已就绪，立即安装体验最新功能。</div>
@@ -576,7 +594,7 @@ try{
   <div class="modal-body ctx-body">
     <button class="ctx-action-item" id="ctxRename">
       <div class="ctx-action-icon edit">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        <morph-icon data-icon="edit" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>
       </div>
       <div class="ctx-action-text">
         <div class="ctx-action-title">重命名</div>
@@ -586,7 +604,7 @@ try{
     </button>
     <button class="ctx-action-item danger" id="ctxDelete">
       <div class="ctx-action-icon delete">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+        <morph-icon data-icon="delete" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>
       </div>
       <div class="ctx-action-text">
         <div class="ctx-action-title">删除标签</div>
@@ -605,7 +623,7 @@ try{
   <div class="op-preview-header">
     <span class="op-preview-title" id="opPreviewTitle">
       <span id="opPreviewIcon" style="display:inline-flex;align-items:center;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor"></path></svg>
+        <morph-icon data-icon="contrast" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>
       </span>
       <span id="opPreviewTitleText">背景透明度调节</span>
     </span>
@@ -624,6 +642,15 @@ try{
 </div>
 
 <script src="Sortable.min.js"></script>
+<script src="gsap.min.js"></script>
+<script src="motion.js"></script>
+<script src="morphicons.min.js"></script>
+<script src="icons.js"></script>
+<script src="animations.js"></script>
+<script src="air-datepicker.js"></script>
+<script src="air-datepicker-zh.js"></script>
+<script src="date-picker.js"></script>
+<script src="repeat.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

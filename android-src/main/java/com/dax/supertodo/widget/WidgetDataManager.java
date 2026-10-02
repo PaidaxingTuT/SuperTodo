@@ -191,6 +191,57 @@ public class WidgetDataManager {
         return bitmap;
     }
 
+    private static void completeRepeatItem(JSONArray items, JSONObject item) throws Exception {
+        boolean done = item.optBoolean("done", false);
+        JSONArray subtasks = item.optJSONArray("subtasks");
+        if (done && subtasks != null) {
+            for (int i = 0; i < subtasks.length(); i++) {
+                JSONObject task = subtasks.optJSONObject(i);
+                if (task != null) task.put("done", true);
+            }
+        }
+        JSONArray scenes = item.optJSONArray("scenes");
+        JSONArray types = item.optJSONArray("types");
+        item.put("doneScenes", done && scenes != null ? new JSONArray(scenes.toString()) : new JSONArray());
+        item.put("doneTypes", done && types != null ? new JSONArray(types.toString()) : new JSONArray());
+        double value = item.optDouble("repeatDays", 0);
+        if (!done || !item.optString("repeatNextId").isEmpty() || value < 1 || value > 36500 || value != Math.floor(value)) return;
+        int days = (int) value;
+        java.util.Calendar local = java.util.Calendar.getInstance();
+        java.util.Calendar utc = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+        utc.clear();
+        utc.set(local.get(java.util.Calendar.YEAR), local.get(java.util.Calendar.MONTH), local.get(java.util.Calendar.DAY_OF_MONTH));
+        long today = utc.getTimeInMillis();
+        java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+        format.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+        format.setLenient(false);
+        long date = today;
+        String due = item.optString("due");
+        if (due.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            try { date = format.parse(due).getTime(); } catch (java.text.ParseException ignored) {}
+        }
+        long step = days * 86400000L;
+        date += Math.max(1L, (long) Math.floor((double) (today - date) / step) + 1L) * step;
+        JSONObject next = new JSONObject(item.toString());
+        String id = java.util.UUID.randomUUID().toString();
+        next.put("id", id);
+        next.put("due", format.format(new java.util.Date(date)));
+        next.put("done", false);
+        next.put("doneScenes", new JSONArray());
+        next.put("doneTypes", new JSONArray());
+        JSONArray nextSubtasks = next.optJSONArray("subtasks");
+        if (nextSubtasks != null) {
+            for (int i = 0; i < nextSubtasks.length(); i++) {
+                JSONObject task = nextSubtasks.optJSONObject(i);
+                if (task != null) task.put("done", false);
+            }
+        }
+        next.put("created", System.currentTimeMillis());
+        next.remove("repeatNextId");
+        item.put("repeatNextId", id);
+        items.put(next);
+    }
+
     public static synchronized boolean toggleItemDone(Context context, String itemId) {
         if (context == null || itemId == null || itemId.isEmpty()) return false;
         String json = getWidgetData(context);
@@ -208,6 +259,7 @@ public class WidgetDataManager {
                     boolean cur = obj.optBoolean("done", false);
                     nextState = !cur;
                     obj.put("done", nextState);
+                    completeRepeatItem(items, obj);
                     updated = true;
                     break;
                 }
@@ -367,6 +419,7 @@ public class WidgetDataManager {
                     JSONObject it = mainItems.optJSONObject(j);
                     if (it != null && completedId.equals(it.optString("id"))) {
                         it.put("done", true);
+                        completeRepeatItem(mainItems, it);
                         break;
                     }
                 }
@@ -589,6 +642,7 @@ public class WidgetDataManager {
                         JSONObject rootIt = rootItems.optJSONObject(j);
                         if (rootIt != null && itemId.equals(rootIt.optString("id"))) {
                             rootIt.put("done", nextState);
+                            completeRepeatItem(rootItems, rootIt);
                             break;
                         }
                     }

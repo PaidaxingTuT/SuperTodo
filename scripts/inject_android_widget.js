@@ -176,12 +176,12 @@ function injectWidgetManifest() {
   fs.writeFileSync(manifestPath, content, 'utf8');
   console.log('Successfully injected widget components, file intent-filters and permissions into AndroidManifest.xml');
 
-  // 3. 同步 widget_dialog.html 与 Sortable.min.js 至 android assets
+  // 3. 同步悬浮窗及其脚本至 android assets
   const assetsDir = path.join('android', 'app', 'src', 'main', 'assets');
   if (!fs.existsSync(assetsDir)) {
     fs.mkdirSync(assetsDir, { recursive: true });
   }
-  ['widget_dialog.html', 'Sortable.min.js'].forEach(file => {
+  ['widget_dialog.html', 'repeat.js', 'gsap.min.js', 'motion.js', 'animations.js','icons.js','morphicons.min.js', 'Sortable.min.js'].forEach(file => {
     if (fs.existsSync(file)) {
       fs.copyFileSync(file, path.join(assetsDir, file));
       console.log(`Copied ${file} to ${assetsDir}`);

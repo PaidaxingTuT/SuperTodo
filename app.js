@@ -171,11 +171,16 @@ function syncFromNativeWidget(){
         d.items.forEach(natIt=>{
           const localIt=state.items.find(x=>x.id===natIt.id);
           if(localIt){
+            if(natIt.repeatNextId && localIt.repeatNextId !== natIt.repeatNextId){
+              localIt.repeatNextId = natIt.repeatNextId;
+              changed = true;
+            }
             if(localIt.done!==natIt.done){
               localIt.done=natIt.done;
               if(natIt.done){
                 localIt.doneScenes=itemScenes(localIt).slice();
                 localIt.doneTypes=itemTypes(localIt).slice();
+                completeSubtasks(localIt);
               }else{
                 localIt.doneScenes=[];
                 localIt.doneTypes=[];
@@ -466,6 +471,7 @@ function renderColorModeSeg(){
 
 function applyColorMode(){
   const dark=isDarkMode(),root=document.documentElement,btn=$('#drawerTheme');
+  root.classList.add('theme-changing');
   root.dataset.colorMode=dark?'dark':'light';
   applyTheme(state.theme);
   if(btn){
@@ -474,17 +480,14 @@ function applyColorMode(){
     btn.title='当前：'+tip+'，点击切换';
   }
   renderColorModeSeg();
+  // Apply foreground and background together, without their individual CSS transitions.
+  void root.offsetHeight;
+  requestAnimationFrame(()=>root.classList.remove('theme-changing'));
 }
 
 function toggleColorMode(){
-  // 循环顺序：跟随系统 -> 日间浅色 -> 夜间深色 -> 跟随系统
-  if(state.colorMode==='system'){
-    state.colorMode = isDarkMode() ? 'light' : 'dark';
-  }else if(state.colorMode==='light'){
-    state.colorMode = 'dark';
-  }else{
-    state.colorMode = 'system';
-  }
+  // 快捷按钮直接切换当前外观；“跟随系统”在设置中选择。
+  state.colorMode = isDarkMode() ? 'light' : 'dark';
   save();
   applyColorMode();
 }
@@ -580,20 +583,20 @@ function syncBack(){ codeBack=true; history.back() }
 function backHome(){ state.view={name:'home'}; state.sortKey='默认'; render() }
 function closeTopLayer(){
   backSuppress=true;
-  if(!$('#dlgModal').hidden){ dlgClose(); backSuppress=false; return true; }
-  if(!$('#itemPickerModal').hidden){ closeItemPicker(); backSuppress=false; return true; }
-  if(!$('#quadrantModal').hidden){ closeQuadrantModal(); backSuppress=false; return true; }
-  if(!$('#updateModal').hidden){ closeUpdateModal(); backSuppress=false; return true; }
-  if(!$('#clModal').hidden){ closeChangelog(); backSuppress=false; return true; }
-  if(!$('#modal').hidden){ hideModal(); backSuppress=false; return true; }
-  if(!$('#ctxModal').hidden){ closeCtx(); backSuppress=false; return true; }
-  if(!$('#aiModal').hidden){ closeAi(); backSuppress=false; return true; }
-  if(!$('#tidyModal').hidden){ closeTidy(); backSuppress=false; return true; }
-  if(!$('#infoModal').hidden){ closeInfo(); backSuppress=false; return true; }
-  if(!$('#setModal').hidden){ closeSettings(); backSuppress=false; return true; }
-  if(!$('#sortModal').hidden){ closeSort(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#dlgModal'))){ dlgClose(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#itemPickerModal'))){ closeItemPicker(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#quadrantModal'))){ closeQuadrantModal(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#updateModal'))){ closeUpdateModal(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#clModal'))){ closeChangelog(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#modal'))){ hideModal(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#ctxModal'))){ closeCtx(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#aiModal'))){ closeAi(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#tidyModal'))){ closeTidy(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#infoModal'))){ closeInfo(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#setModal'))){ closeSettings(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#sortModal'))){ closeSort(); backSuppress=false; return true; }
   if(!$('#searchbar').hidden){ closeSearch(); backSuppress=false; return true; }
-  if(!$('#drawer').hidden){ closeDrawer(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#drawer'))){ closeDrawer(); backSuppress=false; return true; }
   if(state.view.name==='list'){ backHome(); backSuppress=false; return true; }
   backSuppress=false;
   return false;
@@ -615,11 +618,11 @@ function setupNativeBack(){
 /* ========== 通用对话框（替代原生 alert/confirm/prompt） ========== */
 let dlgType='alert', dlgCb=null, dlgOnCancel=null;
 const DICONS={
-  info:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>',
-  question:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>',
-  edit:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>',
-  delete:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>',
-  check:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>'
+  info:'<morph-icon data-icon="info" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>',
+  question:'<morph-icon data-icon="question" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>',
+  edit:'<morph-icon data-icon="edit" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>',
+  delete:'<morph-icon data-icon="delete" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>',
+  check:'<morph-icon data-icon="check" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>'
 };
 function dlgShow(opts){
   dlgType=opts.type||'alert';
@@ -642,11 +645,11 @@ function dlgShow(opts){
   $('#dlgCancel').textContent=opts.cancelText||'取消';
   $('#dlgOk').textContent=opts.okText||'确定';
   pushLayer();
-  $('#dlgMask').hidden=false; $('#dlgModal').hidden=false;
+  UiMotion.show($('#dlgMask')); UiMotion.show($('#dlgModal'));
   if(needInput) setTimeout(()=>$('#dlgInput').focus(),60);
 }
 function dlgClose(){
-  $('#dlgMask').hidden=true; $('#dlgModal').hidden=true;
+  UiMotion.hide($('#dlgMask')); UiMotion.hide($('#dlgModal'));
   if(!backSuppress) syncBack();
 }
 function alertDlg(title,msg){ dlgShow({title,msg,type:'alert',okText:'知道了'}); }
@@ -705,7 +708,7 @@ function calcCostSummary(items, isDoneFn){
 function costCardHTML(summary, title){
   if(state.showCostSummary === false) return '';
   if(!summary || !summary.hasCost) return '';
-  return `<div class="cost-summary-card">
+  return `<div class="cost-summary-card" data-cost-key="${esc(title||'预算与花费汇总')}">
     <div class="csc-top">
       <div class="csc-title-wrap">
         <span class="csc-icon">¥</span>
@@ -718,7 +721,7 @@ function costCardHTML(summary, title){
       </div>
     </div>
     <div class="csc-progress-track">
-      <div class="csc-progress-bar" style="width:${summary.pctDone}%"></div>
+      <div class="csc-progress-bar" data-progress="${summary.pctDone}" style="width:${summary.pctDone}%"></div>
     </div>
     <div class="csc-bottom">
       <div class="csc-stats">
@@ -765,7 +768,7 @@ function moveToTrash(id){
   triggerHaptic('heavy');
   save();
   render();
-  if(!$('#trashModal').hidden) renderTrashModal();
+  if(UiMotion.isOpen($('#trashModal'))) renderTrashModal();
 }
 
 function restoreFromTrash(id){
@@ -1202,15 +1205,15 @@ function openTrashModal(){
     state.trash = [];
     save();
   }
-  $('#trashMask').hidden = false;
-  $('#trashModal').hidden = false;
+  UiMotion.show($('#trashMask'));
+  UiMotion.show($('#trashModal'));
   triggerHaptic('light');
   renderTrashModal();
 }
 
 function closeTrashModal(){
-  $('#trashMask').hidden = true;
-  $('#trashModal').hidden = true;
+  UiMotion.hide($('#trashMask'));
+  UiMotion.hide($('#trashModal'));
   if(!backSuppress) syncBack();
 }
 
@@ -1277,12 +1280,14 @@ function renderTrashModal(){
 
 /* ========== 渲染 ========== */
 function render(){
+  UiMotion.beforeRender();
   renderTitle();
   renderDrawer();
   initDrawerSortable();
   renderContent();
   initSortable();
   initSwipeGestures();
+  UiMotion.afterRender();
 }
 function renderTitle(){
   if(!state.type || state.type==='undefined' || (!state.types.includes(state.type) && state.type!=='全部')){
@@ -1321,16 +1326,14 @@ function renderDrawer(){
   html+=`<button class="dnav-item dnav-all ${state.type==='全部'?'on':''}" data-t="全部"><span class="dnav-ic"></span>全部<span class="dnav-count">${totalActive}</span></button>`;
   state.types.forEach((t,i)=>{
     const active = state.type===t;
-    const col = active ? colorHexToUri(state.theme) : '%235f6368';
     html+=`<button class="dnav-item ${active?'on':''}" data-t="${esc(t)}" data-kind="type" data-idx="${i}">
-      <span class="dnav-ic" style="background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22${col}%22><circle cx=%2212%22 cy=%2212%22 r=%229%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22/></svg>')"></span>${esc(t)}<span class="dnav-drag" aria-hidden="true"></span><span class="dnav-count">${(counts[t]||0)}</span></button>`;
+      <span class="dnav-ic"></span>${esc(t)}<span class="dnav-drag" aria-hidden="true"></span><span class="dnav-count">${(counts[t]||0)}</span></button>`;
   });
   html+=`<button class="dnav-add" id="dnavAdd" data-addtype="1">＋ 新增类型</button>`;
   const trashCount = (state.trash || []).length;
   html += '<div class="dnav-divider"></div><button class="dnav-item dnav-trash" id="dnavTrash" data-kind="trash"><span class="dnav-ic dnav-ic-trash"></span>回收站<span class="dnav-count">' + trashCount + '</span></button>';
   nav.innerHTML = html;
 }
-function colorHexToUri(hex){ return '%23'+hex.slice(1) }
 function renderContent(){
   const wrap=$('#content'), empty=$('#emptyState');
   if(state.view.name==='home'){ renderHome(wrap,empty); }
@@ -1355,7 +1358,7 @@ function renderHome(wrap,empty){
     const preview=undone.slice(0,3);
     const gSummary=calcCostSummary(g.items, isDone);
     const costBadge=(showCost && gSummary.hasCost) ? `<span class="sec-cost-pill" title="预估总额: ¥${money(gSummary.totalCost)}">¥${money(gSummary.undoneCost>0?gSummary.undoneCost:gSummary.totalCost)}</span>` : '';
-    const arrowSvg=`<span class="sec-arrow" style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%235f6368%22><path d=%22M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z/%22/></svg>') center/contain no-repeat;width:15px;height:15px;display:inline-block;vertical-align:middle"></span>`;
+    const arrowSvg=`<span class="sec-arrow"></span>`;
     html+=`<div class="section">
       <div class="section-card" data-open="${esc(g.key)}">
         <div class="section-head" data-open="${esc(g.key)}">
@@ -1369,6 +1372,48 @@ function renderHome(wrap,empty){
     </div>`;
   });
   wrap.innerHTML=html;
+}
+function itemSubtasks(it){
+  return Array.isArray(it.subtasks) ? it.subtasks.filter(task=>task && typeof task.title==='string' && task.title.trim()) : [];
+}
+function subtaskProgressHTML(it){
+  const tasks=itemSubtasks(it), done=tasks.filter(task=>task.done).length;
+  return `<span class="subtask-ring" style="--progress:${done/tasks.length*100}" aria-hidden="true"><svg viewBox="0 0 24 24"><circle class="subtask-track" cx="12" cy="12" r="9.5"/><circle class="subtask-fill" cx="12" cy="12" r="9.5"/></svg><span>${done}</span></span><span class="subtask-count">${tasks.length} 项</span><span class="subtask-chevron" aria-hidden="true"></span>`;
+}
+function subtasksHTML(it){
+  const tasks=itemSubtasks(it);
+  if(!tasks.length) return '';
+  return `<details class="subtask-list"><summary data-subtask-summary="${esc(it.id)}" aria-label="子任务，已完成 ${tasks.filter(task=>task.done).length} 项，共 ${tasks.length} 项" title="展开或收起子任务">${subtaskProgressHTML(it)}</summary>
+    <div class="subtask-steps">${tasks.map((task,index)=>`<label class="subtask-check ${task.done?'done':''}"><span class="subtask-toggle"><input type="checkbox" data-subtask="${esc(it.id)}" data-subtask-index="${index}" ${task.done?'checked':''}></span><span>${esc(task.title)}</span></label>`).join('')}</div>
+  </details>`;
+}
+function toggleSubtask(itemId,index,done){
+  const it=state.items.find(item=>item.id===itemId);
+  const tasks=it ? itemSubtasks(it) : [];
+  if(!tasks[index]) return;
+  tasks[index].done=done;
+  if(!done && it.done){
+    it.done=false; it.doneScenes=[]; it.doneTypes=[];
+    syncItemDoneToQuadrant(it.id,false);
+    render();
+  } else {
+    $$('[data-subtask]').filter(input=>input.dataset.subtask===itemId).forEach(input=>{
+      const task=tasks[Number(input.dataset.subtaskIndex)];
+      input.checked=!!task.done;
+      input.closest('label').classList.toggle('done',!!task.done);
+    });
+    $$('[data-subtask-summary]').filter(el=>el.dataset.subtaskSummary===itemId).forEach(el=>{
+      UiMotion.progress(el,tasks.filter(task=>task.done).length/tasks.length*100,tasks.filter(task=>task.done).length);
+      el.setAttribute('aria-label',`子任务，已完成 ${tasks.filter(task=>task.done).length} 项，共 ${tasks.length} 项`);
+    });
+  }
+  if(done && !it.done && tasks.every(task=>task.done)){
+    // 子任务完成代表整个事项完成，不受当前场景或类型分组限制。
+    toggleDone(itemId);
+    return;
+  }
+  triggerHaptic('light');
+  save();
 }
 function secItemHTML(it,groupKey){
   const done = isItemDoneIn(it, state.groupBy, groupKey);
@@ -1384,11 +1429,17 @@ function secItemHTML(it,groupKey){
         <span class="swipe-ic swipe-ic-trash"></span>
       </div>
     </div>
-    <div class="swipe-front">
+    <div class="swipe-front${itemSubtasks(it).length?' has-subtasks':''}">
       <span class="card-check ${done?'done':''}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(groupKey||'')}"></span>
       <div class="card-body">
-        <div class="card-title ${done?'done':''}">${esc(it.title)}</div>
+        <div class="card-main">
+        <div class="card-heading">
+          <div class="card-title ${done?'done':''}">${esc(it.title)}</div>
+          ${it.repeatDays?`<span class="tag repeat-tag">每 ${esc(it.repeatDays)} 天重复</span>`:''}
+        </div>
         <div class="card-meta">${secMeta(it, done)}</div>
+        </div>
+        ${subtasksHTML(it)}
       </div>
     </div>
   </div>`;
@@ -1447,14 +1498,20 @@ function renderList(wrap,empty){
           <span class="swipe-ic swipe-ic-trash"></span>
         </div>
       </div>
-      <div class="swipe-front">
+      <div class="swipe-front${itemSubtasks(it).length?' has-subtasks':''}">
         <span class="card-check ${itemDone?'done':''}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(g.key)}"></span>
         <div class="card-body">
-          <div class="card-title ${itemDone?'done':''}">${esc(it.title)}</div>
+          <div class="card-main">
+          <div class="card-heading">
+            <div class="card-title ${itemDone?'done':''}">${esc(it.title)}</div>
+            ${it.repeatDays?`<span class="tag repeat-tag">每 ${esc(it.repeatDays)} 天重复</span>`:''}
+          </div>
           <div class="card-meta">${fullMeta(it, itemDone)}</div>
+          </div>
+          ${subtasksHTML(it)}
         </div>
         ${drag}
-        <span class="chev" style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%235f6368%22><path d=%22M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z/%22/></svg>') center/contain no-repeat"></span>
+        <span class="chev"></span>
       </div>
     </div>`;
   });
@@ -1535,8 +1592,8 @@ function init(){
 }
 
 /* 抽屉 */
-function openDrawer(){ pushLayer(); $('#drawerMask').hidden=false; $('#drawer').hidden=false; }
-function closeDrawer(){ $('#drawerMask').hidden=true; $('#drawer').hidden=true; renderDrawer(); if(!backSuppress)syncBack(); }
+function openDrawer(){ pushLayer(); UiMotion.show($('#drawerMask')); UiMotion.show($('#drawer')); }
+function closeDrawer(){ UiMotion.hide($('#drawerMask')); UiMotion.hide($('#drawer')); if(!backSuppress)syncBack(); }
 
 /* 搜索栏 */
 function openSearch(){
@@ -1633,6 +1690,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   /* 内容事件（委托） */
   $('#content').addEventListener('click',e=>{
+    if(e.target.closest('.subtask-list')){ e.stopPropagation(); return; }
     if(Date.now() < suppressItemClickUntil) return;
     if(e.target.closest('.drag-handle'))return;
     const done=e.target.closest('[data-done]');
@@ -1647,6 +1705,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(open){ enterGroup(open.dataset.open); return }
     const open2=e.target.closest('[data-open2]');
     if(open2){ enterGroup(open2.dataset.open2); return }
+  });
+
+  $('#content').addEventListener('change',e=>{
+    if(e.target.matches('[data-subtask]')) toggleSubtask(e.target.dataset.subtask,Number(e.target.dataset.subtaskIndex),e.target.checked);
   });
 
   /* 搜索 */
@@ -1712,9 +1774,9 @@ function openCtxMenu(item){
   if(titleEl) titleEl.textContent='管理'+kn;
   const nameEl=$('#ctxTagName');
   if(nameEl) nameEl.textContent=ctxName;
-  $('#ctxMask').hidden=false; $('#ctxModal').hidden=false;
+  UiMotion.show($('#ctxMask')); UiMotion.show($('#ctxModal'));
 }
-function closeCtx(){ $('#ctxMask').hidden=true; $('#ctxModal').hidden=true; if(!backSuppress)syncBack(); }
+function closeCtx(){ UiMotion.hide($('#ctxMask')); UiMotion.hide($('#ctxModal')); if(!backSuppress)syncBack(); }
 function ctxRename(){
   const kind=ctxKind, idx=ctxIdx;
   const arr = kind==='type'?state.types:kind==='scene'?state.scenes:state.times;
@@ -1844,27 +1906,23 @@ function toggleDone(id, kind, key){
     }
   }
 
+  completeSubtasks(it);
+  createRepeatItem(state.items, it);
   syncItemDoneToQuadrant(it.id, it.done);
   triggerHaptic(targetDone ? 'medium' : 'light');
   save();
 
-  // 1. 任务项目自身渐变动效：复选框弹动、标题划线渐变、卡片轻微收缩
+  // 仅为当前事项播放完成动效，其他标题保持稳定。
   const checkEl = document.querySelector(`[data-done="${id}"]`);
   if(checkEl){
     checkEl.classList.toggle('done', targetDone);
-    if(targetDone){
-      checkEl.classList.remove('just-checked');
-      void checkEl.offsetWidth;
-      checkEl.classList.add('just-checked');
-    } else {
-      checkEl.classList.remove('just-checked');
-    }
+    UiMotion.check(checkEl,targetDone);
   }
   const itemRow = document.querySelector(`[data-item="${id}"]`);
   if(itemRow){
     const titleEl = itemRow.querySelector('.card-title');
     if(titleEl) titleEl.classList.toggle('done', targetDone);
-    itemRow.classList.add('completing');
+    UiMotion.animate(itemRow.querySelector('.card-body'),{opacity:[1,targetDone ? 0.6 : 1],transform:['translateX(0px)',targetDone?'translateX(3px)':'translateX(0px)']},{duration:.22});
     const dueTag = itemRow.querySelector('.tag[class*="due-"]');
     if(dueTag && it.due){
       const ds = getDueStatus(it.due, targetDone);
@@ -1876,14 +1934,14 @@ function toggleDone(id, kind, key){
     }
   }
 
-  // 2. cost-summary-card 进度条与数值平滑渐变过渡
+  // 数值立即更新，预算条由 GSAP 过渡到新比例。
   const curItems = currentItems();
   const summary = (state.view.name === 'home')
     ? calcCostSummary(curItems, i => !!i.done)
     : calcCostSummary((sectionGroups().find(x=>x.key===state.view.group)||{}).items||[], i => isItemDoneIn(i, state.groupBy, state.view.group));
   if(summary && summary.hasCost){
     const bar = document.querySelector('.csc-progress-bar');
-    if(bar) bar.style.width = summary.pctDone + '%';
+    if(bar) UiMotion.width(bar,summary.pctDone);
     const pctEl = document.querySelector('.csc-pct');
     if(pctEl) pctEl.textContent = summary.pctDone + '% 已支出';
     const undoneNum = document.querySelector('.csc-stat.undone .csc-stat-num');
@@ -1892,7 +1950,7 @@ function toggleDone(id, kind, key){
     if(doneNum) doneNum.textContent = '¥' + money(summary.doneCost);
   }
 
-  // 3. 待平滑渐变动效展现后，重排列表沉底与更新抽屉计数
+  // 完成动效结束后更新列表顺序与抽屉计数。
   if(toggleDoneTimer) clearTimeout(toggleDoneTimer);
   toggleDoneTimer = setTimeout(()=>{
     toggleDoneTimer = null;
@@ -1917,6 +1975,17 @@ function syncItemDoneToQuadrant(itemId, isDone){
 
 /* ========== 添加/编辑弹窗 ========== */
 let editId=null, editStar=0, modalOpen=false;
+function appendSubtaskEditor(task={}){
+  $('#fSubtasks').insertAdjacentHTML('beforeend',`<div class="subtask-edit" data-subtask-id="${esc(task.id||uid())}">
+    <input type="checkbox" aria-label="子任务完成状态" ${task.done?'checked':''}>
+    <input type="text" placeholder="子任务内容" value="${esc(task.title||'')}" autocomplete="off">
+    <button type="button" class="btn-text danger" data-remove-subtask aria-label="移除子任务"><morph-icon data-icon="close" aria-hidden="true"></morph-icon></button>
+  </div>`);
+}
+function renderSubtaskEditor(it={}){
+  $('#fSubtasks').innerHTML='';
+  itemSubtasks(it).forEach(appendSubtaskEditor);
+}
 function buildStars(){ const s=$('#fStars'); for(let i=1;i<=5;i++){const b=document.createElement('button');b.type='button';b.className='star-b';b.dataset.v=i;b.textContent='★';s.appendChild(b);} }
 function segHTML(kind){ const arr=kind==='type'?state.types:kind==='scene'?state.scenes:state.times; return arr.map(v=>`<button class="seg-chip" data-k="${kind}" data-v="${esc(v)}">${esc(v)}</button>`).join('')+`<button class="seg-chip mini" data-add="${kind}">+</button>`; }
 function renderSuggest(sug){
@@ -1932,7 +2001,9 @@ function openAdd(pref){
   triggerHaptic('light');
   editId=null; editStar=(pref&&pref.star)||0; modalOpen=true;
   $('#modalTitle').textContent='新建事项';
-  $('#fTitle').value=(pref&&pref.title)||''; $('#fNote').value=(pref&&pref.note)||''; $('#fCost').value=(pref&&pref.cost!=null)?pref.cost:''; $('#fDue').value=(pref&&pref.due)||'';
+  $('#fTitle').value=(pref&&pref.title)||''; $('#fNote').value=(pref&&pref.note)||''; $('#fCost').value=(pref&&pref.cost!=null)?pref.cost:''; DuePicker.set((pref&&pref.due)||'');
+  $('#fRepeatDays').value=(pref&&pref.repeatDays)||'';
+  renderSubtaskEditor(pref||{});
   $('#fTypeSeg').innerHTML=segHTML('type'); $('#fSceneSeg').innerHTML=segHTML('scene'); $('#fTimeSeg').innerHTML=segHTML('time');
   $$('#fTypeSeg .seg-chip, #fSceneSeg .seg-chip, #fTimeSeg .seg-chip').forEach(c=>c.classList.remove('on'));
   // 预选当前类型
@@ -1958,7 +2029,9 @@ function openEdit(it){
   editId=it.id; editStar=it.star||0; modalOpen=true;
   $('#modalTitle').textContent='编辑事项';
   $('#fTitle').value=it.title; $('#fNote').value=it.note||'';
-  $('#fCost').value=(it.cost!==null&&it.cost!==undefined)?it.cost:''; $('#fDue').value=it.due||'';
+  $('#fCost').value=(it.cost!==null&&it.cost!==undefined)?it.cost:''; DuePicker.set(it.due||'');
+  $('#fRepeatDays').value=it.repeatDays||'';
+  renderSubtaskEditor(it);
   $('#fTypeSeg').innerHTML=segHTML('type'); $('#fSceneSeg').innerHTML=segHTML('scene'); $('#fTimeSeg').innerHTML=segHTML('time');
   setSeg('type',itemTypes(it)); setSeg('scene',itemScenes(it)); setSeg('time',it.time||'');
   $$('.star-b').forEach((s,i)=>s.classList.toggle('on',i<editStar));
@@ -1973,8 +2046,8 @@ function setSeg(kind,val){
     if(el) el.classList.add('on');
   });
 }
-function showModal(){ pushLayer(); $('#modalMask').hidden=false; $('#modal').hidden=false; $('#fTitle').focus(); }
-function hideModal(){ $('#modal').hidden=true; $('#modalMask').hidden=true; modalOpen=false; pendingQuadrantAddKey=null; if(!backSuppress)syncBack(); }
+function showModal(){ pushLayer(); UiMotion.show($('#modalMask')); UiMotion.show($('#modal')); $('#fTitle').focus(); }
+function hideModal(){ DuePicker.close(); UiMotion.hide($('#modal')); UiMotion.hide($('#modalMask')); modalOpen=false; pendingQuadrantAddKey=null; if(!backSuppress)syncBack(); }
 
 function segSelAll(kind){
   const cap = kind.charAt(0).toUpperCase() + kind.slice(1);
@@ -1988,6 +2061,13 @@ function segSel(kind){
 }
 function gather(){
   const title=$('#fTitle').value.trim(); if(!title){ $('#fTitle').focus(); return null }
+  const repeatInput = $('#fRepeatDays');
+  const repeatDays = repeatInput.value === '' ? 0 : Number(repeatInput.value);
+  if(repeatInput.validity.badInput || !Number.isInteger(repeatDays) || repeatDays < 0 || repeatDays > 36500 || (repeatInput.value !== '' && repeatDays === 0)){
+    alertDlg('重复天数无效', '请输入 1 到 36500 的整数天数，或留空表示不重复。');
+    repeatInput.focus();
+    return null;
+  }
   const types=segSelAll('type');
   const scenes=segSelAll('scene');
   const time=segSel('time');
@@ -2001,11 +2081,18 @@ function gather(){
     time,
     cost: isNaN(parseFloat($('#fCost').value)) ? null : parseFloat($('#fCost').value),
     due: $('#fDue').value || '',
+    repeatDays,
+    subtasks: $$('#fSubtasks .subtask-edit').map(row=>({
+      id:row.dataset.subtaskId,
+      title:row.querySelector('input[type="text"]').value.trim(),
+      done:row.querySelector('input[type="checkbox"]').checked
+    })).filter(task=>task.title),
     star: editStar
   };
 }
 function saveForm(){
   const g=gather(); if(!g)return;
+  let savedItem;
   $$('#aiSuggestBox input:checked').forEach(cb=>{
     const kind=cb.dataset.kind, name=cb.value;
     addTagSilent(kind,name);
@@ -2021,6 +2108,7 @@ function saveForm(){
   });
   if(editId){
     const it=state.items.find(x=>x.id===editId);
+    savedItem=it;
     if(it){
       Object.assign(it,g);
       if(Array.isArray(it.doneScenes)){
@@ -2032,15 +2120,26 @@ function saveForm(){
       if(it.scenes.length>0){
         it.done=it.scenes.every(s=>(it.doneScenes||[]).includes(s));
       }
+      if(it.done && it.subtasks.some(task=>!task.done)){
+        it.done=false; it.doneScenes=[]; it.doneTypes=[];
+        syncItemDoneToQuadrant(it.id,false);
+      }
     }
   }
   else {
     const newItem = Object.assign({id:uid(),done:false,doneScenes:[],doneTypes:[],created:Date.now()},g);
+    savedItem=newItem;
     state.items.push(newItem);
     if(pendingQuadrantAddKey){
       addQuadrantItem(pendingQuadrantAddKey, newItem.title, newItem.id);
       pendingQuadrantAddKey = null;
     }
+  }
+  const tasks=savedItem ? itemSubtasks(savedItem) : [];
+  if(savedItem && !savedItem.done && tasks.length && tasks.every(task=>task.done)){
+    toggleDone(savedItem.id);
+    hideModal();
+    return;
   }
   triggerHaptic('light'); save(); render(); hideModal();
 }
@@ -2051,9 +2150,9 @@ function openSort(){
   const opts=[['默认','默认'],['花费','花费'],['重要','重要'],['日期','截止日期'],['创建','创建时间']];
   $('#sortOptions').innerHTML=opts.map(o=>`<label><input type="radio" name="sort" value="${o[0]}" ${state.sortKey===o[0]?'checked':''}><span>${o[1]}</span></label>`).join('');
   $('#sortAsc').checked=state.sortAsc; $('#sortAsc').disabled=state.sortKey==='默认';
-  $('#sortMask').hidden=false; $('#sortModal').hidden=false;
+  UiMotion.show($('#sortMask')); UiMotion.show($('#sortModal'));
 }
-function closeSort(){ $('#sortMask').hidden=true; $('#sortModal').hidden=true; if(!backSuppress)syncBack(); }
+function closeSort(){ UiMotion.hide($('#sortMask')); UiMotion.hide($('#sortModal')); if(!backSuppress)syncBack(); }
 function renderUpdateSettings(){
   const chkCheck=$('#autoCheckUpdate');
   if(chkCheck) chkCheck.checked=state.autoCheckUpdate!==false;
@@ -2074,10 +2173,10 @@ function openSettings(){
   renderSetGroups();
   renderAiCfg();
   renderUpdateSettings();
-  $('#setMask').hidden=false;
-  $('#setModal').hidden=false;
+  UiMotion.show($('#setMask'));
+  UiMotion.show($('#setModal'));
 }
-function closeSettings(){ $('#setMask').hidden=true; $('#setModal').hidden=true; if(!backSuppress)syncBack(); }
+function closeSettings(){ UiMotion.hide($('#setMask')); UiMotion.hide($('#setModal')); if(!backSuppress)syncBack(); }
 
 
 
@@ -2251,7 +2350,7 @@ function setupInteractiveSliderPreviews() {
       valId: 'valBgOpacity',
       rowSelector: '#bgOpacityRow',
       title: '背景透明度调节',
-      iconSvg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor"></path></svg>',
+      iconSvg: '<morph-icon data-icon="contrast" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>',
       min: 10,
       max: 100,
       step: 5,
@@ -2268,7 +2367,7 @@ function setupInteractiveSliderPreviews() {
       valId: 'valItemGap',
       rowSelector: null,
       title: '卡片间距调节',
-      iconSvg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="2"></rect><rect x="3" y="14" width="18" height="6" rx="2"></rect></svg>',
+      iconSvg: '<morph-icon data-icon="rows" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>',
       min: 4,
       max: 22,
       step: 1,
@@ -2286,7 +2385,7 @@ function setupInteractiveSliderPreviews() {
       valId: 'valItemPad',
       rowSelector: null,
       title: '卡片内边距调节',
-      iconSvg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><rect x="7" y="7" width="10" height="10" rx="1"></rect></svg>',
+      iconSvg: '<morph-icon data-icon="frame" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>',
       min: 6,
       max: 22,
       step: 1,
@@ -2304,7 +2403,7 @@ function setupInteractiveSliderPreviews() {
       valId: 'valItemFont',
       rowSelector: null,
       title: '标题字号调节',
-      iconSvg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>',
+      iconSvg: '<morph-icon data-icon="text" size="24" stroke-width="1.8" spring="snappy" reduced-motion="user" aria-hidden="true"></morph-icon>',
       min: 12,
       max: 19,
       step: 0.5,
@@ -2538,7 +2637,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.9.6';
+const APP_VERSION='v1.9.7';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -2561,16 +2660,16 @@ function handleVerClick(){
     save();
     updateInfoVerText();
     alertDlg('开发者模式', state.devMode?'已启用开发者模式':'已退出开发者模式');
-    if($('#clModal')&&!$('#clModal').hidden) loadChangelog(true);
+    if($('#clModal')&&UiMotion.isOpen($('#clModal'))) loadChangelog(true);
   }
 }
 function openInfo(){
   pushLayer();
   updateInfoVerText();
-  $('#infoMask').hidden=false;
-  $('#infoModal').hidden=false;
+  UiMotion.show($('#infoMask'));
+  UiMotion.show($('#infoModal'));
 }
-function closeInfo(){ $('#infoMask').hidden=true; $('#infoModal').hidden=true; if(!backSuppress)syncBack(); }
+function closeInfo(){ UiMotion.hide($('#infoMask')); UiMotion.hide($('#infoModal')); if(!backSuppress)syncBack(); }
 
 /* ========== 更新日志 ========== */
 let changelogRawMd=null;
@@ -2689,13 +2788,13 @@ async function loadChangelog(forceRefresh){
 
 function openChangelog(){
   pushLayer();
-  $('#clMask').hidden=false;
-  $('#clModal').hidden=false;
+  UiMotion.show($('#clMask'));
+  UiMotion.show($('#clModal'));
   loadChangelog(true);
 }
 function closeChangelog(){
-  $('#clMask').hidden=true;
-  $('#clModal').hidden=true;
+  UiMotion.hide($('#clMask'));
+  UiMotion.hide($('#clModal'));
   if(!backSuppress) syncBack();
 }
 function parseVerNums(v){
@@ -2853,8 +2952,8 @@ function showUpdateModal(rel){
 
   setUpdateStage('info');
   pushLayer();
-  $('#updateMask').hidden=false;
-  $('#updateModal').hidden=false;
+  UiMotion.show($('#updateMask'));
+  UiMotion.show($('#updateModal'));
 }
 
 function closeUpdateModal(){
@@ -2862,8 +2961,8 @@ function closeUpdateModal(){
     clearInterval(currentUpdateProgressTimer);
     currentUpdateProgressTimer=null;
   }
-  $('#updateMask').hidden=true;
-  $('#updateModal').hidden=true;
+  UiMotion.hide($('#updateMask'));
+  UiMotion.hide($('#updateModal'));
   setUpdateStage('info');
   if(!backSuppress) syncBack();
 }
@@ -3181,7 +3280,7 @@ function setTheme(hex){
 
 /* ========== 设置：自定义标签 ========== */
 function renderSetGroups(){
-  const g=(id,arr,kind)=>{ const el=$(id); el.innerHTML=arr.map((v,i)=>`<span class="tag-chip" data-ren="${kind}:${i}">${esc(v)}<span class="x" data-del="${kind}:${i}">✕</span></span>`).join('')+`<button class="add-chip" data-add="${kind}">＋ 添加</button>`; };
+  const g=(id,arr,kind)=>{ const el=$(id); el.innerHTML=arr.map((v,i)=>`<span class="tag-chip" data-ren="${kind}:${i}">${esc(v)}<span class="x" data-del="${kind}:${i}"><morph-icon data-icon="close" aria-hidden="true"></morph-icon></span></span>`).join('')+`<button class="add-chip" data-add="${kind}">＋ 添加</button>`; };
   g('#setTypes',state.types,'type'); g('#setScenes',state.scenes,'scene'); g('#setTimes',state.times,'time');
 }
 function addTag(kind){
@@ -3469,7 +3568,7 @@ function openAi(){
   pushLayer();
   $('#aiInput').value=''; $('#aiLoading').hidden=true; $('#aiGo').disabled=false;
   $('#aiStatus').textContent = 'AI 增强已开启'+(state.ai.model?(' · '+state.ai.model):'');
-  $('#aiMask').hidden=false; $('#aiModal').hidden=false; $('#aiInput').focus();
+  UiMotion.show($('#aiMask')); UiMotion.show($('#aiModal')); $('#aiInput').focus();
 }
 function closeAi(cancelRequest=true){
   if(cancelRequest){
@@ -3477,7 +3576,7 @@ function closeAi(cancelRequest=true){
     if(aiAbort)aiAbort.abort();
     aiAbort=null;
   }
-  $('#aiMask').hidden=true; $('#aiModal').hidden=true;
+  UiMotion.hide($('#aiMask')); UiMotion.hide($('#aiModal'));
   if(!backSuppress)syncBack();
 }
 async function runAi(){
@@ -3491,7 +3590,7 @@ async function runAi(){
 
   // 并行预渲染新建事项的分段标签与骨架，降低网络返回后渲染与主线程阻塞开销
   setTimeout(()=>{
-    if(requestId===aiRequestId && !$('#aiModal').hidden){
+    if(requestId===aiRequestId && UiMotion.isOpen($('#aiModal'))){
       const tSeg=$('#fTypeSeg'), sSeg=$('#fSceneSeg'), mSeg=$('#fTimeSeg');
       if(tSeg && !tSeg.children.length) tSeg.innerHTML=segHTML('type');
       if(sSeg && !sSeg.children.length) sSeg.innerHTML=segHTML('scene');
@@ -3513,7 +3612,7 @@ async function openTidy(){
   if(!hasCloudKey()){ alertDlg('智能整理','需要先开启 AI 增强（设置 → AI · 云端增强）'); return }
   const cands=state.items.filter(it=>!it.done&&(!it.scene||!it.time));
   if(!cands.length){ alertDlg('智能整理','没有需要整理的事项'); return }
-  $('#tidyMask').hidden=false; $('#tidyModal').hidden=false;
+  UiMotion.show($('#tidyMask')); UiMotion.show($('#tidyModal'));
   pushLayer();
   $('#tidyLoading').hidden=false; $('#tidyList').innerHTML='';
   const rows=[];
@@ -3557,7 +3656,7 @@ function tidyApply(){
   closeTidy();
   alertDlg('智能整理', n?('已整理 '+n+' 处标签'):'未做更改');
 }
-function closeTidy(){ $('#tidyMask').hidden=true; $('#tidyModal').hidden=true; if(!backSuppress)syncBack(); }
+function closeTidy(){ UiMotion.hide($('#tidyMask')); UiMotion.hide($('#tidyModal')); if(!backSuppress)syncBack(); }
 /* ===== AI 云端配置 ===== */
 function renderAiCfg(){
   if(!state.ai)state.ai={enabled:false,base:'',key:'',model:''};
@@ -3638,16 +3737,16 @@ function getQuadrantWidgetData(){
 
 function openQuadrantModal(){
   pushLayer();
-  $('#drawerMask').hidden=true; $('#drawer').hidden=true;
-  $('#setMask').hidden=true; $('#setModal').hidden=true;
+  UiMotion.hide($('#drawerMask')); UiMotion.hide($('#drawer'));
+  UiMotion.hide($('#setMask')); UiMotion.hide($('#setModal'));
   renderQuadrantModal();
-  $('#quadrantMask').hidden=false;
-  $('#quadrantModal').hidden=false;
+  UiMotion.show($('#quadrantMask'));
+  UiMotion.show($('#quadrantModal'));
 }
 
 function closeQuadrantModal(){
-  $('#quadrantMask').hidden=true;
-  $('#quadrantModal').hidden=true;
+  UiMotion.hide($('#quadrantMask'));
+  UiMotion.hide($('#quadrantModal'));
   if(!backSuppress) syncBack();
 }
 
@@ -3739,7 +3838,7 @@ function renderQuadrantEditors(){
         <div class="qe-row">
           <span class="card-check ${it.done?'done':''}" data-qtoggle="${k}:${idx}"></span>
           <span class="qe-row-title ${it.done?'done':''}" data-qtoggle="${k}:${idx}">${esc(it.title)}</span>
-          <button class="qe-row-del" data-qdel="${k}:${idx}" title="移除">✕</button>
+          <button class="qe-row-del" data-qdel="${k}:${idx}" title="移除"><morph-icon data-icon="close" aria-hidden="true"></morph-icon></button>
         </div>
       `).join('');
     }
@@ -3831,6 +3930,8 @@ function toggleQuadrantItemDone(qKey, idx){
         localIt.doneScenes = [];
         localIt.doneTypes = [];
       }
+      completeSubtasks(localIt);
+      createRepeatItem(state.items, localIt);
     }
 
     // 同步其他象限中包含的同 ID 事项状态
@@ -3854,6 +3955,7 @@ function toggleQuadrantItemDone(qKey, idx){
     save();
     render();
     renderQuadrantModal();
+    $$('[data-qtoggle].card-check').filter(el=>el.dataset.qtoggle===`${qKey}:${idx}`).forEach(el=>UiMotion.check(el,newDone));
   }
 }
 
@@ -3878,13 +3980,13 @@ function openItemPickerFor(qKey){
   $('#pickerSearch').value = '';
   renderPickerList('');
   pushLayer();
-  $('#itemPickerMask').hidden = false;
-  $('#itemPickerModal').hidden = false;
+  UiMotion.show($('#itemPickerMask'));
+  UiMotion.show($('#itemPickerModal'));
 }
 
 function closeItemPicker(){
-  $('#itemPickerMask').hidden = true;
-  $('#itemPickerModal').hidden = true;
+  UiMotion.hide($('#itemPickerMask'));
+  UiMotion.hide($('#itemPickerModal'));
   currentPickerQKey = null;
   if(!backSuppress) syncBack();
 }
@@ -3934,7 +4036,8 @@ function initSwipeGestures(){
 
   // 阻止浏览器原生的文本/图片拖拽干扰手势
   content.addEventListener('dragstart', e => {
-    if(!e.target.closest('.drag-handle')) e.preventDefault();
+    // Sortable dispatches native dragstart on the chosen row, not its handle.
+    if(!e.target.closest('.item-row.sortable-chosen')) e.preventDefault();
   });
 
   let activeRow = null;
@@ -4002,7 +4105,7 @@ function initSwipeGestures(){
     if(e.button !== undefined && e.button !== 0) return;
     // 单指针互斥：当已有手指在操作时，忽略任何后续触点，彻底杜绝多指冲突与卡死
     if(isPointerDown) return;
-    if(e.target.closest('.drag-handle, .card-check, [data-done]')) return;
+    if(e.target.closest('.drag-handle, .card-check, [data-done], .subtask-list')) return;
     const row = e.target.closest('.item-row, .sec-item');
     if(!row) return;
     const front = row.querySelector('.swipe-front');
@@ -4209,6 +4312,9 @@ function initSortable(){
     filter: '.cost-summary-card, .done-section, .done-section-title, .empty',
     preventOnFilter: false,
     handle: '.drag-handle',
+    forceFallback: true,
+    fallbackOnBody: true,
+    fallbackTolerance: 3,
     animation: 150,
     easing: 'cubic-bezier(.2,.7,.2,1)',
     ghostClass: 'sortable-ghost',
@@ -4247,11 +4353,11 @@ function initDrawerSortable(){
   drawerSortable=new Sortable(nav,{
     draggable:'.dnav-item[data-kind="type"]',
     handle:'.dnav-drag',
+    forceFallback:true,
+    fallbackOnBody:true,
+    fallbackTolerance:3,
     filter:'.dnav-all, .dnav-add, .dnav-trash, .dnav-divider',
     animation:160,
-    delay:150,
-    delayOnTouchOnly:true,
-    touchStartThreshold:4,
     ghostClass:'sortable-ghost',
     onChoose(evt){
       destroyTimer();
@@ -4474,6 +4580,19 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#modalCancel').addEventListener('click',hideModal);
   $('#modalMask').addEventListener('click',hideModal);
   $('#modalSave').addEventListener('click',saveForm);
+  $('#addSubtask').addEventListener('click',()=>{
+    appendSubtaskEditor();
+    $('#fSubtasks .subtask-edit:last-child input[type="text"]').focus();
+  });
+  $('#fSubtasks').addEventListener('click',e=>{
+    if(e.target.closest('[data-remove-subtask]')) e.target.closest('.subtask-edit').remove();
+  });
+  $('#fSubtasks').addEventListener('keydown',e=>{
+    if(e.key==='Enter' && e.target.matches('input[type="text"]')){
+      e.preventDefault();
+      $('#addSubtask').click();
+    }
+  });
   $('#modalDelete').addEventListener('click',()=>{ if(!editId)return; moveToTrash(editId); hideModal(); });
   $('#modal').addEventListener('click',e=>{
     const add=e.target.closest('.seg-chip.mini');

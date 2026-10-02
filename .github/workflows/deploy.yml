@@ -39,7 +39,7 @@ jobs:
           npm init -y
           npm i @capacitor/core @capacitor/cli @capacitor/android @capacitor/app
           mkdir -p dist
-          cp index.html style.css app.js Sortable.min.js widget_dialog.html CHANGELOG.md app-icon.png app-icon-dark.png app-icon-foreground.png dist/
+          cp index.html style.css app.js repeat.js animations.js icons.js morphicons.min.js gsap.min.js motion.js Sortable.min.js air-datepicker.js air-datepicker.css air-datepicker-zh.js air-datepicker-LICENSE date-picker.js widget_dialog.html CHANGELOG.md app-icon.png app-icon-dark.png app-icon-foreground.png dist/
           sed -i "s/const APP_VERSION='[^']*'/const APP_VERSION='$NEW'/" dist/app.js
           npx cap init "超级清单" com.dax.supertodo --web-dir dist
           node -e "const f='capacitor.config.json', fs=require('fs'), c=JSON.parse(fs.readFileSync(f)); (c.android=c.android||{}).adjustMarginsForEdgeToEdge='force'; fs.writeFileSync(f, JSON.stringify(c, null, 2));"
