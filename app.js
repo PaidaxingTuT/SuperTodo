@@ -2327,6 +2327,8 @@ function setupInteractiveSliderPreviews() {
   let pointerDown = false;
   let startX = 0;
   let startY = 0;
+  let dragWidth = 1;
+  let dragValue = 0;
   let closeTimer = null;
 
   function syncPresetSeg() {
@@ -2450,6 +2452,7 @@ function setupInteractiveSliderPreviews() {
     }
     isDragging = true;
     activeCfg = cfg;
+    document.documentElement.classList.add('slider-preview-active');
     triggerHaptic('light');
 
     const setModal = document.getElementById('setModal');
@@ -2493,6 +2496,7 @@ function setupInteractiveSliderPreviews() {
   function exitPreview() {
     if (!isDragging) return;
     isDragging = false;
+    document.documentElement.classList.remove('slider-preview-active');
     triggerHaptic('light');
 
     previewBar.classList.add('closing');
@@ -2523,7 +2527,8 @@ function setupInteractiveSliderPreviews() {
       }
     });
     slider.addEventListener('change', () => {
-      if (!isDragging) save();
+      // Native range release may write its own value after the preview drag ends.
+      syncVal(cfg, cfg.get(), true);
     });
 
     const handleDown = (clientX, clientY) => {
@@ -2531,6 +2536,7 @@ function setupInteractiveSliderPreviews() {
       activeCfg = cfg;
       startX = clientX;
       startY = clientY;
+      dragWidth = Math.max(1, slider.getBoundingClientRect().width - 18);
       isDragging = false;
     };
 
@@ -2550,18 +2556,14 @@ function setupInteractiveSliderPreviews() {
     const dy = clientY - startY;
     if (!isDragging && (Math.abs(dx) >= 6 || Math.hypot(dx, dy) >= 8)) {
       enterPreview(activeCfg);
+      // Continue from the current value without remapping to the animated preview bar.
+      dragValue = activeCfg.get();
+      startX = clientX;
     }
     if (isDragging) {
       if (e && e.cancelable) e.preventDefault();
-      const activeSlider = previewSlider || document.getElementById(activeCfg.id);
-      if (activeSlider) {
-        const rect = activeSlider.getBoundingClientRect();
-        if (rect.width > 0) {
-          const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-          const raw = activeCfg.min + ratio * (activeCfg.max - activeCfg.min);
-          syncVal(activeCfg, raw, false);
-        }
-      }
+      const raw = dragValue + (clientX - startX) / dragWidth * (activeCfg.max - activeCfg.min);
+      syncVal(activeCfg, raw, false);
     }
   };
 

@@ -219,6 +219,9 @@ body.home-view .content{
 }
 
 .card-check{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
   width:calc(var(--item-font, 15px) + 7px);
   height:calc(var(--item-font, 15px) + 7px);
   border-radius:50%;
@@ -283,7 +286,7 @@ body.home-view .content{
 .fld .subtask-edit input[type="checkbox"]{width:18px;height:18px;flex-shrink:0;accent-color:var(--primary);box-shadow:none}
 .fld .subtask-edit input[type="text"]{flex:1;min-width:0}
 .subtask-edit button{flex-shrink:0;padding:8px}
-.tag{font-size:calc(var(--item-font, 15px) - 4px);padding:1px 7px;border-radius:5px;background:var(--tag-bg);color:var(--text2)}
+.tag{display:inline-flex;align-items:center;justify-content:center;text-align:center;line-height:1.4;font-size:calc(var(--item-font, 15px) - 4px);padding:1px 7px;border-radius:5px;background:var(--tag-bg);color:var(--text2)}
 .tag.type-blue{background:var(--primary-soft);color:var(--primary-ink)}
 .cost{font-size:calc(var(--item-font, 15px) - 3px);font-weight:600;color:var(--cost)}
 .star{color:var(--star);font-size:calc(var(--item-font, 15px) - 3px);letter-spacing:1px}
@@ -1936,6 +1939,7 @@ body.home-view .empty{padding-top:calc(14vh + 40px)}
 [data-has-custom-bg="true"] .app-bg-layer {
   opacity: var(--bg-opacity, 0.8);
 }
+.slider-preview-active .app-bg-layer{transition:none}
 
 [data-has-custom-bg="true"] .main-scroll {
   background: transparent;
@@ -2177,6 +2181,8 @@ morph-icon[data-icon="blank"]{visibility:hidden}
 morph-icon svg{display:block;width:100%;height:100%;fill:none!important;stroke:currentColor}
 .ic,.df-ic,.dnav-ic,.drawer-logo,.sec-caret,.ci-arrow,.chev,.sec-arrow,.ctx-action-arrow,.drag-handle,.trash-empty-ic,.swipe-ic{display:inline-flex;align-items:center;justify-content:center;background:none!important;mask:none!important;-webkit-mask:none!important;filter:none!important;color:var(--text3)}
 .ic{color:inherit}.drawer-logo,.dnav-item.on .dnav-ic{color:var(--primary)}
+.swipe-action .swipe-ic{color:#fff}
+.card-check morph-icon{width:100%;height:100%;color:var(--on-primary)}
 .ic morph-icon,.df-ic morph-icon,.dnav-ic morph-icon,.drawer-logo morph-icon,.empty-icon morph-icon,.trash-empty-ic morph-icon,.swipe-ic morph-icon,.subtask-chevron morph-icon,.chev morph-icon,.sec-arrow morph-icon,.ctx-action-arrow morph-icon,.drag-handle morph-icon{width:100%;height:100%}
 .drawer-close::before,.df-theme::before,.df-info::before,.md-close::before,.fab::before{display:none!important}
 .drawer-close,.df-theme,.df-info,.md-close,.fab,.empty-icon{display:inline-flex;align-items:center;justify-content:center;color:var(--text3)}
