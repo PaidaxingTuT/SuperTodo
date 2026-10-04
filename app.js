@@ -2388,6 +2388,7 @@ function setupInteractiveSliderPreviews() {
   let activeCfg = null;
   let isDragging = false;
   let pointerDown = false;
+  let scrollGesture = false;
   let startX = 0;
   let startY = 0;
   let dragWidth = 1;
@@ -2588,6 +2589,12 @@ function setupInteractiveSliderPreviews() {
     if (!slider) return;
 
     slider.addEventListener('input', e => {
+      if (scrollGesture || (pointerDown && !isDragging && activeCfg === cfg)) {
+        // Keep the value unchanged until the gesture is identified as horizontal.
+        slider.value = cfg.get();
+        updateSliderProgress(slider);
+        return;
+      }
       if (!isDragging) {
         syncVal(cfg, parseFloat(e.target.value), false);
       }
@@ -2599,6 +2606,7 @@ function setupInteractiveSliderPreviews() {
 
     const handleDown = (clientX, clientY) => {
       pointerDown = true;
+      scrollGesture = false;
       activeCfg = cfg;
       startX = clientX;
       startY = clientY;
@@ -2620,7 +2628,15 @@ function setupInteractiveSliderPreviews() {
     if (!pointerDown || !activeCfg) return;
     const dx = clientX - startX;
     const dy = clientY - startY;
-    if (!isDragging && (Math.abs(dx) >= 6 || Math.hypot(dx, dy) >= 8)) {
+    if (!isDragging) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return;
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        // Yield the rest of this gesture to the settings scroll container.
+        pointerDown = false;
+        scrollGesture = true;
+        activeCfg = null;
+        return;
+      }
       enterPreview(activeCfg);
       // Continue from the current value without remapping to the animated preview bar.
       dragValue = activeCfg.get();
@@ -2633,27 +2649,34 @@ function setupInteractiveSliderPreviews() {
     }
   };
 
-  const handleGlobalUp = () => {
+  const handleGlobalUp = (cancelled = false) => {
     if (isDragging) {
       exitPreview();
+    } else if (pointerDown && activeCfg && !cancelled) {
+      // A tap still selects a value, without opening the immersive preview.
+      const slider = document.getElementById(activeCfg.id);
+      const x = startX - slider.getBoundingClientRect().left - 12;
+      syncVal(activeCfg, activeCfg.min + x / dragWidth * (activeCfg.max - activeCfg.min), true);
     }
     pointerDown = false;
+    scrollGesture = false;
     isDragging = false;
+    activeCfg = null;
   };
 
   if (window.PointerEvent) {
     window.addEventListener('pointermove', e => { if (pointerDown) handleGlobalMove(e.clientX, e.clientY, e); }, { passive: false });
-    window.addEventListener('pointerup', handleGlobalUp);
-    window.addEventListener('pointercancel', handleGlobalUp);
+    window.addEventListener('pointerup', () => handleGlobalUp());
+    window.addEventListener('pointercancel', () => handleGlobalUp(true));
   } else {
     window.addEventListener('touchmove', e => {
       if (pointerDown && e.touches && e.touches[0]) handleGlobalMove(e.touches[0].clientX, e.touches[0].clientY, e);
     }, { passive: false });
-    window.addEventListener('touchend', handleGlobalUp);
-    window.addEventListener('touchcancel', handleGlobalUp);
+    window.addEventListener('touchend', () => handleGlobalUp());
+    window.addEventListener('touchcancel', () => handleGlobalUp(true));
 
     window.addEventListener('mousemove', e => { if (pointerDown) handleGlobalMove(e.clientX, e.clientY, e); });
-    window.addEventListener('mouseup', handleGlobalUp);
+    window.addEventListener('mouseup', () => handleGlobalUp());
   }
 
   previewSlider.addEventListener('input', e => {
