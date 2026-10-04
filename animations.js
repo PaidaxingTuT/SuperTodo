@@ -18,8 +18,10 @@ const UiMotion = (() => {
     return control;
   }
   function check(el,done){
-    if(el.matches('.subtask-check input')) el=el.parentElement;
-    animate(el,{scale:done?[1,.84,1.15,1]:[1,.9,1]},{duration:.28});
+    if(el.matches('.subtask-check input')) el=el.closest('.subtask-toggle');
+    const ripple=getComputedStyle(el).getPropertyValue('--primary-soft').trim();
+    animate(el,{scale:done?[1,.9,1.08,1]:[1,.92,1]},{duration:.24});
+    if(done && enabled()) el.animate([{boxShadow:'0 0 0 0px transparent'},{boxShadow:`0 0 0 5px ${ripple}`},{boxShadow:'0 0 0 9px transparent'}],{duration:240,easing:'ease-out'});
   }
   function progress(summary,percent,done){
     const ring=summary.querySelector('.subtask-ring');
@@ -47,7 +49,7 @@ const UiMotion = (() => {
     }
     steps.style.overflow='hidden';
     gsap.to(steps,{
-      height:open?'auto':0,opacity:open?1:0,marginTop:open?6:0,paddingTop:open?4:0,borderTopWidth:open?1:0,
+      height:open?'auto':0,opacity:open?1:0,marginTop:open?10:0,paddingTop:open?8:0,borderTopWidth:0,
       duration:.25,ease:'power2.inOut',overwrite:true,
       onComplete(){
         details.open=open;
@@ -101,15 +103,21 @@ const UiMotion = (() => {
       ? (el.hidden?'translateX(-100%)':getComputedStyle(el).transform) : null;
     exits.delete(el);
     motions.get(el)?.stop();
-    el.style.removeProperty('opacity'); el.style.removeProperty('transform');
+    el.style.removeProperty('opacity'); el.style.removeProperty('transform'); el.style.removeProperty('clip-path');
     delete el.dataset.motionClosing;
     el.inert=false;
     // Seed the first frame before unhiding; Motion resolves keyframes asynchronously.
     if(drawerStart) el.style.transform=drawerStart;
+    else if(el.hidden && enabled() && el.matches('.searchbar')){
+      el.style.opacity='0';
+      el.style.clipPath='inset(0 0 0 calc(100% - 56px) round 28px)';
+    }
     else if(el.hidden && enabled() && el.matches('.modal-mask, .drawer-mask')) el.style.opacity='0';
     el.hidden=false;
     if(el.matches('.drawer')){
       animate(el,{transform:[drawerStart,'translateX(0%)']},{duration:.28});
+    }else if(el.matches('.searchbar')){
+      animate(el,{opacity:[0,1],clipPath:['inset(0 0 0 calc(100% - 56px) round 28px)','inset(0 0 0 0 round 28px)'],x:[8,0]},{duration:.28});
     }else if(el.matches('.modal')){
       animate(el,{opacity:[0,1],transform:['translate(-50%,-50%) scale(.97)','translate(-50%,-50%) scale(1)']});
     }else if(el.matches('.modal-mask, .drawer-mask')){
@@ -122,14 +130,26 @@ const UiMotion = (() => {
     el.dataset.motionClosing='true';
     el.inert=true;
     const transform=getComputedStyle(el).transform;
-    const frames={opacity:[getComputedStyle(el).opacity,0]};
+    const frames={opacity:[Number(getComputedStyle(el).opacity),0]};
     // Full-screen masks only fade: scaling them briefly exposes the page at the edges.
     if(el.matches('.drawer')){
       delete frames.opacity;
       frames.transform=[transform,'translateX(-100%)'];
     }
     else if(el.matches('.modal')) frames.transform=[transform,transform==='none'?'scale(.98)':transform+' scale(.98)'];
-    const control=animate(el,frames,{duration:(el.matches('.drawer')||el.matches('.drawer-mask')) ? .26 : .14});
+    else if(el.matches('.searchbar')){
+      frames.clipPath=[getComputedStyle(el).clipPath,'inset(0 0 0 calc(100% - 56px) round 28px)'];
+      frames.opacity=[frames.opacity[0],frames.opacity[0],0];
+      frames.transform=[transform,'translateX(8px)'];
+      // Keep the current frame visible while Motion replaces the entrance animation.
+      motions.get(el)?.stop();
+      motions.delete(el);
+      el.style.opacity=frames.opacity[0];
+      el.style.clipPath=frames.clipPath[0];
+    }
+    const control=animate(el,frames,el.matches('.searchbar')
+      ? {duration:.28,ease:[.4,0,.2,1],opacity:{times:[0,.8,1]}}
+      : {duration:(el.matches('.drawer')||el.matches('.drawer-mask')) ? .26 : .14});
     exits.set(el,control);
     // Let the library finish the last frame before hiding; reopening invalidates this exit.
     control.then(()=>{
@@ -139,8 +159,9 @@ const UiMotion = (() => {
       delete el.dataset.motionClosing;
       el.inert=false;
       motions.get(el)?.stop();
-      el.style.removeProperty('opacity'); el.style.removeProperty('transform');
+      el.style.removeProperty('opacity'); el.style.removeProperty('transform'); el.style.removeProperty('clip-path');
     }).catch(()=>{});
+    return control;
   }
   document.addEventListener('click',event=>{
     const summary=event.target.closest('.subtask-list summary');

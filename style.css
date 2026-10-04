@@ -196,6 +196,7 @@ body.home-view .content{
   margin-bottom:var(--sec-gap, 18px);
 }
 .section-head{
+  width:100%;text-align:left;
   display:flex;align-items:center;gap:calc(var(--item-gap, 10px) * 0.9);
   padding:calc(var(--item-pad-y, 13px) * 0.85) var(--item-pad-x, 14px);
   cursor:pointer;
@@ -418,6 +419,8 @@ body.home-view .empty{padding-top:calc(14vh + 40px)}
 .set-tip{font-size:12.5px;color:var(--text3);margin-bottom:12px}
 .tags{display:flex;flex-wrap:wrap;gap:11px;align-items:center}
 .tag-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--text2);border-radius:8px;padding:5px 8px 5px 12px;font-size:13px}
+.tag-chip-name{font:inherit;padding:0;text-align:left}
+.meta-facts,.meta-tags{display:contents}
 .tag-chip .x{color:var(--danger);font-weight:700;font-size:14px;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center}
 .add-chip{border:1px dashed var(--primary);color:var(--primary-ink);background:transparent;border-radius:8px;padding:5px 12px;font-size:13px}
 .set-divide{height:1px;background:var(--line);margin:4px 0 16px}
@@ -2140,33 +2143,6 @@ body.home-view .empty{padding-top:calc(14vh + 40px)}
   display: flex;
   align-items: center;
   width: 100%;
-}
-
-.op-float-badge {
-  position: absolute;
-  top: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--primary);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 999px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-  pointer-events: none;
-  white-space: nowrap;
-  transition: left 0.04s ease-out;
-}
-.op-float-badge::after {
-  content: '';
-  position: absolute;
-  bottom: -3px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 3px 3px 0;
-  border-style: solid;
-  border-color: var(--primary) transparent transparent;
 }
 
 .op-preview-slider {
