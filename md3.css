@@ -140,6 +140,9 @@ button.card-check[data-done]:active{background:var(--primary-faint)}
 .fab-ai{width:56px;padding:0;background:var(--tertiary-container)}
 .fab-ai morph-icon{color:var(--on-tertiary-container)}
 .modal{background:var(--surface-container-high);border-radius:28px}
+.cl-card{background:var(--surface-container-highest);border:0;border-radius:20px;padding:16px}
+.cl-badge.formal{background:var(--primary-soft);color:var(--on-primary-container);border-radius:8px}
+.cl-date{color:var(--text2)}
 .modal-head{padding:20px 24px 8px;border:0}
 .modal-head h2{font-size:24px;line-height:32px;font-weight:400}
 .modal-body{padding:16px 24px 24px}
