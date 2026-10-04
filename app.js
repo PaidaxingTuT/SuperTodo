@@ -616,7 +616,10 @@ function closeTopLayer(){
   if(UiMotion.isOpen($('#aiModal'))){ closeAi(); backSuppress=false; return true; }
   if(UiMotion.isOpen($('#tidyModal'))){ closeTidy(); backSuppress=false; return true; }
   if(UiMotion.isOpen($('#infoModal'))){ closeInfo(); backSuppress=false; return true; }
-  if(UiMotion.isOpen($('#setModal'))){ closeSettings(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#setModal'))){
+    if(settingsPage==='home')closeSettings();else backSettingsPage();
+    backSuppress=false;return true;
+  }
   if(UiMotion.isOpen($('#sortModal'))){ closeSort(); backSuppress=false; return true; }
   if(UiMotion.isOpen($('#searchbar'))){ closeSearch(); backSuppress=false; return true; }
   if(UiMotion.isOpen($('#drawer'))){ closeDrawer(); backSuppress=false; return true; }
@@ -1704,7 +1707,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     const seg=e.target.closest('.seg'); if(!seg)return;
     state.groupBy=seg.dataset.gb; state.view={name:'home'}; save(); render();
   });
-  $('#drawerSettings').addEventListener('click',()=>{ closeDrawer(); openSettings(); });
+  $('#drawerSettings').addEventListener('click',()=>{
+    UiMotion.hide($('#drawerMask'));UiMotion.hide($('#drawer'));
+    openSettings(true);
+  });
   $('#drawerTheme').addEventListener('click',toggleColorMode);
   const cms=$('#colorModeSeg');
   $('#interfaceStyleSeg').addEventListener('click',e=>{
@@ -2226,8 +2232,25 @@ function renderUpdateSettings(){
   if(chkCost) chkCost.checked=state.showCostSummary!==false;
 }
 
-function openSettings(){
-  pushLayer();
+let settingsPage='home';
+function showSettingsPage(page){
+  settingsPage=page;
+  $('#settingsHome').hidden=page!=='home';
+  $('#settingsAppearance').hidden=page!=='appearance';
+  $('#settingsFeatures').hidden=page!=='features';
+  $('#setBack').hidden=page==='home';
+  $('#setTitle').textContent=page==='appearance'?'外观设置':page==='features'?'功能设置':'设置';
+  $('#setModal .modal-body').scrollTop=0;
+}
+function backSettingsPage(){
+  const page=settingsPage;
+  showSettingsPage('home');
+  $('#settingsHome [data-settings-page="'+page+'"]').focus();
+  if(!backSuppress)syncBack();
+}
+function openSettings(reuseLayer=false){
+  if(!reuseLayer)pushLayer();
+  showSettingsPage('home');
   renderCustomBgSettings();
   renderColorModeSeg();
   renderInterfaceStyleSeg();
@@ -2239,7 +2262,10 @@ function openSettings(){
   UiMotion.show($('#setMask'));
   UiMotion.show($('#setModal'));
 }
-function closeSettings(){ UiMotion.hide($('#setMask')); UiMotion.hide($('#setModal')); if(!backSuppress)syncBack(); }
+function closeSettings(){
+  UiMotion.hide($('#setMask'));UiMotion.hide($('#setModal'));
+  if(!backSuppress){codeBack=true;history.go(settingsPage==='home'?-1:-2);}
+}
 
 
 
@@ -4717,8 +4743,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#sortAsc').addEventListener('change',e=>{ state.sortAsc=e.target.checked; save(); render(); });
 
   $('#setClose').addEventListener('click',closeSettings);
+  $('#setBack').addEventListener('click',backSettingsPage);
   $('#setMask').addEventListener('click',closeSettings);
   $('#setModal').addEventListener('click',e=>{
+    const entry=e.target.closest('[data-settings-page]');
+    if(entry){pushLayer();showSettingsPage(entry.dataset.settingsPage);$('#setBack').focus();return;}
     const x=e.target.closest('.x'); const ad=e.target.closest('.add-chip'); const ren=e.target.closest('.tag-chip[data-ren]');
     if(x){ e.stopPropagation(); const [kind,idx]=x.dataset.del.split(':'); deleteTag(kind,+idx); return }
     if(ren){ e.stopPropagation(); const [kind,idx]=ren.dataset.ren.split(':'); renameTag(kind,+idx); return }

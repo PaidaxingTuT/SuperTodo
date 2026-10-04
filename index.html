@@ -63,8 +63,8 @@ try{
 }catch(e){}
 </script>
 <link rel="stylesheet" href="air-datepicker.css">
-<link rel="stylesheet" href="style.css?v=slider-scroll-gesture">
-<link rel="stylesheet" id="interfaceStyleSheet" data-md3-href="md3.css?v=md3-changelog-tonal">
+<link rel="stylesheet" href="style.css?v=settings-groups">
+<link rel="stylesheet" id="interfaceStyleSheet" data-md3-href="md3.css?v=settings-groups">
 <script>
 try{
   const demo=new URLSearchParams(location.search).get('demo')==='1';
@@ -267,10 +267,35 @@ try{
 <!-- ===== 设置弹窗 ===== -->
 <div class="modal-mask" id="setMask" hidden></div>
 <div class="modal" id="setModal" hidden>
-  <div class="modal-head"><h2>设置</h2><button class="md-close" id="setClose" aria-label="关闭"></button></div>
+  <div class="modal-head"><button class="iconbtn" id="setBack" aria-label="返回设置" hidden><morph-icon data-icon="back" aria-hidden="true"></morph-icon></button><h2 id="setTitle">设置</h2><button class="md-close" id="setClose" aria-label="关闭"></button></div>
   <div class="modal-body">
-
-    <div class="set-section">
+    <div id="settingsHome">
+      <nav class="settings-menu" aria-label="设置分类">
+        <button class="settings-entry" type="button" data-settings-page="appearance">
+          <morph-icon data-icon="contrast" aria-hidden="true"></morph-icon>
+          <span><strong>外观设置</strong><small>日夜模式、主色、背景、列表布局</small></span>
+          <morph-icon data-icon="right" aria-hidden="true"></morph-icon>
+        </button>
+        <button class="settings-entry" type="button" data-settings-page="features">
+          <morph-icon data-icon="settings" aria-hidden="true"></morph-icon>
+          <span><strong>功能设置</strong><small>分类、预算、更新、小部件、AI</small></span>
+          <morph-icon data-icon="right" aria-hidden="true"></morph-icon>
+        </button>
+      </nav>
+      <div class="set-divide"></div>
+<div class="set-section">
+      <h3>数据管理</h3>
+      <button class="btn-line" id="tidyBtn">智能整理</button>
+      <div class="set-btns">
+        <button class="btn-line" id="exportBtn">导出备份</button>
+        <button class="btn-line" id="importBtn">导入备份</button>
+      </div>
+      <button class="btn-line danger" id="clearBtn">清空全部</button>
+      <input type="file" id="importFile" accept=".json" hidden>
+    </div>
+    </div>
+    <div id="settingsAppearance" hidden>
+<div class="set-section">
       <h3>外观 · 日夜模式</h3>
       <div class="db-seg" id="colorModeSeg" style="margin: 8px 0 16px;">
         <button class="seg" data-mode="system">跟随系统</button>
@@ -288,7 +313,7 @@ try{
 
     <div class="set-divide"></div>
 
-    <div class="set-section">
+<div class="set-section">
       <h3>主页面背景</h3>
       <div class="db-seg" id="bgTypeSeg" style="margin: 8px 0 12px;">
         <button class="seg on" data-bg="default">默认背景</button>
@@ -329,24 +354,7 @@ try{
 
     <div class="set-divide"></div>
 
-    <div class="set-section">
-      <h3>类型</h3>
-      <div class="tags" id="setTypes"></div>
-    </div>
-
-    <div class="set-section">
-      <h3>场景分组</h3>
-      <div class="tags" id="setScenes"></div>
-    </div>
-
-    <div class="set-section">
-      <h3>时间分组</h3>
-      <div class="tags" id="setTimes"></div>
-    </div>
-
-    <div class="set-divide"></div>
-
-    <div class="set-section">
+<div class="set-section">
       <h3>列表布局</h3>
       <div class="db-seg" id="spacingPresetSeg" style="margin: 8px 0 10px;">
         <button class="seg" data-preset="compact">紧凑</button>
@@ -380,17 +388,37 @@ try{
         </div>
       </div>
     </div>
+    </div>
+    <div id="settingsFeatures" hidden>
+<div class="set-section">
+      <h3>类型</h3>
+      <div class="tags" id="setTypes"></div>
+    </div>
 
     <div class="set-divide"></div>
 
-    <div class="set-section">
+<div class="set-section">
+      <h3>场景分组</h3>
+      <div class="tags" id="setScenes"></div>
+    </div>
+
+    <div class="set-divide"></div>
+
+<div class="set-section">
+      <h3>时间分组</h3>
+      <div class="tags" id="setTimes"></div>
+    </div>
+
+    <div class="set-divide"></div>
+
+<div class="set-section">
       <h3>统计与预算</h3>
       <label class="switch"><input type="checkbox" id="showCostSummary"><span></span><em>统计预算汇总</em></label>
     </div>
 
     <div class="set-divide"></div>
 
-    <div class="set-section">
+<div class="set-section">
       <h3>更新与安装</h3>
       <label class="switch"><input type="checkbox" id="autoCheckUpdate"><span></span><em>启动时自动检查更新</em></label>
       <label class="switch" style="margin-top:8px;"><input type="checkbox" id="autoInstallUpdate"><span></span><em>更新包下载完成后自动安装</em></label>
@@ -398,16 +426,14 @@ try{
 
     <div class="set-divide"></div>
 
-    <div class="set-section">
+<div class="set-section">
       <h3>桌面小部件</h3>
       <label class="switch"><input type="checkbox" id="widgetRemoveDone"><span></span><em>在小部件中完成事项后自动移除</em></label>
     </div>
 
-
-
     <div class="set-divide"></div>
 
-    <div class="set-section">
+<div class="set-section">
       <h3>AI · 云端增强</h3>
       <label class="switch ai-switch"><input type="checkbox" id="aiEnabled"><span></span><em>启用 AI 增强</em></label>
       <label class="fld">
@@ -420,19 +446,8 @@ try{
         <input type="text" id="aiModel" placeholder="模型名，如 deepseek-chat" data-aifield="model" autocomplete="off">
       </label>
     </div>
-
-    <div class="set-divide"></div>
-
-    <div class="set-section">
-      <h3>数据</h3>
-      <button class="btn-line" id="tidyBtn">智能整理</button>
-      <div class="set-btns">
-        <button class="btn-line" id="exportBtn">导出备份</button>
-        <button class="btn-line" id="importBtn">导入备份</button>
-      </div>
-      <button class="btn-line danger" id="clearBtn">清空全部</button>
-      <input type="file" id="importFile" accept=".json" hidden>
     </div>
+
   </div>
 </div>
 
@@ -670,6 +685,6 @@ try{
 <script src="air-datepicker-zh.js"></script>
 <script src="date-picker.js"></script>
 <script src="repeat.js"></script>
-<script src="app.js?v=slider-scroll-gesture"></script>
+<script src="app.js?v=settings-groups-2"></script>
 </body>
 </html>

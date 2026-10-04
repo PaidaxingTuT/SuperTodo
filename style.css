@@ -426,6 +426,15 @@ body.home-view .empty{padding-top:calc(14vh + 40px)}
 .add-chip{border:1px dashed var(--primary);color:var(--primary-ink);background:transparent;border-radius:8px;padding:5px 12px;font-size:13px}
 .set-divide{height:1px;background:var(--line);margin:4px 0 16px}
 .set-section .btn-line{width:100%;margin:11px 0}
+.settings-menu{display:grid;gap:12px}
+.settings-entry{display:flex;align-items:center;gap:12px;width:100%;min-height:76px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--surface-alt);text-align:left}
+.settings-entry>span{flex:1;min-width:0}
+.settings-entry strong{display:block;font-size:15px;font-weight:600;color:var(--text)}
+.settings-entry small{display:block;margin-top:4px;font-size:12px;line-height:1.5;color:var(--text2)}
+.settings-entry morph-icon{width:24px;height:24px;flex-shrink:0;color:var(--primary-ink)}
+.settings-entry>morph-icon:last-child{width:20px;height:20px;color:var(--text3)}
+#setTitle{flex:1}
+#setBack{margin-right:8px}
 .bg-image-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .set-section .bg-image-actions .btn-line{width:auto;margin:0;white-space:nowrap}
 #uploadBgBtn{flex:1 1 140px}
