@@ -185,11 +185,11 @@ function syncFromNativeWidget(){
               if(natIt.done){
                 localIt.doneScenes=itemScenes(localIt).slice();
                 localIt.doneTypes=itemTypes(localIt).slice();
-                completeSubtasks(localIt);
               }else{
                 localIt.doneScenes=[];
                 localIt.doneTypes=[];
               }
+              syncSubtasksDone(localIt);
               changed=true;
             }
           }else{
@@ -1412,7 +1412,8 @@ function itemSubtasks(it){
 }
 function subtaskProgressHTML(it){
   const tasks=itemSubtasks(it), done=tasks.filter(task=>task.done).length;
-  return `<span class="subtask-ring" style="--progress:${done/tasks.length*100}" aria-hidden="true"><svg viewBox="0 0 24 24"><circle class="subtask-track" cx="12" cy="12" r="9.5"/><circle class="subtask-fill" cx="12" cy="12" r="9.5"/></svg><span>${done}</span></span><span class="subtask-count">${tasks.length} 项</span><span class="subtask-chevron" aria-hidden="true"></span>`;
+  const pct=tasks.length?Math.round(done/tasks.length*100):0;
+  return `<sl-progress-ring class="subtask-ring" value="${pct}" data-complete="${done===tasks.length}" style="--progress:${pct}" aria-hidden="true"><span>${done}</span></sl-progress-ring><span class="subtask-count">${tasks.length} 项</span><span class="subtask-chevron" aria-hidden="true"></span>`;
 }
 function subtasksHTML(it){
   const tasks=itemSubtasks(it);
@@ -1545,7 +1546,6 @@ function renderList(wrap,empty){
           ${subtasksHTML(it)}
         </div>
         ${drag}
-        <span class="chev"></span>
       </div>
     </div>`;
   });
@@ -1974,7 +1974,7 @@ function toggleDone(id, kind, key){
     }
   }
 
-  completeSubtasks(it);
+  if(!targetDone || it.done) syncSubtasksDone(it);
   createRepeatItem(state.items, it);
   syncItemDoneToQuadrant(it.id, it.done);
   triggerHaptic(targetDone ? 'medium' : 'light');
@@ -2755,7 +2755,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.9.9';
+const APP_VERSION='v1.9.10';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -4111,7 +4111,7 @@ function toggleQuadrantItemDone(qKey, idx){
         localIt.doneScenes = [];
         localIt.doneTypes = [];
       }
-      completeSubtasks(localIt);
+      syncSubtasksDone(localIt);
       createRepeatItem(state.items, localIt);
     }
 

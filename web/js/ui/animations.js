@@ -7,7 +7,13 @@ const UiMotion = (() => {
   let rows = new Map();
   const budgets = new Map();
   // Measure the title and metadata only; expanding the checklist never changes this anchor.
-  const anchorHeader=header=>header.parentElement.style.setProperty('--subtask-anchor',header.getBoundingClientRect().height/2+'px');
+  const anchorHeader=header=>{
+    const body=header.parentElement, summary=body.querySelector('.subtask-list summary');
+    if(summary) body.style.setProperty('--subtask-space',Math.ceil(summary.getBoundingClientRect().width)+8+'px');
+    body.style.setProperty('--subtask-anchor',header.getBoundingClientRect().height/2+'px');
+    const front=body.parentElement;
+    if(front) front.style.setProperty('--subtask-drag-anchor',header.getBoundingClientRect().top-front.getBoundingClientRect().top+header.getBoundingClientRect().height/2+'px');
+  };
   const headers=new ResizeObserver(entries=>entries.forEach(entry=>anchorHeader(entry.target)));
   const enabled = () => !reduced.matches && typeof gsap !== 'undefined' && typeof Motion !== 'undefined';
   function animate(el, frames, options={}){
@@ -26,9 +32,35 @@ const UiMotion = (() => {
   function progress(summary,percent,done){
     const ring=summary.querySelector('.subtask-ring');
     if(!ring) return;
-    ring.querySelector('span').textContent=done;
-    if(enabled()) gsap.to(ring,{'--progress':percent,duration:.42,ease:'power2.out',overwrite:true});
-    else ring.style.setProperty('--progress',percent);
+    const span=ring.querySelector('span');
+    if(span) span.textContent=done;
+    ring.dataset.complete='false';
+    const finish=()=>{
+      ring.dataset.complete=String(percent>=100);
+      if('value' in ring) ring.value=percent;
+      else if(typeof ring.setAttribute==='function') ring.setAttribute('value',percent);
+      ring.style.removeProperty('--indicator-transition-duration');
+    };
+    if(enabled()){
+      ring.style.setProperty('--indicator-transition-duration','0s');
+      gsap.to(ring,{
+        '--progress':percent,
+        duration:.28,
+        ease:'none',
+        overwrite:true,
+        onUpdate(){
+          const val=parseFloat(ring.style.getPropertyValue('--progress'))||0;
+          if('value' in ring) ring.value=val;
+          else if(typeof ring.setAttribute==='function') ring.setAttribute('value',val);
+        },
+        onComplete:finish
+      });
+    }else{
+      ring.style.setProperty('--progress',percent);
+      if('value' in ring) ring.value=percent;
+      else if(typeof ring.setAttribute==='function') ring.setAttribute('value',percent);
+      finish();
+    }
   }
   function width(el,percent){
     if(!el) return;
@@ -45,15 +77,15 @@ const UiMotion = (() => {
     gsap.killTweensOf(steps);
     if(open && !details.open){
       details.open=true;
-      gsap.set(steps,{height:0,opacity:0,overflow:'hidden',marginTop:0,paddingTop:0,borderTopWidth:0});
+      gsap.set(steps,{height:0,opacity:0,overflow:'hidden',marginTop:0});
     }
     steps.style.overflow='hidden';
     gsap.to(steps,{
-      height:open?'auto':0,opacity:open?1:0,marginTop:open?10:0,paddingTop:open?8:0,borderTopWidth:0,
+      height:open?'auto':0,opacity:open?1:0,marginTop:open?8:0,
       duration:.25,ease:'power2.inOut',overwrite:true,
       onComplete(){
         details.open=open;
-        gsap.set(steps,{clearProps:'height,opacity,overflow,marginTop,paddingTop,borderTopWidth'});
+        gsap.set(steps,{clearProps:'height,opacity,overflow,marginTop'});
       }
     });
   }

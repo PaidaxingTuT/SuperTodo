@@ -194,10 +194,10 @@ public class WidgetDataManager {
     private static void completeRepeatItem(JSONArray items, JSONObject item) throws Exception {
         boolean done = item.optBoolean("done", false);
         JSONArray subtasks = item.optJSONArray("subtasks");
-        if (done && subtasks != null) {
+        if (subtasks != null) {
             for (int i = 0; i < subtasks.length(); i++) {
                 JSONObject task = subtasks.optJSONObject(i);
-                if (task != null) task.put("done", true);
+                if (task != null) task.put("done", done);
             }
         }
         JSONArray scenes = item.optJSONArray("scenes");

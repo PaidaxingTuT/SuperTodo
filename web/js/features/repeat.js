@@ -1,6 +1,6 @@
 'use strict';
-function completeSubtasks(item) {
-  if(item.done && Array.isArray(item.subtasks)) item.subtasks.forEach(task => { if(task && typeof task==='object') task.done = true; });
+function syncSubtasksDone(item) {
+  if(Array.isArray(item.subtasks)) item.subtasks.forEach(task => { if(task && typeof task==='object') task.done = !!item.done; });
 }
 // Each occurrence creates at most one successor, including after undo/re-complete.
 function createRepeatItem(items, item, now = new Date()) {

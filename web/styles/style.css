@@ -256,14 +256,11 @@ body.home-view .content{
 .subtask-list summary::-webkit-details-marker{display:none}
 .item-row .has-subtasks > .chev{display:none}
 .subtask-list summary:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-.subtask-ring{position:relative;width:22px;height:22px;flex:0 0 22px;display:grid;place-items:center}
-.subtask-ring svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.subtask-ring circle{fill:none;stroke-width:2;vector-effect:non-scaling-stroke}
-.subtask-track{stroke:var(--line)}
-.subtask-fill{stroke:var(--primary);stroke-dasharray:59.69026;stroke-dashoffset:calc(59.69026px - var(--progress)*.5969026px);stroke-linecap:round;transform:rotate(-90deg);transform-origin:12px 12px;opacity:clamp(0,var(--progress),1)}
-.subtask-ring > span{position:relative;font-size:10px;line-height:1;color:var(--text2);font-variant-numeric:tabular-nums}
-.subtask-count{font-size:11px;color:var(--text3);white-space:nowrap}
-.subtask-chevron{width:16px;height:16px;margin-left:1px;color:var(--text3);flex-shrink:0}
+.subtask-ring{--size:22px;--track-width:2px;--track-color:var(--line);--indicator-width:2px;--indicator-color:var(--primary);--indicator-transition-duration:.28s;--indicator-transition-timing-function:linear;position:relative;width:22px;height:22px;flex:0 0 22px;display:inline-flex;vertical-align:middle}
+.subtask-ring > span,.subtask-count{font-family:inherit;font-size:11px;line-height:22px;font-variant-numeric:tabular-nums}
+.subtask-ring > span{position:relative;color:var(--text2)}
+.subtask-count{color:var(--text3);white-space:nowrap}
+.subtask-chevron{display:flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:1px;line-height:0;color:var(--text3);flex-shrink:0}
 
 .motion-enabled .modal,.motion-enabled .drawer,.motion-enabled .card-check.just-checked{animation:none}
 .motion-enabled .csc-progress-bar{transition:none}
@@ -274,13 +271,13 @@ body.home-view .content{
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
-.subtask-steps{margin-top:6px;padding-top:4px;border-top:1px solid var(--line)}
+.subtask-steps{margin-top:8px;margin-left:calc(3px - var(--item-font,15px) - var(--item-gap,10px));padding:0;border:0;background:transparent}
 .subtask-check{display:flex;align-items:center;gap:8px;min-height:28px;padding:0 2px;border-radius:5px;cursor:pointer}
-.subtask-check input{appearance:none;width:14px;height:14px;margin:0;flex-shrink:0;border:1.5px solid var(--text3);border-radius:4px;background:transparent;cursor:pointer}
+.subtask-check input{appearance:none;width:12px;height:12px;margin:0;flex-shrink:0;border:1.5px solid var(--text3);border-radius:4px;background:transparent;cursor:pointer}
 .subtask-check input:checked{border-color:var(--primary);background:var(--primary)}
 .subtask-check input:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-.subtask-toggle{position:relative;display:inline-flex;width:14px;height:14px;flex-shrink:0}
-.subtask-toggle .subtask-tick{position:absolute;inset:0;width:14px;height:14px;color:var(--on-primary);pointer-events:none}
+.subtask-toggle{position:relative;display:inline-flex;width:12px;height:12px;flex-shrink:0}
+.subtask-toggle .subtask-tick{position:absolute;inset:0;width:12px;height:12px;color:var(--on-primary);pointer-events:none}
 .subtask-check span{word-break:break-word}
 .subtask-check.done span{color:var(--text3);text-decoration:line-through}
 .subtask-edit{display:flex;align-items:center;gap:8px;margin-bottom:8px}

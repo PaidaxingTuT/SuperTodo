@@ -116,19 +116,23 @@ button.card-check[data-done]:active{background:var(--primary-faint)}
 .tag{border-radius:999px;padding:2px 6px;font-size:11px;font-weight:500;line-height:1.4;background:var(--surface-container-high);color:var(--text2)}
 .tag.type-blue{background:var(--secondary-container);color:var(--on-secondary-container)}
 .has-subtasks .card-body{padding-right:0}
-.has-subtasks .card-heading,.has-subtasks .card-meta{padding-right:108px}
+.has-subtasks .card-main{display:flex;flex-direction:column;justify-content:center;min-height:50px}
+.item-row .has-subtasks:has(> .drag-handle){padding-right:36px}
+.has-subtasks > .drag-handle{position:absolute;right:6px;top:var(--subtask-drag-anchor,33px);transform:translateY(-50%);margin:0}
+.has-subtasks .card-heading,.has-subtasks .card-meta{padding-right:var(--subtask-space,84px)}
 .subtask-list{margin-top:0;font-size:13px}
-.subtask-list summary{position:absolute;right:0;top:24px;transform:translateY(-50%);min-height:44px;width:fit-content;gap:8px;padding:6px 12px;border-radius:999px;background:var(--secondary-container);color:var(--on-secondary-container)}
-.subtask-count{font-size:12px;color:inherit}
-.subtask-chevron{color:inherit}
+.subtask-steps{margin-left:-33px}
+.subtask-list summary{position:absolute;right:0;top:var(--subtask-anchor,22px);transform:translateY(-50%);min-height:34px;width:fit-content;gap:6px;padding:4px 16px;border-radius:999px;background:var(--secondary-container);color:var(--on-secondary-container)}
+.subtask-ring{--size:20px;--indicator-transition-timing-function:linear;width:20px;height:20px;flex-basis:20px}
+.subtask-ring > span,.subtask-count{font-size:12px;line-height:20px;color:inherit}
+.subtask-chevron{width:14px;height:14px;color:inherit}
 .subtask-list[open] summary{background:var(--primary-soft);color:var(--on-primary-container)}
-.subtask-steps{margin-top:10px;padding:8px;border:0;border-radius:16px;background:var(--surface-container)}
 .subtask-check{gap:12px;min-height:48px;padding:6px 8px;border-radius:12px;transition:background-color .18s,color .18s}
 .subtask-check + .subtask-check{margin-top:4px}
-.subtask-check.done{background:var(--primary-faint)}
-.subtask-toggle{width:22px;height:22px;border-radius:4px;color:var(--primary)}
-.subtask-check input{width:22px;height:22px;border:2px solid var(--outline);border-radius:4px;background:var(--surface-container-high);transition:background-color .18s,border-color .18s}
-.subtask-toggle .subtask-tick{width:18px;height:18px;inset:2px}
+.subtask-check.done{background:transparent}
+.subtask-toggle{width:18px;height:18px;border-radius:4px;color:var(--primary)}
+.subtask-check input{width:18px;height:18px;border:2px solid var(--outline);border-radius:4px;background:var(--surface-container-high);transition:background-color .18s,border-color .18s}
+.subtask-toggle .subtask-tick{width:14px;height:14px;inset:2px}
 .cost-summary-card{background:var(--tertiary-container);border:0;box-shadow:none;border-radius:24px;padding:16px}
 .csc-total-val{font-size:24px;font-weight:500;color:var(--on-tertiary-container)}
 .csc-total-label{font-size:12px;color:var(--on-tertiary-container)}
