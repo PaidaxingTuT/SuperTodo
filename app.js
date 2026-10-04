@@ -1,6 +1,7 @@
 'use strict';
 /* ========== 存储 ========== */
-const KEY='listapp.data.v2';
+const DEMO_MODE=new URLSearchParams(window.location.search).get('demo')==='1';
+const KEY=DEMO_MODE?'listapp.demo.v2':'listapp.data.v2';
 const DEFAULTS={types:['购物','待办','计划','旅游','愿望'],scenes:['家里','学校','出差','网上','线下'],times:['今年','明年','以后再说']};
 
 /* ========== 状态 ========== */
@@ -13,6 +14,8 @@ let state={
   search:'',
   theme:'#0b57d0',
   colorMode:'system',
+  interfaceStyle:document.documentElement.dataset.interfaceStyle||'md3',
+  uiStyleNoticeSeen:false,
   spacing:{preset:'standard',gap:10,pad:13,font:15},
   devMode:false,
   autoCheckUpdate:true,
@@ -113,6 +116,8 @@ function load(){
     if(d.groupBy)state.groupBy=d.groupBy;
     if(Array.isArray(d.trash))state.trash=d.trash; if(d.theme)state.theme=d.theme;
     if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode;
+    state.interfaceStyle=['classic','md3'].includes(d.interfaceStyle)?d.interfaceStyle:(DEMO_MODE?'md3':'classic');
+    state.uiStyleNoticeSeen=d.uiStyleNoticeSeen===true;
     if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing);
     else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5};
     else state.spacing={preset:'standard',gap:10,pad:13,font:15};
@@ -286,11 +291,6 @@ checkPendingWidgetAction();
 
 try {
   const urlParams = new URLSearchParams(window.location.search);
-    if(urlParams.get('seed')==='1'||urlParams.get('demo')==='1'||urlParams.get('test')==='1'){
-      loadTestDemoData();
-    } else if(!state.items || !state.items.length){
-      loadTestDemoData();
-    }
   if(urlParams.get('seed_quadrant')==='1'){
     state.quadrantWidget = {
       q1: [{ id: 'demo1', title: '完成紧急汇报材料', done: false }, { id: 'demo2', title: '提交项目最终审核', done: true }],
@@ -448,19 +448,42 @@ function isDarkMode(){
 function applyTheme(hex){
   var h=hexToHsl(hex);
   var dark=isDarkMode();
-  var soft=dark?hslToCss(h[0],Math.min(55,h[1]),26):hslToCss(h[0],Math.min(92,h[1]+5),Math.max(87,Math.min(94,92+(h[2]-55)*0.4)));
-  var faint=dark?hslToCss(h[0],Math.min(35,h[1]),18):hslToCss(h[0],Math.min(42,h[1]),Math.max(95,Math.min(97,95)));
-  var deep=hslToCss(h[0],Math.min(96,h[1]),Math.max(22,Math.round(h[2]*0.86)));
-  var ink=dark?hslToCss(h[0],Math.min(92,h[1]+5),72):hex;
-  document.documentElement.style.setProperty('--primary',hex);
+  var saturation=Math.min(68,h[1]);
+  var soft=hslToCss(h[0],Math.min(42,h[1]),dark?28:90);
+  var faint=hslToCss(h[0],Math.min(22,h[1]),dark?18:95);
+  var deep=hslToCss(h[0],saturation,dark?72:30);
+  var ink=hslToCss(h[0],saturation,dark?80:28);
+  if(state.interfaceStyle==='classic'){
+    soft=dark?hslToCss(h[0],Math.min(55,h[1]),26):hslToCss(h[0],Math.min(92,h[1]+5),Math.max(87,Math.min(94,92+(h[2]-55)*0.4)));
+    faint=dark?hslToCss(h[0],Math.min(35,h[1]),18):hslToCss(h[0],Math.min(42,h[1]),95);
+    deep=hslToCss(h[0],Math.min(96,h[1]),Math.max(22,Math.round(h[2]*0.86)));
+    ink=dark?hslToCss(h[0],Math.min(92,h[1]+5),72):hex;
+  }
+  document.documentElement.style.setProperty('--theme-hue',h[0]);
+  document.documentElement.style.setProperty('--primary',state.interfaceStyle==='classic'?hex:ink);
   document.documentElement.style.setProperty('--primary-ink',ink);
   document.documentElement.style.setProperty('--primary-soft',soft);
   document.documentElement.style.setProperty('--primary-faint',faint);
   document.documentElement.style.setProperty('--primary-deep',deep);
-  document.documentElement.style.setProperty('--on-primary','#fff');
-  var m=document.querySelector('meta[name=theme-color]'); if(m)m.setAttribute('content',dark?'#111318':hex);
+  document.documentElement.style.setProperty('--on-primary',state.interfaceStyle==='md3'&&dark?hslToCss(h[0],saturation,20):'#fff');
+  var m=document.querySelector('meta[name=theme-color]'); if(m)m.setAttribute('content',getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
 }
 
+function renderInterfaceStyleSeg(){
+  $$('#interfaceStyleSeg .seg').forEach(btn=>{
+    const selected=btn.dataset.style===state.interfaceStyle;
+    btn.classList.toggle('on',selected);
+    btn.setAttribute('aria-pressed',String(selected));
+  });
+}
+function applyInterfaceStyle(){
+  const sheet=$('#interfaceStyleSheet');
+  document.documentElement.dataset.interfaceStyle=state.interfaceStyle;
+  if(state.interfaceStyle==='md3')sheet.setAttribute('href',sheet.dataset.md3Href);
+  else sheet.removeAttribute('href');
+  applyColorMode();
+  renderInterfaceStyleSeg();
+}
 function renderColorModeSeg(){
   const box=$('#colorModeSeg');
   if(!box) return;
@@ -595,7 +618,7 @@ function closeTopLayer(){
   if(UiMotion.isOpen($('#infoModal'))){ closeInfo(); backSuppress=false; return true; }
   if(UiMotion.isOpen($('#setModal'))){ closeSettings(); backSuppress=false; return true; }
   if(UiMotion.isOpen($('#sortModal'))){ closeSort(); backSuppress=false; return true; }
-  if(!$('#searchbar').hidden){ closeSearch(); backSuppress=false; return true; }
+  if(UiMotion.isOpen($('#searchbar'))){ closeSearch(); backSuppress=false; return true; }
   if(UiMotion.isOpen($('#drawer'))){ closeDrawer(); backSuppress=false; return true; }
   if(state.view.name==='list'){ backHome(); backSuppress=false; return true; }
   backSuppress=false;
@@ -1306,7 +1329,11 @@ function renderTitle(){
     $('#appTitle').textContent = state.type==='全部'?'超级清单':state.type;
   }
   $('#homeGroupby').hidden=!isHome;
-  $$('#groupBySeg .seg').forEach(s=>s.classList.toggle('on',s.dataset.gb===state.groupBy));
+  $$('#groupBySeg .seg').forEach(s=>{
+    const selected=s.dataset.gb===state.groupBy;
+    s.classList.toggle('on',selected);
+    s.setAttribute('aria-pressed',String(selected));
+  });
   $('#appbarSortBtn').hidden=!isList;
   $('#appbarSortBtn').classList.toggle('on',state.sortKey!=='默认');
   $('#fabAi').hidden=!hasCloudKey();
@@ -1333,6 +1360,9 @@ function renderDrawer(){
   const trashCount = (state.trash || []).length;
   html += '<div class="dnav-divider"></div><button class="dnav-item dnav-trash" id="dnavTrash" data-kind="trash"><span class="dnav-ic dnav-ic-trash"></span>回收站<span class="dnav-count">' + trashCount + '</span></button>';
   nav.innerHTML = html;
+  nav.querySelectorAll('.dnav-item[data-t]').forEach(button=>{
+    if(button.classList.contains('on')) button.setAttribute('aria-current','page');
+  });
 }
 function renderContent(){
   const wrap=$('#content'), empty=$('#emptyState');
@@ -1361,12 +1391,12 @@ function renderHome(wrap,empty){
     const arrowSvg=`<span class="sec-arrow"></span>`;
     html+=`<div class="section">
       <div class="section-card" data-open="${esc(g.key)}">
-        <div class="section-head" data-open="${esc(g.key)}">
+        <button type="button" class="section-head" data-open="${esc(g.key)}" aria-label="打开${esc(g.key)}分组">
           <span class="sec-title">${esc(g.key)}</span>
           <span class="sec-count">${g.items.length}</span>
           ${costBadge}
           <span class="sec-right">${undone.length?'未完成 '+undone.length:'全完成'}${arrowSvg}</span>
-        </div>
+        </button>
         ${preview.map(it=>secItemHTML(it,g.key)).join('')}
       </div>
     </div>`;
@@ -1430,7 +1460,7 @@ function secItemHTML(it,groupKey){
       </div>
     </div>
     <div class="swipe-front${itemSubtasks(it).length?' has-subtasks':''}">
-      <span class="card-check ${done?'done':''}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(groupKey||'')}"></span>
+      <button type="button" class="card-check ${done?'done':''}" role="checkbox" aria-checked="${done}" aria-label="完成事项：${esc(it.title)}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(groupKey||'')}"></button>
       <div class="card-body">
         <div class="card-main">
         <div class="card-heading">
@@ -1444,22 +1474,22 @@ function secItemHTML(it,groupKey){
     </div>
   </div>`;
 }
-function secMeta(it, isDone){
-  let h='';
-  if(it.cost) h+=`<span class="cost">¥${money(it.cost)}</span>`;
-  if(it.star) h+=`<span class="star">${'★'.repeat(it.star)}</span>`;
+function secMeta(it, isDone, showTypes=state.type==='全部'){
+  let h='',facts='';
+  if(it.cost) facts+=`<span class="cost">¥${money(it.cost)}</span>`;
+  if(it.star) facts+=`<span class="star">${'★'.repeat(it.star)}</span>`;
   if(it.due){
     const ds = getDueStatus(it.due, isDone !== undefined ? isDone : !!it.done);
     if(ds) h+=`<span class="tag ${ds.className}" title="${esc(ds.title)}">${esc(ds.text)}</span>`;
   }
-  if(state.type==='全部'){
+  if(showTypes){
     itemTypes(it).forEach(t=>{ h+=`<span class="tag type-blue">${esc(t)}</span>`; });
   }
   if(state.groupBy!=='scene'){
     itemScenes(it).forEach(s=>{ h+=`<span class="tag">${esc(s)}</span>`; });
   }
   if(state.groupBy!=='time' && it.time) h+=`<span class="tag">${esc(it.time)}</span>`;
-  return h;
+  return (facts?`<span class="meta-facts">${facts}</span>`:'')+(h?`<span class="meta-tags">${h}</span>`:'');
 }
 function renderList(wrap,empty){
   const g=sectionGroups().find(x=>x.key===state.view.group);
@@ -1499,7 +1529,7 @@ function renderList(wrap,empty){
         </div>
       </div>
       <div class="swipe-front${itemSubtasks(it).length?' has-subtasks':''}">
-        <span class="card-check ${itemDone?'done':''}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(g.key)}"></span>
+        <button type="button" class="card-check ${itemDone?'done':''}" role="checkbox" aria-checked="${itemDone}" aria-label="完成事项：${esc(it.title)}" data-done="${it.id}" data-done-kind="${state.groupBy}" data-done-key="${esc(g.key)}"></button>
         <div class="card-body">
           <div class="card-main">
           <div class="card-heading">
@@ -1518,19 +1548,7 @@ function renderList(wrap,empty){
   wrap.innerHTML=html;
 }
 function fullMeta(it, isDone){
-  let h='';
-  itemTypes(it).forEach(t=>{ h+=`<span class="tag type-blue">${esc(t)}</span>`; });
-  if(state.groupBy!=='scene'){
-    itemScenes(it).forEach(s=>{ h+=`<span class="tag">${esc(s)}</span>`; });
-  }
-  if(state.groupBy!=='time' && it.time) h+=`<span class="tag">${esc(it.time)}</span>`;
-  if(it.cost) h+=`<span class="cost">¥${money(it.cost)}</span>`;
-  if(it.star) h+=`<span class="star">${'★'.repeat(it.star)}</span>`;
-  if(it.due){
-    const ds = getDueStatus(it.due, isDone !== undefined ? isDone : !!it.done);
-    if(ds) h+=`<span class="tag ${ds.className}" title="${esc(ds.title)}">${esc(ds.text)}</span>`;
-  }
-  return h;
+  return secMeta(it,isDone,true);
 }
 function renderEmptyText(){
   $('#emptyTitle').textContent = state.search?'无搜索结果':(state.view.name==='home'?'暂无事项':'该分组暂无事项');
@@ -1552,6 +1570,13 @@ function applySpacing(){
   root.style.setProperty('--item-font', s.font+'px');
   root.style.setProperty('--sec-gap', Math.round(s.gap*1.6)+'px');
 }
+function updateSliderProgress(slider){
+  if(!slider) return;
+  const min=Number(slider.min), max=Number(slider.max);
+  const progress=max>min?Math.max(0,Math.min(100,(Number(slider.value)-min)/(max-min)*100)):0;
+  slider.style.setProperty('--slider-progress',progress+'%');
+  slider.parentElement.style.setProperty('--slider-progress',progress+'%');
+}
 function renderSpacingControls(){
   const s=state.spacing||SPACING_PRESETS.standard;
   const gVal=$('#valItemGap'), pVal=$('#valItemPad'), fVal=$('#valItemFont');
@@ -1562,6 +1587,7 @@ function renderSpacingControls(){
   if(gSld) gSld.value=s.gap;
   if(pSld) pSld.value=s.pad;
   if(fSld) fSld.value=s.font;
+  [gSld,pSld,fSld].forEach(updateSliderProgress);
 
   const box=$('#spacingPresetSeg');
   if(box){
@@ -1578,14 +1604,27 @@ function renderSpacingControls(){
 }
 function init(){
   load();
-  applyColorMode();
+  const params=new URLSearchParams(window.location.search);
+  // Initialize demo data after TEST_DEMO_DATA exists, in its own storage namespace.
+  if(params.get('seed')==='1'||params.get('test')==='1'||(DEMO_MODE&&!state.items.length))loadTestDemoData();
+  applyInterfaceStyle();
   applyCustomBg();
   applySpacing();
   buildStars();
   render();
   setTimeout(setupNativeBack,300);
-  setTimeout(()=>checkUpdate(true),900);
-  const params=new URLSearchParams(window.location.search);
+  const showUiStyleNotice=!DEMO_MODE&&!state.uiStyleNoticeSeen;
+  if(showUiStyleNotice){
+    dlgShow({
+      title:'全新 UI 风格已上线',
+      msg:'本次更新新增 Material 3 界面风格\n想体验新的 UI，可打开菜单 → 关于 → 界面风格，选择“Material 3”\n不喜欢新风格？在“关于 → 界面风格”选择“经典”即可关闭',
+      okText:'我知道了',
+      onOk:()=>{setTimeout(()=>checkUpdate(true),300);}
+    });
+    state.uiStyleNoticeSeen=true;
+    save();
+  }
+  if(!showUiStyleNotice)setTimeout(()=>checkUpdate(true),900);
   if(params.get('quadrant')==='1'||params.get('view')==='quadrant'){
     setTimeout(openQuadrantModal,250);
   }
@@ -1593,13 +1632,13 @@ function init(){
 
 /* 抽屉 */
 function openDrawer(){ pushLayer(); UiMotion.show($('#drawerMask')); UiMotion.show($('#drawer')); }
-function closeDrawer(){ UiMotion.hide($('#drawerMask')); UiMotion.hide($('#drawer')); if(!backSuppress)syncBack(); }
-
+function closeDrawer(){ if(!UiMotion.isOpen($('#drawerMask')))return; UiMotion.hide($('#drawerMask')); UiMotion.hide($('#drawer')); if(!backSuppress)syncBack(); }
 /* 搜索栏 */
 function openSearch(){
+  if(UiMotion.isOpen($('#searchbar'))) return;
   pushLayer();
   $('.appbar-top').hidden=true;
-  $('#searchbar').hidden=false;
+  UiMotion.show($('#searchbar'));
   const input=$('#searchInput');
   if(input){
     input.focus();
@@ -1607,12 +1646,20 @@ function openSearch(){
   doSearch();
 }
 function closeSearch(){
-  $('#searchbar').hidden=true;
-  $('.appbar-top').hidden=false;
-  state.search='';
-  const input=$('#searchInput');
-  if(input) input.value='';
-  render();
+  if(!UiMotion.isOpen($('#searchbar'))) return;
+  const closing=UiMotion.hide($('#searchbar'));
+  const finish=()=>{
+    if(UiMotion.isOpen($('#searchbar'))) return;
+    $('.appbar-top').hidden=false;
+    UiMotion.animate($('.appbar-top'),{opacity:[0,1]},{duration:.16});
+    state.search='';
+    const input=$('#searchInput');
+    if(input) input.value='';
+    render();
+    $('#searchBtn').focus();
+  };
+  if(closing) closing.then(finish).catch(()=>{});
+  else finish();
   if(!backSuppress)syncBack();
 }
 function doSearch(){
@@ -1660,6 +1707,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#drawerSettings').addEventListener('click',()=>{ closeDrawer(); openSettings(); });
   $('#drawerTheme').addEventListener('click',toggleColorMode);
   const cms=$('#colorModeSeg');
+  $('#interfaceStyleSeg').addEventListener('click',e=>{
+    const seg=e.target.closest('[data-style]');
+    if(!seg)return;
+    state.interfaceStyle=seg.dataset.style;
+    applyInterfaceStyle();
+    save();
+  });
   if(cms){
     cms.addEventListener('click',e=>{
       const seg=e.target.closest('.seg');
@@ -1714,6 +1768,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   /* 搜索 */
   $('#searchBtn').addEventListener('click',openSearch);
   $('#searchBackBtn').addEventListener('click',closeSearch);
+  document.addEventListener('click',e=>{
+    if(!UiMotion.isOpen($('#searchbar')) || e.target.closest('#searchbar')) return;
+    // The first tap outside dismisses search without activating the content underneath.
+    e.preventDefault();
+    e.stopPropagation();
+    closeSearch();
+  },true);
   const searchInput=$('#searchInput');
   if(searchInput){
     searchInput.addEventListener('input',doSearch);
@@ -1916,6 +1977,7 @@ function toggleDone(id, kind, key){
   const checkEl = document.querySelector(`[data-done="${id}"]`);
   if(checkEl){
     checkEl.classList.toggle('done', targetDone);
+    checkEl.setAttribute('aria-checked',String(targetDone));
     UiMotion.check(checkEl,targetDone);
   }
   const itemRow = document.querySelector(`[data-item="${id}"]`);
@@ -2168,6 +2230,7 @@ function openSettings(){
   pushLayer();
   renderCustomBgSettings();
   renderColorModeSeg();
+  renderInterfaceStyleSeg();
   renderSpacingControls();
   renderPalette();
   renderSetGroups();
@@ -2238,6 +2301,7 @@ function renderCustomBgSettings(){
   if (opacityRow) opacityRow.style.display = (bg.type !== 'default') ? 'block' : 'none';
 
   if (opacitySlider) opacitySlider.value = bg.opacity || 80;
+  updateSliderProgress(opacitySlider);
   if (opacityVal) opacityVal.textContent = (bg.opacity || 80) + '%';
   if (customBgColor && bg.color) customBgColor.value = bg.color;
 
@@ -2319,7 +2383,6 @@ function setupInteractiveSliderPreviews() {
   const previewTitleText = document.getElementById('opPreviewTitleText');
   const previewVal = document.getElementById('opPreviewVal');
   const previewSlider = document.getElementById('opPreviewSlider');
-  const floatBadge = document.getElementById('opFloatBadge');
   if (!previewBar || !previewSlider) return;
 
   let activeCfg = null;
@@ -2433,12 +2496,8 @@ function setupInteractiveSliderPreviews() {
     if (origSlider && parseFloat(origSlider.value) !== v) origSlider.value = v;
     if (previewSlider && parseFloat(previewSlider.value) !== v) previewSlider.value = v;
 
-    if (floatBadge) {
-      floatBadge.textContent = txt;
-      const pct = Math.max(0, Math.min(1, (v - cfg.min) / (cfg.max - cfg.min)));
-      const badgeLeft = 6 + pct * 88;
-      floatBadge.style.left = badgeLeft + '%';
-    }
+    updateSliderProgress(origSlider);
+    updateSliderProgress(previewSlider);
 
     cfg.set(v);
     if (doSave) save();
@@ -2468,7 +2527,7 @@ function setupInteractiveSliderPreviews() {
       // 原地吸附于用户手指操作的滑块原始位置，完全跟手，杜绝跳动到屏幕底部
       const padX = 14;
       const padY = 8;
-      const w = Math.min(window.innerWidth - 32, rect.width + padX * 2);
+      const w = Math.min(window.innerWidth - 32, Math.max(320, rect.width + padX * 2));
       const l = Math.max(16, Math.min(window.innerWidth - w - 16, rect.left - padX));
       const t = Math.max(16, Math.min(window.innerHeight - 110, rect.top - padY));
 
@@ -2484,12 +2543,19 @@ function setupInteractiveSliderPreviews() {
       previewSlider.min = cfg.min;
       previewSlider.max = cfg.max;
       previewSlider.step = cfg.step;
+      previewSlider.setAttribute('aria-label', cfg.title);
 
       const curVal = cfg.get();
       syncVal(cfg, curVal, false);
 
       previewBar.classList.remove('closing');
       previewBar.hidden = false;
+      // Keep the preview track under the finger, with the complete panel inside the viewport.
+      const barRect = previewBar.getBoundingClientRect();
+      const sliderRect = previewSlider.getBoundingClientRect();
+      const originalRect = origSlider.getBoundingClientRect();
+      const alignedTop = originalRect.top + originalRect.height / 2 - (sliderRect.top + sliderRect.height / 2 - barRect.top);
+      previewBar.style.top = Math.max(16, Math.min(window.innerHeight - barRect.height - 16, alignedTop)) + 'px';
     }
   }
 
@@ -2536,7 +2602,7 @@ function setupInteractiveSliderPreviews() {
       activeCfg = cfg;
       startX = clientX;
       startY = clientY;
-      dragWidth = Math.max(1, slider.getBoundingClientRect().width - 18);
+      dragWidth = Math.max(1, slider.getBoundingClientRect().width - 24);
       isDragging = false;
     };
 
@@ -2639,7 +2705,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.9.7';
+const APP_VERSION='v1.9.8';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -2668,6 +2734,7 @@ function handleVerClick(){
 function openInfo(){
   pushLayer();
   updateInfoVerText();
+  renderInterfaceStyleSeg();
   UiMotion.show($('#infoMask'));
   UiMotion.show($('#infoModal'));
 }
@@ -3282,7 +3349,7 @@ function setTheme(hex){
 
 /* ========== 设置：自定义标签 ========== */
 function renderSetGroups(){
-  const g=(id,arr,kind)=>{ const el=$(id); el.innerHTML=arr.map((v,i)=>`<span class="tag-chip" data-ren="${kind}:${i}">${esc(v)}<span class="x" data-del="${kind}:${i}"><morph-icon data-icon="close" aria-hidden="true"></morph-icon></span></span>`).join('')+`<button class="add-chip" data-add="${kind}">＋ 添加</button>`; };
+  const g=(id,arr,kind)=>{ const el=$(id); el.innerHTML=arr.map((v,i)=>`<span class="tag-chip" data-ren="${kind}:${i}"><button type="button" class="tag-chip-name" aria-label="重命名${esc(v)}">${esc(v)}</button><button type="button" class="x" data-del="${kind}:${i}" aria-label="删除${esc(v)}"><morph-icon data-icon="close" aria-hidden="true"></morph-icon></button></span>`).join('')+`<button class="add-chip" data-add="${kind}">＋ 添加</button>`; };
   g('#setTypes',state.types,'type'); g('#setScenes',state.scenes,'scene'); g('#setTimes',state.times,'time');
 }
 function addTag(kind){
@@ -4402,6 +4469,7 @@ function exportData(){
     times: state.times,
     theme: state.theme,
     colorMode: state.colorMode,
+    interfaceStyle: state.interfaceStyle,
     spacing: state.spacing,
     devMode: state.devMode,
     autoCheckUpdate: state.autoCheckUpdate,
@@ -4481,6 +4549,7 @@ function applyImportedData(d){
   if(Array.isArray(d.trash))state.trash=d.trash;
   if(d.theme)state.theme=d.theme;
   if(['system','light','dark'].includes(d.colorMode))state.colorMode=d.colorMode;
+  state.interfaceStyle=['classic','md3'].includes(d.interfaceStyle)?d.interfaceStyle:'classic';
   if(d.spacing&&typeof d.spacing==='object')state.spacing=Object.assign({preset:'standard',gap:10,pad:13,font:15},d.spacing);
   else if(d.listDensity==='compact')state.spacing={preset:'compact',gap:6,pad:8,font:13.5};
   else state.spacing={preset:'standard',gap:10,pad:13,font:15};
@@ -4494,7 +4563,7 @@ function applyImportedData(d){
   if(d.customBg&&typeof d.customBg==='object')state.customBg=Object.assign({type:'default',color:'#f2f5fb',image:'',opacity:80},d.customBg);
   else if(!state.customBg)state.customBg={type:'default',color:'#f2f5fb',image:'',opacity:80};
   save();
-  applyColorMode();
+  applyInterfaceStyle();
   applyCustomBg();
   applySpacing();
   render();
@@ -4722,9 +4791,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#dlgOk').addEventListener('click',()=>{
     const cb=dlgCb;
     const val=dlgType==='input'?$('#dlgInput').value.trim():null;
-    const hasCb=dlgType==='confirm'||dlgType==='input';
     dlgClose();
-    if(hasCb&&cb) cb(val);
+    if(cb) cb(val);
   });
   $('#dlgCancel').addEventListener('click',()=>{ const c=dlgOnCancel; dlgClose(); if(c)c(); });
   $('#dlgMask').addEventListener('click',()=>{ const c=dlgOnCancel; dlgClose(); if(c)c(); });
