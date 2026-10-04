@@ -441,7 +441,7 @@ body.home-view .empty{padding-top:calc(14vh + 40px)}
 #removeBgBtn{flex:0 0 auto;min-width:96px}
 .set-btns{display:flex;gap:8px;margin-bottom:11px}
 .set-btns .btn-line{flex:1;margin:0}
-#tidyBtn{margin-bottom:6px}
+.settings-menu + .set-section{margin-top:16px}
 .palette{display:flex;flex-wrap:wrap;gap:11px;margin-bottom:11px}
 .pal-sw{width:38px;height:38px;border-radius:50%;border:2px solid transparent;position:relative;box-shadow:var(--shadow)}
 .pal-sw.on{border-color:var(--text);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--text)}

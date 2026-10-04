@@ -4849,7 +4849,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#dlgCancel').addEventListener('click',()=>{ const c=dlgOnCancel; dlgClose(); if(c)c(); });
   $('#dlgMask').addEventListener('click',()=>{ const c=dlgOnCancel; dlgClose(); if(c)c(); });
 
-  $('#tidyBtn').addEventListener('click',()=>{ closeSettings(); openTidy(); });
   $('#exportBtn').addEventListener('click',exportData);
   $('#importBtn').addEventListener('click',()=>$('#importFile').click());
   $('#importFile').addEventListener('change',importData);
