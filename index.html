@@ -63,7 +63,7 @@ try{
 }catch(e){}
 </script>
 <link rel="stylesheet" href="air-datepicker.css">
-<link rel="stylesheet" href="style.css?v=md3-notice-copy">
+<link rel="stylesheet" href="style.css?v=bg-image-buttons">
 <link rel="stylesheet" id="interfaceStyleSheet" data-md3-href="md3.css?v=md3-changelog-tonal">
 <script>
 try{
@@ -306,9 +306,9 @@ try{
 
       <!-- 背景图片配置面板 -->
       <div id="bgImagePanel" style="display:none; margin-bottom: 12px;">
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button class="btn-line" id="uploadBgBtn" style="flex:1;">选择背景图片</button>
-          <button class="btn-line danger" id="removeBgBtn" style="flex:0 0 76px; display:none;">移除图片</button>
+        <div class="bg-image-actions">
+          <button class="btn-line" id="uploadBgBtn">选择背景图片</button>
+          <button class="btn-line danger" id="removeBgBtn" style="display:none;">移除图片</button>
           <input type="file" id="bgFileInput" accept="image/*" hidden>
         </div>
         <div id="bgPreviewBox" style="margin-top:10px; display:none; align-items:center; gap:10px;">

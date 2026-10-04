@@ -425,6 +425,10 @@ body.home-view .empty{padding-top:calc(14vh + 40px)}
 .add-chip{border:1px dashed var(--primary);color:var(--primary-ink);background:transparent;border-radius:8px;padding:5px 12px;font-size:13px}
 .set-divide{height:1px;background:var(--line);margin:4px 0 16px}
 .set-section .btn-line{width:100%;margin:11px 0}
+.bg-image-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.set-section .bg-image-actions .btn-line{width:auto;margin:0;white-space:nowrap}
+#uploadBgBtn{flex:1 1 140px}
+#removeBgBtn{flex:0 0 auto;min-width:96px}
 .set-btns{display:flex;gap:8px;margin-bottom:11px}
 .set-btns .btn-line{flex:1;margin:0}
 #tidyBtn{margin-bottom:6px}
