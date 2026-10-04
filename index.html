@@ -63,7 +63,7 @@ try{
 }catch(e){}
 </script>
 <link rel="stylesheet" href="air-datepicker.css">
-<link rel="stylesheet" href="style.css?v=settings-home-simple">
+<link rel="stylesheet" href="style.css?v=material-settings-buttons">
 <link rel="stylesheet" id="interfaceStyleSheet" data-md3-href="md3.css?v=settings-groups">
 <script>
 try{
@@ -267,7 +267,7 @@ try{
 <!-- ===== 设置弹窗 ===== -->
 <div class="modal-mask" id="setMask" hidden></div>
 <div class="modal" id="setModal" hidden>
-  <div class="modal-head"><button class="iconbtn" id="setBack" aria-label="返回设置" hidden><morph-icon data-icon="back" aria-hidden="true"></morph-icon></button><h2 id="setTitle">设置</h2><button class="md-close" id="setClose" aria-label="关闭"></button></div>
+  <div class="modal-head"><md-filled-tonal-icon-button class="settings-icon-button" id="setBack" type="button" aria-label="返回设置" hidden><md-icon>arrow_back</md-icon></md-filled-tonal-icon-button><h2 id="setTitle">设置</h2><md-filled-tonal-icon-button class="settings-icon-button" id="setClose" type="button" aria-label="关闭"><md-icon>close</md-icon></md-filled-tonal-icon-button></div>
   <div class="modal-body">
     <div id="settingsHome">
       <nav class="settings-menu" aria-label="设置分类">
@@ -673,6 +673,7 @@ try{
 </div>
 
 <script src="Sortable.min.js"></script>
+<script type="module" src="material-buttons.min.js"></script>
 <script src="gsap.min.js"></script>
 <script src="motion.js"></script>
 <script src="morphicons.min.js"></script>

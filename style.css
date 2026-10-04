@@ -435,6 +435,8 @@ body.home-view .empty{padding-top:calc(14vh + 40px)}
 .settings-entry>morph-icon:last-child{width:20px;height:20px;color:var(--text3)}
 #setTitle{flex:1}
 #setBack{margin-right:8px}
+@font-face{font-family:'Material Symbols Settings';font-style:normal;font-weight:400;font-display:block;src:url('material-symbols-settings.ttf') format('truetype')}
+.settings-icon-button{flex-shrink:0;--md-icon-font:'Material Symbols Settings';--md-sys-color-secondary-container:var(--surface-alt);--md-sys-color-on-secondary-container:var(--text);--md-sys-color-primary:var(--primary);--md-filled-tonal-icon-button-container-width:48px;--md-filled-tonal-icon-button-container-height:48px}
 .bg-image-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .set-section .bg-image-actions .btn-line{width:auto;margin:0;white-space:nowrap}
 #uploadBgBtn{flex:1 1 140px}
