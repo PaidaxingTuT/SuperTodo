@@ -1613,15 +1613,18 @@ function init(){
   buildStars();
   render();
   setTimeout(setupNativeBack,300);
-  if(!DEMO_MODE&&!state.uiStyleNoticeSeen){
+  const showUiStyleNotice=!DEMO_MODE&&!state.uiStyleNoticeSeen;
+  if(showUiStyleNotice){
     dlgShow({
       title:'全新 UI 风格已上线',
-      msg:'本次更新新增 Material 3 界面风格，优化了清单、表单和交互动画。\n\n'+(state.interfaceStyle==='classic'?'已为你保留经典风格。想体验新的 UI，可打开菜单 → 关于 → 界面风格，选择“Material 3”。':'当前使用 Material 3 风格。')+'\n\n不喜欢新风格？在“关于 → 界面风格”选择“经典”即可关闭。切换不会影响清单数据。',
+      msg:'本次更新新增 Material 3 界面风格\n想体验新的 UI，可打开菜单 → 关于 → 界面风格，选择“Material 3”\n不喜欢新风格？在“关于 → 界面风格”选择“经典”即可关闭',
       okText:'我知道了',
-      onOk:()=>{state.uiStyleNoticeSeen=true;save();setTimeout(()=>checkUpdate(true),300);}
+      onOk:()=>{setTimeout(()=>checkUpdate(true),300);}
     });
+    state.uiStyleNoticeSeen=true;
+    save();
   }
-  if(DEMO_MODE||state.uiStyleNoticeSeen)setTimeout(()=>checkUpdate(true),900);
+  if(!showUiStyleNotice)setTimeout(()=>checkUpdate(true),900);
   if(params.get('quadrant')==='1'||params.get('view')==='quadrant'){
     setTimeout(openQuadrantModal,250);
   }
