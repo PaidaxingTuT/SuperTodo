@@ -63,7 +63,7 @@ try{
 }catch(e){}
 </script>
 <link rel="stylesheet" href="air-datepicker.css">
-<link rel="stylesheet" href="style.css?v=material-settings-buttons">
+<link rel="stylesheet" href="style.css?v=md3-color-picker">
 <link rel="stylesheet" id="interfaceStyleSheet" data-md3-href="md3.css?v=settings-groups">
 <script>
 try{
@@ -595,6 +595,21 @@ try{
   </div>
 </div>
 
+<!-- ===== 应用内配色面板 ===== -->
+<div class="modal-mask" id="colorMask" hidden></div>
+<div class="modal color-modal" id="colorModal" role="dialog" aria-modal="true" aria-labelledby="colorTitle" hidden>
+  <div class="modal-head"><h2 id="colorTitle">选择主色</h2><md-filled-tonal-icon-button class="settings-icon-button" id="colorClose" type="button" aria-label="关闭配色面板"><md-icon>close</md-icon></md-filled-tonal-icon-button></div>
+  <div class="modal-body">
+    <div class="color-preview" id="colorPreview" aria-label="所选颜色预览"></div>
+    <label class="fld color-hex"><span class="fld-label">HEX 色值</span><input id="colorHex" type="text" maxlength="7" spellcheck="false" autocomplete="off" aria-label="HEX 色值"></label>
+    <div class="palette" id="colorPresets" aria-label="预设颜色"></div>
+    <label class="color-channel"><span>色相 <output id="colorHueValue"></output></span><input class="color-range" id="colorHue" type="range" min="0" max="360" aria-label="色相"></label>
+    <label class="color-channel"><span>饱和度 <output id="colorSaturationValue"></output></span><input class="color-range" id="colorSaturation" type="range" min="0" max="100" aria-label="饱和度"></label>
+    <label class="color-channel"><span>明度 <output id="colorLightnessValue"></output></span><input class="color-range" id="colorLightness" type="range" min="0" max="100" aria-label="明度"></label>
+  </div>
+  <div class="modal-foot"><div class="spacer"></div><button class="btn-text" id="colorCancel">取消</button><button class="btn-filled" id="colorApply">应用颜色</button></div>
+</div>
+
 <!-- ===== 通用对话框（替代原生 alert/confirm/prompt） ===== -->
 <div class="modal-mask" id="dlgMask" hidden></div>
 <div class="modal modal-sm" id="dlgModal" hidden>
@@ -683,6 +698,6 @@ try{
 <script src="air-datepicker-zh.js"></script>
 <script src="date-picker.js"></script>
 <script src="repeat.js"></script>
-<script src="app.js?v=settings-home-simple"></script>
+<script src="app.js?v=md3-color-picker"></script>
 </body>
 </html>

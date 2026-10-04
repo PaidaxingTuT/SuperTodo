@@ -447,6 +447,26 @@ body.home-view .empty{padding-top:calc(14vh + 40px)}
 .palette{display:flex;flex-wrap:wrap;gap:11px;margin-bottom:11px}
 .pal-sw{width:38px;height:38px;border-radius:50%;border:2px solid transparent;position:relative;box-shadow:var(--shadow)}
 .pal-sw.on{border-color:var(--text);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--text)}
+#colorMask{z-index:110}
+#colorModal{z-index:120;border-radius:28px;background:var(--surface-container-high,var(--surface))}
+.color-modal .modal-head,.color-modal .modal-foot{border:0}
+.color-modal .modal-head h2{font-size:24px;font-weight:400}
+.color-modal .modal-body{padding-top:8px}
+.color-preview{height:100px;border-radius:20px;margin-bottom:20px;transition:background-color .15s ease}
+.color-hex input{font-family:monospace;letter-spacing:1px}
+.color-channel{display:block;margin-top:16px}
+.color-channel>span{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:8px}
+.color-channel output{color:var(--primary-ink);font-variant-numeric:tabular-nums}
+.color-range{width:100%;height:48px;margin:0;appearance:none;background:transparent;touch-action:pan-y;cursor:pointer}
+.color-range::-webkit-slider-runnable-track{height:12px;border-radius:999px;background:var(--color-track)}
+.color-range::-moz-range-track{height:12px;border-radius:999px;background:var(--color-track)}
+.color-range::-webkit-slider-thumb{appearance:none;width:24px;height:24px;margin-top:-6px;border:3px solid var(--surface);border-radius:50%;background:var(--primary);box-shadow:0 1px 4px #0003}
+.color-range::-moz-range-thumb{width:18px;height:18px;border:3px solid var(--surface);border-radius:50%;background:var(--primary);box-shadow:0 1px 4px #0003}
+.color-range:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:12px}
+#colorHue{--color-track:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}
+#colorPresets{gap:10px;margin:20px 4px}
+#colorPresets .pal-sw[aria-pressed="true"]{outline:2px solid var(--text);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.color-preview{transition:none}}
 
 
 .pal-custom{display:flex;align-items:center;gap:11px;margin-top:11px}

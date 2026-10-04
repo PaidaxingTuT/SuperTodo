@@ -29,7 +29,7 @@ let state={
 };
 
 /* 预设主色 */
-const PALETTE=['#0b57d0','#0f6b3c','#b3261e','#7c2d92','#007372','#e8710a','#d01884','#37474f','#1565c0','#2e7d32'];
+const PALETTE=['#0b57d0','#0f6b3c','#b3261e','#7c2d92','#007372','#e8710a','#d01884','#37474f'];
 
 /* ========== 工具 ========== */
 const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
@@ -606,6 +606,7 @@ function syncBack(){ codeBack=true; history.back() }
 function backHome(){ state.view={name:'home'}; state.sortKey='默认'; render() }
 function closeTopLayer(){
   backSuppress=true;
+  if(UiMotion.isOpen($('#colorModal'))){ closeColorPicker(); backSuppress=false; return true; }
   if(UiMotion.isOpen($('#dlgModal'))){ dlgClose(); backSuppress=false; return true; }
   if(UiMotion.isOpen($('#itemPickerModal'))){ closeItemPicker(); backSuppress=false; return true; }
   if(UiMotion.isOpen($('#quadrantModal'))){ closeQuadrantModal(); backSuppress=false; return true; }
@@ -2359,7 +2360,7 @@ function initCustomBgListeners(){
   const customBgBtn = document.getElementById('customBgColorBtn');
   const customBgInput = document.getElementById('customBgColor');
   if (customBgBtn && customBgInput) {
-    customBgBtn.addEventListener('click', () => customBgInput.click());
+    customBgBtn.addEventListener('click', () => openColorPicker('background'));
     customBgInput.addEventListener('input', e => {
       if (!e.target.value) return;
       if (!state.customBg) state.customBg = { type: 'color', color: e.target.value, image: '', opacity: 80 };
@@ -3389,11 +3390,73 @@ function downloadFile(url,name){
 /* ========== 设置：配色 ========== */
 function renderPalette(){
   const el=$('#palette');
-  el.innerHTML=PALETTE.map(c=>`<button class="pal-sw ${state.theme.toLowerCase()===c?'on':''}" style="background:${c}" data-c="${c}"></button>`).join('');
+  el.innerHTML=PALETTE.map(c=>`<button class="pal-sw ${state.theme.toLowerCase()===c?'on':''}" style="background:${c}" data-c="${c}" aria-label="主色 ${c}" aria-pressed="${state.theme.toLowerCase()===c}"></button>`).join('');
   $('#customColor').value=state.theme;
 }
 function setTheme(hex){
   state.theme=hex; applyTheme(hex); save(); renderPalette();
+}
+
+/* 应用内配色面板：确认前只预览，不修改设置。 */
+let colorPickerTarget='theme', colorPickerHex='#0b57d0';
+function hslToHex(h,s,l){
+  s/=100;l/=100;
+  const a=s*Math.min(l,1-l);
+  const channel=n=>{
+    const k=(n+h/30)%12;
+    return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,9-k,1)))).toString(16).padStart(2,'0');
+  };
+  return '#'+channel(0)+channel(8)+channel(4);
+}
+function updateColorPicker(hex, syncSliders=true){
+  colorPickerHex=hex.toLowerCase();
+  $('#colorHex').value=colorPickerHex.toUpperCase();
+  $('#colorHex').setCustomValidity('');
+  $('#colorApply').disabled=false;
+  $('#colorPreview').style.background=colorPickerHex;
+  if(syncSliders){
+    const hsl=hexToHsl(colorPickerHex);
+    ['colorHue','colorSaturation','colorLightness'].forEach((id,i)=>$('#'+id).value=hsl[i]);
+  }
+  const h=+$('#colorHue').value,s=+$('#colorSaturation').value,l=+$('#colorLightness').value;
+  $('#colorHueValue').textContent=h+'°';
+  $('#colorSaturationValue').textContent=s+'%';
+  $('#colorLightnessValue').textContent=l+'%';
+  $('#colorSaturation').style.setProperty('--color-track',`linear-gradient(to right,${hslToCss(h,0,l)},${hslToCss(h,100,l)})`);
+  $('#colorLightness').style.setProperty('--color-track',`linear-gradient(to right,#000,${hslToCss(h,s,50)},#fff)`);
+  $$('#colorPresets .pal-sw').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.c===colorPickerHex)));
+}
+function openColorPicker(target){
+  colorPickerTarget=target;
+  $('#colorTitle').textContent=target==='theme'?'选择主色':'选择背景颜色';
+  $('#colorPresets').innerHTML=PALETTE.map(c=>`<button class="pal-sw" style="background:${c}" data-c="${c}" aria-label="颜色 ${c}"></button>`).join('');
+  updateColorPicker(target==='theme'?state.theme:state.customBg?.color||'#f2f5fb');
+  pushLayer();UiMotion.show($('#colorMask'));UiMotion.show($('#colorModal'));
+}
+function closeColorPicker(){
+  UiMotion.hide($('#colorMask'));UiMotion.hide($('#colorModal'));
+  if(!backSuppress)syncBack();
+  $(colorPickerTarget==='theme'?'#customColorBtn':'#customBgColorBtn').focus();
+}
+function setupColorPicker(){
+  $('#colorClose').addEventListener('click',closeColorPicker);
+  $('#colorCancel').addEventListener('click',closeColorPicker);
+  $('#colorMask').addEventListener('click',closeColorPicker);
+  $('#colorPresets').addEventListener('click',e=>{const sw=e.target.closest('[data-c]');if(sw)updateColorPicker(sw.dataset.c);});
+  ['colorHue','colorSaturation','colorLightness'].forEach(id=>$('#'+id).addEventListener('input',()=>{
+    updateColorPicker(hslToHex(+$('#colorHue').value,+$('#colorSaturation').value,+$('#colorLightness').value),false);
+  }));
+  $('#colorHex').addEventListener('input',e=>{
+    let hex=e.target.value.trim();if(!hex.startsWith('#'))hex='#'+hex;
+    if(/^#[0-9a-f]{6}$/i.test(hex))updateColorPicker(hex);
+    else {e.target.setCustomValidity('请输入六位 HEX 色值，例如 #0B57D0');$('#colorApply').disabled=true;}
+  });
+  $('#colorApply').addEventListener('click',()=>{
+    if(!$('#colorHex').reportValidity())return;
+    const input=$(colorPickerTarget==='theme'?'#customColor':'#customBgColor');
+    input.value=colorPickerHex;input.dispatchEvent(new Event('input',{bubbles:true}));
+    renderCustomBgSettings();closeColorPicker();
+  });
 }
 
 /* ========== 设置：自定义标签 ========== */
@@ -4754,7 +4817,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(ad){ e.stopPropagation(); addTag(ad.dataset.add); return }
   });
   $('#palette').addEventListener('click',e=>{ const sw=e.target.closest('.pal-sw'); if(sw)setTheme(sw.dataset.c); });
-  $('#customColorBtn').addEventListener('click',()=>$('#customColor').click());
+  setupColorPicker();
+  $('#customColorBtn').addEventListener('click',()=>openColorPicker('theme'));
   $('#customColor').addEventListener('input',e=>{ if(e.target.value)setTheme(e.target.value); });
 
   /* 上下文菜单 */
