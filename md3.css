@@ -90,12 +90,12 @@ body.home-view .content{padding-top:72px}
 .drawer-foot{padding:16px 12px;gap:4px}
 .df-btn{border-radius:999px;min-height:48px}
 .df-theme,.df-info,.md-close,.drawer-close{border-radius:50%;width:48px;height:48px}
-.section-card{background:var(--surface-container);padding-bottom:4px;box-shadow:none}
+.section-card{background:var(--surface-container);padding-bottom:0;box-shadow:none}
 .section-head{background:var(--surface-container);min-height:56px;padding:12px 16px;width:100%;text-align:left}
 .section-head:not(:last-child){border:0}
 .sec-count{background:var(--secondary-container);color:var(--on-secondary-container);border-radius:999px;padding:2px 9px}
 .sec-right{font-size:12px;color:var(--text2)}
-.sec-item{margin:2px 6px 6px;border:0;border-radius:16px;background:var(--surface-container-low)}
+.sec-item{margin:4px 6px;border:0;border-radius:16px;background:var(--surface-container-low)}
 [data-has-custom-bg="true"] .sec-item{border:0;background:color-mix(in srgb,var(--surface-container-low) calc(var(--bg-opacity) * 100%),transparent)}
 :root[data-color-mode="dark"][data-has-custom-bg="true"] .sec-item{background:transparent}
 .sec-item .swipe-front,.item-row .swipe-front{padding:calc(var(--item-pad-y,13px) * .65) 10px;gap:4px;min-height:64px}
