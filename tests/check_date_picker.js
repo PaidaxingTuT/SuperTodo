@@ -7,7 +7,7 @@ const picker={
   visible:true,selectDate(value){selected=value;},clear(){selected='';},hide(){closed=true;},
   setViewDate(value){viewDate=value;},setCurrentView(value){view=value;}
 };
-vm.runInNewContext(fs.readFileSync('date-picker.js','utf8')+'\nDuePicker.set("2026-12-31");',{
+vm.runInNewContext(fs.readFileSync('web/js/features/date-picker.js','utf8')+'\nDuePicker.set("2026-12-31");',{
   Date:class extends Date{constructor(){super(2026,11,31,23,30);}},
   AirDatepicker:class{constructor(el,options){config=options;return picker;}},AirDatepickerZh:{},
   matchMedia:()=>({matches:true}),Icons:{html:()=>''},UiMotion:{animate(){}},

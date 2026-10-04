@@ -2,10 +2,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
-const source = fs.readFileSync('widget_dialog.html', 'utf8');
-const androidAsset = fs.readFileSync('android-src/main/assets/widget_dialog.html', 'utf8');
+const source = fs.readFileSync('web/widget_dialog.html', 'utf8').replace(/\r\n/g, '\n');
 
-assert.equal(androidAsset, source, 'Android asset must match widget_dialog.html');
+
+
 assert.match(source, /-webkit-tap-highlight-color:\s*transparent/);
 assert.match(source, /function applyWidgetTheme\(hex\)/);
 assert.match(source, /applyWidgetTheme\(rootData\.theme\)/);

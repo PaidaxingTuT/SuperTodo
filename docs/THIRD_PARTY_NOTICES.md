@@ -3,7 +3,7 @@
 ## Air Datepicker 3.6.0
 
 Local calendar library and Chinese localization. Source: https://github.com/t1m0n/air-datepicker
-MIT license: see `air-datepicker-LICENSE`.
+MIT license: see `web/vendor/air-datepicker/LICENSE`.
 
 GSAP 3.15.0: https://gsap.com/standard-license/
 
@@ -35,7 +35,7 @@ SOFTWARE.
 
 Bundled from the npm package `morphicons@1.7.1` (`morphicons/element`), using esbuild 0.28.2, IIFE format with global `Morphicons`.
 
-Local web-component bundle: `morphicons.min.js`. Source: https://github.com/guillermolg00/morphicons
+Local web-component bundle: `web/vendor/morphicons/morphicons.min.js`. Source: https://github.com/guillermolg00/morphicons
 
 MIT License
 

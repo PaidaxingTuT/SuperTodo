@@ -38,12 +38,8 @@ jobs:
         run: |
           npm init -y
           npm i @capacitor/core @capacitor/cli @capacitor/android @capacitor/app
-          mkdir -p dist
-          cp index.html style.css md3.css app.js repeat.js animations.js icons.js morphicons.min.js gsap.min.js motion.js Sortable.min.js air-datepicker.js air-datepicker.css air-datepicker-zh.js air-datepicker-LICENSE date-picker.js widget_dialog.html CHANGELOG.md app-icon.png app-icon-dark.png app-icon-foreground.png dist/
-          test -s dist/md3.css
-          cp material-buttons.min.js material-symbols-settings.ttf material-buttons-LICENSE material-symbols-LICENSE dist/
-          test -s dist/material-buttons.min.js && test -s dist/material-symbols-settings.ttf
-          sed -i "s/const APP_VERSION='[^']*'/const APP_VERSION='$NEW'/" dist/app.js
+          node scripts/prepare_web.js
+          sed -i "s/const APP_VERSION='[^']*'/const APP_VERSION='$NEW'/" dist/web/js/app.js
           npx cap init "超级清单" com.dax.supertodo --web-dir dist
           node -e "const f='capacitor.config.json', fs=require('fs'), c=JSON.parse(fs.readFileSync(f)); (c.android=c.android||{}).adjustMarginsForEdgeToEdge='force'; fs.writeFileSync(f, JSON.stringify(c, null, 2));"
           npx cap add android
@@ -65,12 +61,12 @@ jobs:
             density=${spec%%:*}; rest=${spec#*:}; size=${rest%%:*}; foreground=${rest##*:}
             day="mipmap-$density"; night="mipmap-night-$density"
             mkdir -p "$day" "$night"
-            convert -background none ../../../../../app-icon.png -resize "${size}x${size}" "$day/ic_launcher.png"
-            convert -background none ../../../../../app-icon.png -resize "${size}x${size}" "$day/ic_launcher_round.png"
-            convert -background none ../../../../../app-icon.png -resize "${foreground}x${foreground}" "$day/ic_launcher_foreground.png"
-            convert -background none ../../../../../app-icon-dark.png -resize "${size}x${size}" "$night/ic_launcher.png"
-            convert -background none ../../../../../app-icon-dark.png -resize "${size}x${size}" "$night/ic_launcher_round.png"
-            convert -background none ../../../../../app-icon-foreground.png -resize "${foreground}x${foreground}" "$night/ic_launcher_foreground.png"
+            convert -background none ../../../../../web/assets/icons/app-icon.png -resize "${size}x${size}" "$day/ic_launcher.png"
+            convert -background none ../../../../../web/assets/icons/app-icon.png -resize "${size}x${size}" "$day/ic_launcher_round.png"
+            convert -background none ../../../../../web/assets/icons/app-icon.png -resize "${foreground}x${foreground}" "$day/ic_launcher_foreground.png"
+            convert -background none ../../../../../web/assets/icons/app-icon-dark.png -resize "${size}x${size}" "$night/ic_launcher.png"
+            convert -background none ../../../../../web/assets/icons/app-icon-dark.png -resize "${size}x${size}" "$night/ic_launcher_round.png"
+            convert -background none ../../../../../web/assets/icons/app-icon-foreground.png -resize "${foreground}x${foreground}" "$night/ic_launcher_foreground.png"
           done
           mkdir -p values values-night
           printf '%s\n' '<resources><color name="ic_launcher_background">#FFFFFF</color><color name="splash_background">#FFFFFF</color></resources>' > values/ic_launcher_background.xml
@@ -78,12 +74,12 @@ jobs:
           for spec in mdpi:288:108 hdpi:432:160 xhdpi:576:216 xxhdpi:864:324 xxxhdpi:1152:432; do
             density=${spec%%:*}; rest=${spec#*:}; canvas=${rest%%:*}; iconsize=${rest##*:}
             mkdir -p "drawable-$density" "drawable-night-$density"
-            convert -background none ../../../../../app-icon.png -resize "${canvas}x${canvas}" "drawable-$density/splash_icon.png"
-            convert -background none ../../../../../app-icon-foreground.png -trim +repage -resize "${iconsize}x${iconsize}" -gravity center -extent "${canvas}x${canvas}" "drawable-night-$density/splash_icon.png"
+            convert -background none ../../../../../web/assets/icons/app-icon.png -resize "${canvas}x${canvas}" "drawable-$density/splash_icon.png"
+            convert -background none ../../../../../web/assets/icons/app-icon-foreground.png -trim +repage -resize "${iconsize}x${iconsize}" -gravity center -extent "${canvas}x${canvas}" "drawable-night-$density/splash_icon.png"
           done
           mkdir -p drawable drawable-night
-          convert -background none ../../../../../app-icon.png -resize "432x432" "drawable/splash_icon.png"
-          convert -background none ../../../../../app-icon-foreground.png -trim +repage -resize "160x160" -gravity center -extent "432x432" "drawable-night/splash_icon.png"
+          convert -background none ../../../../../web/assets/icons/app-icon.png -resize "432x432" "drawable/splash_icon.png"
+          convert -background none ../../../../../web/assets/icons/app-icon-foreground.png -trim +repage -resize "160x160" -gravity center -extent "432x432" "drawable-night/splash_icon.png"
           python3 - <<'PYEOF'
           import re
           path = 'values/styles.xml'

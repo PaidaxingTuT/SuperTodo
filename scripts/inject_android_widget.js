@@ -181,11 +181,14 @@ function injectWidgetManifest() {
   if (!fs.existsSync(assetsDir)) {
     fs.mkdirSync(assetsDir, { recursive: true });
   }
-  ['widget_dialog.html', 'repeat.js', 'gsap.min.js', 'motion.js', 'animations.js','icons.js','morphicons.min.js', 'Sortable.min.js'].forEach(file => {
-    if (fs.existsSync(file)) {
-      fs.copyFileSync(file, path.join(assetsDir, file));
-      console.log(`Copied ${file} to ${assetsDir}`);
-    }
+  ['widget_dialog.html', 'js/features/repeat.js', 'vendor/gsap/gsap.min.js',
+    'vendor/motion/motion.js', 'js/ui/animations.js', 'js/ui/icons.js',
+    'vendor/morphicons/morphicons.min.js', 'vendor/sortable/Sortable.min.js'].forEach(file => {
+    const source = path.join('web', file);
+    const target = path.join(assetsDir, file);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(source, target);
+    console.log(`Copied ${source} to ${target}`);
   });
 }
 

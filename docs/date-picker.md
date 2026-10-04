@@ -6,7 +6,7 @@
 
 本地引入 air-datepicker.js、air-datepicker.css、air-datepicker-zh.js、date-picker.js。
 删除 flatpickr.min.js、flatpickr.min.css、flatpickr-zh.js、flatpickr-LICENSE.md。
-许可保留在 air-datepicker-LICENSE，CI 已同步打包新资源，无需运行时访问 CDN。
+许可保留在 web/vendor/air-datepicker/LICENSE，CI 已同步打包新资源，无需运行时访问 CDN。
 
 Air Datepicker 官方资源：
 - https://cdn.jsdelivr.net/npm/air-datepicker@3.6.0/air-datepicker.js
@@ -18,8 +18,8 @@ Air Datepicker 官方资源：
 ## HTML 与资源加载顺序
 
 ```html
-<link rel="stylesheet" href="air-datepicker.css">
-<link rel="stylesheet" href="style.css?v=air-date-picker">
+<link rel="stylesheet" href="web/vendor/air-datepicker/air-datepicker.css">
+<link rel="stylesheet" href="web/styles/style.css?v=air-date-picker">
 
 <label class="fld-label" for="fDueDisplay">截止日期</label>
 <div class="due-field">
@@ -30,8 +30,8 @@ Air Datepicker 官方资源：
 </div>
 
 <!-- 放在现有 icons.js、animations.js 后，以及 app.js 前 -->
-<script src="air-datepicker.js"></script>
-<script src="air-datepicker-zh.js"></script>
+<script src="web/vendor/air-datepicker/air-datepicker.js"></script>
+<script src="web/vendor/air-datepicker/air-datepicker-zh.js"></script>
 <script src="date-picker.js"></script>
 ```
 

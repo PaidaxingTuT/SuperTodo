@@ -1,9 +1,9 @@
 # 测试与临时产物
 .playwright-cli/
 *.png
-!app-icon.png
-!app-icon-dark.png
-!app-icon-foreground.png
+!web/assets/icons/app-icon.png
+!web/assets/icons/app-icon-dark.png
+!web/assets/icons/app-icon-foreground.png
 !screenshots/*.png
 !android-src/main/res/drawable/*.png
 *.apk
@@ -21,3 +21,8 @@ AGENTS.md
 PROJECT_OVERVIEW.md
 PROJECT_STATUS.md
 PROMPT.md
+
+# 构建与依赖产物
+dist/
+android/
+node_modules/

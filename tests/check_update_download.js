@@ -2,7 +2,7 @@
 const assert = require('assert');
 const fs = require('fs');
 
-const app = fs.readFileSync('app.js', 'utf8');
+const app = fs.readFileSync('web/js/app.js', 'utf8');
 const bridge = fs.readFileSync('android-src/main/java/com/dax/supertodo/widget/WidgetBridge.java', 'utf8');
 
 assert(!app.includes('simulatedPct'), '原生下载不应使用模拟进度');

@@ -56,6 +56,7 @@
     - 支持列表间距、内边距和字号等显示参数自由调整。
     - 提供多种主题配色，并支持自定义颜色。
     - 支持跟随系统或手动切换深浅色模式。
+    - 关于 → 界面风格中可选择经典或 Material 3，已有用户默认保留经典。
   - **本地数据与备份**
     - 数据本地存储，支持完整 JSON 格式导入与导出。
     - 支持通过系统文件管理器、微信、QQ 等应用直接打开备份文件并导入。
@@ -95,23 +96,14 @@ cd SuperTodo
 
 ### 本地运行
 
-**方式一：直接打开**
+在项目根目录启动静态服务器（无需安装前端依赖）：
 
-直接打开项目根目录下的 `index.html` 即可体验基础功能。
-
-**方式二：使用本地静态服务器（推荐）**
-
-```
+```sh
 python -m http.server 8000
 ```
 
-然后访问：
-
-```
-http://localhost:8000
-```
-
-使用本地 HTTP 服务可以获得更稳定的浏览器运行环境。
+访问 `http://localhost:8000/`。演示模式使用 `http://localhost:8000/?demo=1`，与个人清单使用独立存储。
+页面包含本地 ES 模块组件，请通过 HTTP 服务运行。
 
 ### Android
 
@@ -121,22 +113,52 @@ http://localhost:8000
 
 ## 项目结构
 
-```
+```text
 SuperTodo/
-├── .github/workflows/     # GitHub Actions 自动化构建与发布
-├── android-src/           # Android 原生能力、桌面小组件及相关资源
-├── scripts/               # CI 自动化构建脚本
-├── screenshots/           # 项目截图与展示素材
-├── app.js                 # 核心业务逻辑、状态管理与数据持久化
-├── index.html             # 页面结构与组件模板
-├── widget_dialog.html     # 桌面悬浮窗界面
-├── style.css              # 响应式布局、动画与主题样式
-├── icons.js / morphicons.min.js # 统一图标目录与 Morphicons 变形引擎
-├── animations.js          # GSAP 与 Motion 交互动效
-├── Sortable.min.js        # 拖拽排序依赖
-├── CHANGELOG.md           # 版本更新记录
-└── README.md              # 项目说明文档
+├── index.html                 # Web 启动页与界面模板
+├── web/                       # 前端运行资源（可整体打包）
+│   ├── js/
+│   │   ├── app.js             # 清单业务、设置、状态与本地存储
+│   │   ├── features/          # 功能模块：重复待办、日期选择器
+│   │   └── ui/                # 界面交互：图标适配、过渡动画
+│   ├── styles/                # 经典样式与可选 Material 3 样式
+│   ├── vendor/                # 第三方组件，按库分类并保留许可
+│   │   ├── air-datepicker/    # 日期组件与中文语言包
+│   │   ├── material/          # Material Web 按钮、图标字体
+│   │   ├── morphicons/        # 变形图标
+│   │   ├── gsap/              # GSAP 动画库
+│   │   ├── motion/            # Motion 动画库
+│   │   └── sortable/          # 拖拽排序
+│   ├── assets/icons/          # 日间、夜间图标与透明前景
+│   └── widget_dialog.html     # Android 悬浮窗的唯一 Web 源文件
+├── android-src/main/          # 原生 Android Java、小部件与资源
+├── scripts/                   # Web 资源准备、Android 配置注入
+├── tests/                     # 功能、交互与资源路径检查
+├── docs/                      # MD3、日期组件文档和第三方许可说明
+├── screenshots/               # README 展示图片
+├── .github/workflows/         # APK 构建与 GitHub Release 发布
+├── debug.keystore             # 固定 APK 签名（保持原签名兼容）
+├── CHANGELOG.md               # 版本日志，也是 Release 正文来源
+├── LICENSE
+└── README.md
 ```
+
+本项目没有独立后端服务。清单与设置保存在本地，AI 请求由客户端调用用户配置的接口；`android-src/` 是原生端代码。
+
+### 检查与打包
+
+以下命令在仓库根目录运行：
+
+```sh
+node scripts/check.js           # 运行 tests/ 内全部检查
+node scripts/prepare_web.js     # 仅准备 Web 资源到 dist/，不构建 APK
+```
+
+`dist/`、生成的 `android/` 和 `node_modules/` 不入库。修改自有功能代码放在 `web/js/`，样式放在 `web/styles/`，第三方库放在 `web/vendor/` 对应子目录，开发文档放在 `docs/`。
+
+APK 构建和 Release 全部由 `.github/workflows/deploy.yml` 执行，本地无需 Android SDK、Java 或 Gradle。流水线保留 Web 目录结构，并从 `web/` 同步悬浮窗及依赖到原生 assets，避免维护重复副本。
+发布前同步 `web/js/app.js` 的 `APP_VERSION`、`CHANGELOG.md` 顶部版本和 `index.html` 的关于版本，再推送对应的轻量 `v*` 标签。固定签名文件与签名校验保持不变。
+
 
 ------
 
@@ -150,4 +172,4 @@ SuperTodo/
 
 ## 开源许可
 
-本项目基于 [MIT License](https://chatgpt.com/c/LICENSE) 开源。
+本项目基于 [MIT License](LICENSE) 开源。

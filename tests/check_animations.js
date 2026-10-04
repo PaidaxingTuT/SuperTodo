@@ -6,14 +6,14 @@ let motionCalls=0,headerResize;
 const motionFrames=new Map();
 const motionControls=new Map(),motionEnds=new Map();
 function node(){
-  return {hidden:false,dataset:{},matches:()=>false,style:{setProperty(key,value){this[key]=value;},removeProperty(key){delete this[key];}},querySelector(){return null;}};
+  return {hidden:false,dataset:{},matches:()=>false,style:{setProperty(key,value){this[key]=value;},removeProperty(key){delete this[key];}},querySelector(){return null;},animate(){}};
 }
 const context=vm.createContext({
   matchMedia:()=>reduced,
   document:{documentElement:{classList:{add(){}}},addEventListener:(type,fn)=>{clicks[type]=fn;},querySelectorAll:()=>[]},
   MutationObserver:class{observe(){}},
   ResizeObserver:class{constructor(callback){headerResize=callback;} observe(){} disconnect(){}},
-  getComputedStyle:()=>({transform:'none',opacity:'1'}),
+  getComputedStyle:()=>({transform:'none',opacity:'1',getPropertyValue:()=>''}),
   Motion:{animate:(el,frames)=>{
     motionCalls++;motionFrames.set(el,frames);
     const control={stop(){},then(callback){motionEnds.set(control,callback);return {catch(){}};}};
@@ -23,11 +23,12 @@ const context=vm.createContext({
   gsap:{to:(el,options)=>tweens.set(el,options),fromTo:(el,from,options)=>tweens.set(el,options),
     getProperty:()=>45,killTweensOf:el=>tweens.delete(el),set:(el,properties)=>Object.assign(el.style,properties)}
 });
-vm.runInContext(fs.readFileSync('animations.js','utf8')+'\nglobalThis.ui=UiMotion;',context);
+vm.runInContext(fs.readFileSync('web/js/ui/animations.js','utf8')+'\nglobalThis.ui=UiMotion;',context);
 const ui=context.ui;
 const checkbox=node(),checkboxBox=node();
 checkbox.matches=selector=>selector==='.subtask-check input';
 checkbox.parentElement=checkboxBox;
+checkbox.closest=()=>checkboxBox;
 ui.check(checkbox,true);
 assert.ok(motionFrames.has(checkboxBox),'checkbox and tick must animate together in the shared wrapper');
 assert.equal(motionFrames.has(checkbox),false,'the input must not scale separately from its tick');
@@ -115,7 +116,7 @@ assert.equal(header.parentElement.style['--subtask-anchor'],'20px','checklist ex
 headerHeight=60;
 headerResize([{target:header}]);
 assert.equal(header.parentElement.style['--subtask-anchor'],'30px','wrapped titles must keep their own center');
-const themeSource=fs.readFileSync('app.js','utf8').match(/function toggleColorMode\(\)\{[\s\S]*?\n\}/)[0];
+const themeSource=fs.readFileSync('web/js/app.js','utf8').match(/function toggleColorMode\(\)\{[\s\S]*?\n\}/)[0];
 for(const [mode,dark,expected] of [['dark',true,'light'],['light',false,'dark'],['system',true,'light'],['system',false,'dark']]){
   const theme={state:{colorMode:mode},isDarkMode:()=>dark,save(){},applyColorMode(){}};
   vm.runInNewContext(themeSource+'\ntoggleColorMode();',theme);
@@ -124,7 +125,7 @@ for(const [mode,dark,expected] of [['dark',true,'light'],['light',false,'dark'],
 const themeClasses=new Set();
 let finishTheme,flushed=false;
 const themeRoot={dataset:{},classList:{add:name=>themeClasses.add(name),remove:name=>themeClasses.delete(name)},get offsetHeight(){flushed=true;return 100;}};
-vm.runInNewContext(fs.readFileSync('app.js','utf8').match(/function applyColorMode\(\)\{[\s\S]*?\n\}/)[0]+'\napplyColorMode();',{
+vm.runInNewContext(fs.readFileSync('web/js/app.js','utf8').match(/function applyColorMode\(\)\{[\s\S]*?\n\}/)[0]+'\napplyColorMode();',{
   state:{theme:'#0b57d0',colorMode:'dark'},isDarkMode:()=>true,document:{documentElement:themeRoot},$:()=>null,
   applyTheme(){assert.ok(themeClasses.has('theme-changing'),'theme colors must change with CSS transitions disabled');},
   renderColorModeSeg(){},requestAnimationFrame:callback=>{finishTheme=callback;}
@@ -133,7 +134,7 @@ assert.ok(flushed,'the new foreground and background must be applied before rest
 finishTheme();
 assert.equal(themeClasses.size,0);
 let dragStart;
-const swipeInit=fs.readFileSync('app.js','utf8').match(/function initSwipeGestures\(\)\{[\s\S]*?(?=\nlet sortable)/)[0];
+const swipeInit=fs.readFileSync('web/js/app.js','utf8').match(/function initSwipeGestures\(\)\{[\s\S]*?(?=\nlet sortable)/)[0];
 vm.runInNewContext(swipeInit+'\ninitSwipeGestures();',{
   $:()=>({addEventListener(type,callback){if(type==='dragstart')dragStart=callback;}}),
   window:{addEventListener(){}},document:{addEventListener(){}},
