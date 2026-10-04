@@ -9,6 +9,8 @@
 *.apk
 *.bak
 preview_*.html
+tests/
+scripts/check.js
 
 # 系统与编辑器
 .DS_Store
@@ -21,6 +23,7 @@ AGENTS.md
 PROJECT_OVERVIEW.md
 PROJECT_STATUS.md
 PROMPT.md
+docs/
 
 # 构建与依赖产物
 dist/

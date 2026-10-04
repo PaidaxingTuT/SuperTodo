@@ -133,8 +133,6 @@ SuperTodo/
 │   └── widget_dialog.html     # Android 悬浮窗的唯一 Web 源文件
 ├── android-src/main/          # 原生 Android Java、小部件与资源
 ├── scripts/                   # Web 资源准备、Android 配置注入
-├── tests/                     # 功能、交互与资源路径检查
-├── docs/                      # MD3、日期组件文档和第三方许可说明
 ├── screenshots/               # README 展示图片
 ├── .github/workflows/         # APK 构建与 GitHub Release 发布
 ├── debug.keystore             # 固定 APK 签名（保持原签名兼容）
