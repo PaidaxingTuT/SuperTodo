@@ -97,6 +97,7 @@ body.home-view .content{padding-top:72px}
 .sec-right{font-size:12px;color:var(--text2)}
 .sec-item{margin:2px 6px 6px;border:0;border-radius:16px;background:var(--surface-container-low)}
 [data-has-custom-bg="true"] .sec-item{border:0;background:color-mix(in srgb,var(--surface-container-low) calc(var(--bg-opacity) * 100%),transparent)}
+:root[data-color-mode="dark"][data-has-custom-bg="true"] .sec-item{background:transparent}
 .sec-item .swipe-front,.item-row .swipe-front{padding:calc(var(--item-pad-y,13px) * .65) 10px;gap:4px;min-height:64px}
 .item-row{background:var(--surface-container-low);box-shadow:none}
 .card-check{border-radius:6px;border-color:var(--outline)}
@@ -216,6 +217,7 @@ button.card-check[data-done]:active{background:var(--primary-faint)}
   .tag-chip .x:hover{background:var(--surface-container-highest);color:var(--danger)}
   .section-head:hover{background:var(--surface-container-high)}
   .sec-item .swipe-front:hover,.item-row .swipe-front:hover{background:color-mix(in srgb,var(--primary) 5%,var(--surface-container-low))}
+  :root[data-color-mode="dark"][data-has-custom-bg="true"] .sec-item .swipe-front:hover{background:color-mix(in srgb,var(--primary) 8%,transparent)}
   .fab:hover{box-shadow:0 8px 22px rgb(0 0 0 / .18)}
   .btn-filled:hover{filter:brightness(.94)}
 }
