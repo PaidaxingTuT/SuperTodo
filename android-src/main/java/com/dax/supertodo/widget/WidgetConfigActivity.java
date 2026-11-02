@@ -4,11 +4,15 @@ import android.app.Activity;
 import android.appwidget.AppWidgetManager;
 import android.content.Intent;
 import android.content.res.ColorStateList;
+import android.content.res.Configuration;
+import android.graphics.Typeface;
+import android.graphics.drawable.StateListDrawable;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -16,6 +20,7 @@ import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import com.dax.supertodo.R;
 
@@ -29,6 +34,10 @@ public class WidgetConfigActivity extends Activity {
 
     private int appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
     private int themeColor;
+    private boolean isMd3;
+    private int md3Surface, md3Field, md3Text, md3Supporting, md3Outline;
+    private int md3Primary, md3Secondary, md3OnSecondary;
+    private Switch hideDoneSwitch;
 
     // 分段胶囊选择器：展示维度
     private TextView btnPillScene, btnPillTime, btnPillAll;
@@ -94,7 +103,9 @@ public class WidgetConfigActivity extends Activity {
 
         themeColor = WidgetDataManager.getWidgetThemeColor(this);
 
-        setContentView(R.layout.activity_widget_config);
+        isMd3 = WidgetDataManager.isMd3Style(this);
+        if (isMd3) initMd3Colors();
+        setContentView(isMd3 ? R.layout.activity_widget_config_md3 : R.layout.activity_widget_config);
 
         initViews();
         loadSavedConfig();
@@ -124,21 +135,64 @@ public class WidgetConfigActivity extends Activity {
         btnCancel = findViewById(R.id.btn_config_cancel);
         btnSave = findViewById(R.id.btn_config_save);
 
-        boolean isMd3 = WidgetDataManager.isMd3Style(this);
-
         if (isMd3) {
-            configCard.setBackgroundResource(R.drawable.config_card_bg_md3);
-            if (layoutCategoryBox != null) layoutCategoryBox.setBackgroundResource(R.drawable.config_spinner_bg_md3);
-            if (spTypeCategory != null) spTypeCategory.setBackgroundResource(R.drawable.config_spinner_bg_md3);
-            if (spSortKey != null) spSortKey.setBackgroundResource(R.drawable.config_spinner_bg_md3);
-            if (layoutFilterRow != null) layoutFilterRow.setBackgroundResource(R.drawable.config_spinner_bg_md3);
-
-            GradientDrawable cancelBg = new GradientDrawable();
-            cancelBg.setShape(GradientDrawable.RECTANGLE);
-            cancelBg.setColor(Color.TRANSPARENT);
-            cancelBg.setStroke((int)(getResources().getDisplayMetrics().density * 1f), getColor(R.color.widget_stroke_md3));
-            cancelBg.setCornerRadius(getResources().getDisplayMetrics().density * 22f);
-            btnCancel.setBackground(cancelBg);
+            applyMd3Text(configCard);
+            configCard.setBackground(md3Shape(md3Surface, 28));
+            btnClose.setColorFilter(md3Supporting);
+            btnClose.setBackground(md3Ripple(Color.TRANSPARENT, 24));
+            btnCancel.setBackground(md3Ripple(Color.TRANSPARENT, 24));
+            btnCancel.setTextColor(md3Text);
+            btnCancel.setBackgroundTintList(null);
+            btnSave.setBackgroundTintList(null);
+            rootBackdrop.post(() -> {
+                ViewGroup.LayoutParams params = configCard.getLayoutParams();
+                params.width = Math.min(dp(560), rootBackdrop.getWidth() - rootBackdrop.getPaddingLeft() - rootBackdrop.getPaddingRight());
+                configCard.setLayoutParams(params);
+            });
+            btnSave.setTextColor(contrastText(md3Primary));
+            for (Spinner spinner : new Spinner[] {spCategory, spTypeCategory, spSortKey}) {
+                View field = (View) spinner.getParent();
+                field.setBackground(md3Shape(md3Field, 4));
+                // 填充式输入框底线，保持与应用内 MD3 输入样式一致。
+                View line = new View(this);
+                line.setBackgroundColor(md3Outline);
+                RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(-1, dp(1));
+                params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+                ((RelativeLayout) field).addView(line, params);
+                spinner.setPopupBackgroundDrawable(md3Shape(md3Field, 4));
+                spinner.setContentDescription(spinner == spCategory ? "具体分类" :
+                    spinner == spTypeCategory ? "标签分类" : "排序方式");
+            }
+            for (int id : new int[] {R.id.config_group_segments, R.id.config_sort_segments}) {
+                View group = findViewById(id);
+                GradientDrawable outline = md3Shape(Color.TRANSPARENT, 24);
+                outline.setStroke(dp(1), md3Outline);
+                group.setBackground(outline);
+                group.setClipToOutline(true);
+            }
+            layoutFilterRow.setBackground(md3Ripple(md3Field, 16));
+            hideDoneSwitch = findViewById(R.id.config_hide_done_switch);
+            StateListDrawable track = new StateListDrawable();
+            GradientDrawable checkedTrack = md3Shape(md3Primary, 16);
+            checkedTrack.setSize(dp(52), dp(32));
+            GradientDrawable uncheckedTrack = md3Shape(md3Field, 16);
+            uncheckedTrack.setSize(dp(52), dp(32));
+            uncheckedTrack.setStroke(dp(2), md3Outline);
+            track.addState(new int[] {android.R.attr.state_checked}, checkedTrack);
+            track.addState(new int[] {}, uncheckedTrack);
+            hideDoneSwitch.setTrackTintList(null);
+            hideDoneSwitch.setThumbTintList(null);
+            hideDoneSwitch.setTrackDrawable(track);
+            StateListDrawable thumb = new StateListDrawable();
+            GradientDrawable checkedThumb = md3Shape(contrastText(md3Primary), 12);
+            checkedThumb.setSize(dp(24), dp(24));
+            GradientDrawable uncheckedThumb = md3Shape(md3Outline, 12);
+            uncheckedThumb.setSize(dp(24), dp(24));
+            thumb.addState(new int[] {android.R.attr.state_checked}, checkedThumb);
+            thumb.addState(new int[] {}, uncheckedThumb);
+            hideDoneSwitch.setThumbDrawable(thumb);
+            hideDoneSwitch.setBackground(md3Ripple(Color.TRANSPARENT, 24));
+            hideDoneSwitch.setOnCheckedChangeListener((button, checked) -> cbHideDone.setChecked(checked));
         } else {
             configCard.setBackgroundResource(R.drawable.config_card_bg);
         }
@@ -146,7 +200,7 @@ public class WidgetConfigActivity extends Activity {
         // 主题颜色同步：保存按钮波纹背景与复选框强调色
         GradientDrawable saveBg = new GradientDrawable();
         saveBg.setShape(GradientDrawable.RECTANGLE);
-        saveBg.setColor(themeColor);
+        saveBg.setColor(isMd3 ? md3Primary : themeColor);
         saveBg.setCornerRadius(getResources().getDisplayMetrics().density * (isMd3 ? 22f : 12f));
         RippleDrawable ripple = new RippleDrawable(
             ColorStateList.valueOf(Color.parseColor("#33FFFFFF")),
@@ -157,15 +211,15 @@ public class WidgetConfigActivity extends Activity {
         cbHideDone.setButtonTintList(ColorStateList.valueOf(themeColor));
 
         // 1. 下拉框适配器（使用 SuperTodo 专属字体与内边距布局）
-        ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(this, R.layout.config_spinner_item, SORT_LABELS);
+        ArrayAdapter<String> sortAdapter = configAdapter(java.util.Arrays.asList(SORT_LABELS), spSortKey);
         sortAdapter.setDropDownViewResource(R.layout.config_spinner_dropdown_item);
         spSortKey.setAdapter(sortAdapter);
 
-        categoryAdapter = new ArrayAdapter<>(this, R.layout.config_spinner_item, currentCategoryList);
+        categoryAdapter = configAdapter(currentCategoryList, spCategory);
         categoryAdapter.setDropDownViewResource(R.layout.config_spinner_dropdown_item);
         spCategory.setAdapter(categoryAdapter);
 
-        typeCategoryAdapter = new ArrayAdapter<>(this, R.layout.config_spinner_item, typeCategoryList);
+        typeCategoryAdapter = configAdapter(typeCategoryList, spTypeCategory);
         typeCategoryAdapter.setDropDownViewResource(R.layout.config_spinner_dropdown_item);
         spTypeCategory.setAdapter(typeCategoryAdapter);
 
@@ -210,7 +264,8 @@ public class WidgetConfigActivity extends Activity {
         layoutFilterRow.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                cbHideDone.setChecked(!cbHideDone.isChecked());
+                if (isMd3) hideDoneSwitch.toggle();
+                else cbHideDone.setChecked(!cbHideDone.isChecked());
             }
         });
 
@@ -251,19 +306,143 @@ public class WidgetConfigActivity extends Activity {
         });
     }
 
+    private int dp(float value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    // 与 web/styles/md3.css 使用相同的 HSL 色彩角色。
+    private int tonal(float saturation, float lightness) {
+        float[] hsv = new float[3];
+        Color.colorToHSV(themeColor, hsv);
+        float value = lightness + saturation * Math.min(lightness, 1 - lightness);
+        hsv[1] = value == 0 ? 0 : 2 * (1 - lightness / value);
+        hsv[2] = value;
+        return Color.HSVToColor(hsv);
+    }
+
+    private void initMd3Colors() {
+        boolean dark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
+            == Configuration.UI_MODE_NIGHT_YES;
+        md3Surface = tonal(dark ? .10f : .18f, dark ? .17f : .92f);
+        md3Field = tonal(dark ? .10f : .16f, dark ? .21f : .90f);
+        md3Text = tonal(dark ? .18f : .12f, dark ? .92f : .12f);
+        md3Supporting = tonal(dark ? .12f : .10f, dark ? .79f : .34f);
+        md3Outline = tonal(dark ? .08f : .09f, dark ? .60f : .48f);
+        md3Secondary = tonal(dark ? .18f : .24f, dark ? .27f : .88f);
+        md3OnSecondary = tonal(dark ? .28f : .25f, dark ? .90f : .26f);
+        float max = Math.max(Color.red(themeColor), Math.max(Color.green(themeColor), Color.blue(themeColor))) / 255f;
+        float min = Math.min(Color.red(themeColor), Math.min(Color.green(themeColor), Color.blue(themeColor))) / 255f;
+        float saturation = max == min ? 0 : (max - min) / (1 - Math.abs(max + min - 1));
+        md3Primary = tonal(Math.min(.68f, saturation), dark ? .80f : .28f);
+    }
+
+    private int contrastText(int color) {
+        double luminance = 0;
+        double[] weights = {.2126, .7152, .0722};
+        int[] channels = {Color.red(color), Color.green(color), Color.blue(color)};
+        for (int i = 0; i < channels.length; i++) {
+            double value = channels[i] / 255.0;
+            luminance += weights[i] * (value <= .04045 ? value / 12.92 : Math.pow((value + .055) / 1.055, 2.4));
+        }
+        return luminance > .179 ? Color.BLACK : Color.WHITE;
+    }
+
+    private GradientDrawable md3Shape(int color, float radius) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setColor(color);
+        shape.setCornerRadius(dp(radius));
+        return shape;
+    }
+
+    private RippleDrawable md3Ripple(int color, float radius) {
+        return new RippleDrawable(ColorStateList.valueOf((md3Text & 0x00FFFFFF) | 0x1F000000),
+            md3Shape(color, radius), md3Shape(Color.WHITE, radius));
+    }
+
+    private void applyMd3Text(View view) {
+        if (view instanceof TextView) {
+            TextView text = (TextView) view;
+            text.setTextColor("section".equals(view.getTag()) || "supporting".equals(view.getTag()) ?
+                md3Supporting : md3Text);
+            text.setTypeface(Typeface.create("section".equals(view.getTag()) ?
+                "sans-serif-medium" : "sans-serif", Typeface.NORMAL));
+        }
+        if (view instanceof ImageView) ((ImageView) view).setColorFilter(md3Supporting);
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) applyMd3Text(group.getChildAt(i));
+        }
+    }
+
+    private ArrayAdapter<String> configAdapter(List<String> items, Spinner spinner) {
+        return new ArrayAdapter<String>(this, R.layout.config_spinner_item, items) {
+            private View style(View view, int position, boolean dropdown) {
+                if (!isMd3) return view;
+                TextView text = (TextView) view;
+                boolean selected = dropdown && position == spinner.getSelectedItemPosition();
+                text.setText((selected ? "✓  " : "") + getItem(position));
+                text.setTextColor(selected ? md3OnSecondary : md3Text);
+                text.setTextSize(16);
+                text.setMinHeight(dp(56));
+                text.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                text.setPadding(dp(16), dp(12), dp(16), dp(12));
+                text.setBackground(dropdown ? md3Ripple(selected ? md3Secondary : md3Field, 0) : null);
+                text.setSelected(selected);
+                return text;
+            }
+
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                return style(super.getView(position, convertView, parent), position, false);
+            }
+
+            @Override
+            public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                return style(super.getDropDownView(position, convertView, parent), position, true);
+            }
+        };
+    }
+
     private void updatePill(TextView view, boolean selected) {
-        boolean isMd3 = WidgetDataManager.isMd3Style(this);
+        if (isMd3) {
+            ViewGroup group = (ViewGroup) view.getParent();
+            int index = group.indexOfChild(view);
+            boolean rtl = group.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+            float start = index == 0 ? dp(24) : 0;
+            float end = index == group.getChildCount() - 1 ? dp(24) : 0;
+            float left = rtl ? end : start;
+            float right = rtl ? start : end;
+            GradientDrawable background = md3Shape(selected ? md3Secondary : Color.TRANSPARENT, 0);
+            background.setCornerRadii(new float[] {left, left, right, right, right, right, left, left});
+            background.setStroke(dp(1), md3Outline);
+            view.setBackground(new RippleDrawable(ColorStateList.valueOf((md3Text & 0x00FFFFFF) | 0x1F000000),
+                background, null));
+            view.setTextColor(selected ? md3OnSecondary : md3Supporting);
+            view.setSelected(selected);
+            view.setFocusable(true);
+            String label = view.getText().toString().replace("✓  ", "");
+            view.setText((selected ? "✓  " : "") + label);
+            view.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+                @Override
+                public void onInitializeAccessibilityNodeInfo(View host, android.view.accessibility.AccessibilityNodeInfo info) {
+                    super.onInitializeAccessibilityNodeInfo(host, info);
+                    info.setCheckable(true);
+                    info.setChecked(host.isSelected());
+                }
+            });
+            return;
+        }
         int unselectedColor = getColor(R.color.config_pill_text_unselected);
         if (selected) {
             GradientDrawable pillBg = new GradientDrawable();
             pillBg.setShape(GradientDrawable.RECTANGLE);
             pillBg.setColor(themeColor);
-            float radius = getResources().getDisplayMetrics().density * (isMd3 ? 20f : 10f);
+            float radius = getResources().getDisplayMetrics().density * 10f;
             pillBg.setCornerRadius(radius);
             view.setBackground(pillBg);
             view.setTextColor(Color.WHITE);
         } else {
-            view.setBackgroundResource(isMd3 ? R.drawable.config_pill_unselected_md3 : R.drawable.config_pill_unselected);
+            view.setBackgroundResource(R.drawable.config_pill_unselected);
             view.setTextColor(unselectedColor);
         }
     }
@@ -357,6 +536,7 @@ public class WidgetConfigActivity extends Activity {
         spSortKey.setSelection(sortIdx);
 
         cbHideDone.setChecked(savedHideDone);
+        if (isMd3) hideDoneSwitch.setChecked(savedHideDone);
     }
 
     private void saveAndApply() {
