@@ -30,4 +30,15 @@
     <color name="qw_pill_bg">#252A36</color>
     <color name="qw_pill_stroke">#3A4150</color>
     <color name="qw_pill_text">#BAC2CF</color>
+
+    <!-- MD3 规范桌面小部件专属夜间配色 -->
+    <color name="widget_bg_md3">#1A1D24</color>
+    <color name="widget_surface_container_md3">#222732</color>
+    <color name="widget_surface_container_high_md3">#2A303D</color>
+    <color name="widget_badge_bg_md3">#2B3547</color>
+    <color name="widget_stroke_md3">#343B4A</color>
+    <color name="config_card_bg_md3">#1E232C</color>
+    <color name="config_input_bg_md3">#262C38</color>
+    <color name="config_pill_unselected_md3">#282F3D</color>
+    <color name="widget_checkbox_outline_md3">#8E919A</color>
 </resources>

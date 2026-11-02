@@ -76,6 +76,10 @@ public class TodoWidgetService extends RemoteViewsService {
             try {
                 TodoItem item = items.get(position);
                 RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.widget_item);
+                boolean isMd3 = WidgetDataManager.isMd3Style(context);
+
+                rv.setInt(R.id.item_root, "setBackgroundResource", isMd3 ? R.drawable.widget_item_bg_md3 : R.drawable.widget_item_bg);
+                rv.setInt(R.id.item_tag, "setBackgroundResource", isMd3 ? R.drawable.widget_tag_bg_md3 : R.drawable.widget_tag_bg);
 
                 String title = item.title != null ? item.title : "";
 
@@ -86,12 +90,12 @@ public class TodoWidgetService extends RemoteViewsService {
                     rv.setViewVisibility(R.id.item_title, View.GONE);
                     rv.setViewVisibility(R.id.item_title_done, View.VISIBLE);
                     rv.setTextViewText(R.id.item_title_done, ss);
-                    rv.setImageViewBitmap(R.id.item_checkbox, WidgetDataManager.getThemedCheckedIcon(themeColor));
+                    rv.setImageViewBitmap(R.id.item_checkbox, isMd3 ? WidgetDataManager.getThemedCheckedIcon(themeColor, true) : WidgetDataManager.getThemedCheckedIcon(themeColor));
                 } else {
                     rv.setViewVisibility(R.id.item_title_done, View.GONE);
                     rv.setViewVisibility(R.id.item_title, View.VISIBLE);
                     rv.setTextViewText(R.id.item_title, title);
-                    rv.setImageViewResource(R.id.item_checkbox, R.drawable.widget_ic_check_box_unchecked);
+                    rv.setImageViewResource(R.id.item_checkbox, isMd3 ? R.drawable.widget_ic_check_box_unchecked_md3 : R.drawable.widget_ic_check_box_unchecked);
                 }
 
                 // 标签（优先显示当前场景或时间）

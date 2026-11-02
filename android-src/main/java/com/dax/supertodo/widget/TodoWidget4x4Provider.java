@@ -26,7 +26,23 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
 
     public static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_4x4);
+        boolean isMd3 = WidgetDataManager.isMd3Style(context);
         int themeColor = WidgetDataManager.getWidgetThemeColor(context);
+
+        if (isMd3) {
+            views.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_bg_md3);
+            views.setInt(R.id.widget_filter_badge, "setBackgroundResource", R.drawable.widget_tag_bg_md3);
+            views.setInt(R.id.btn_widget_refresh, "setBackgroundResource", R.drawable.widget_btn_bg_md3);
+            views.setInt(R.id.btn_widget_add, "setBackgroundResource", R.drawable.widget_btn_bg_md3);
+            views.setInt(R.id.btn_widget_settings, "setBackgroundResource", R.drawable.widget_btn_bg_md3);
+        } else {
+            views.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_bg);
+            views.setInt(R.id.widget_filter_badge, "setBackgroundResource", R.drawable.widget_tag_bg);
+            views.setInt(R.id.btn_widget_refresh, "setBackgroundResource", R.drawable.widget_btn_bg);
+            views.setInt(R.id.btn_widget_add, "setBackgroundResource", R.drawable.widget_btn_bg);
+            views.setInt(R.id.btn_widget_settings, "setBackgroundResource", R.drawable.widget_btn_bg);
+        }
+
         views.setTextColor(R.id.widget_filter_badge, themeColor);
         views.setTextColor(R.id.compact_count_text, themeColor);
 
@@ -147,6 +163,8 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
             for (int i = 0; i < 5; i++) {
                 if (i < count) {
                     views.setViewVisibility(slotIds[i], View.VISIBLE);
+                    views.setInt(slotIds[i], "setBackgroundResource", isMd3 ? R.drawable.widget_item_bg_md3 : R.drawable.widget_item_bg);
+                    views.setInt(tagIds[i], "setBackgroundResource", isMd3 ? R.drawable.widget_tag_bg_md3 : R.drawable.widget_tag_bg);
                     TodoItem it = items.get(i);
                     String title = it.title != null ? it.title : "";
 
@@ -156,12 +174,12 @@ public class TodoWidget4x4Provider extends AppWidgetProvider {
                         views.setViewVisibility(titleIds[i], View.GONE);
                         views.setViewVisibility(titleDoneIds[i], View.VISIBLE);
                         views.setTextViewText(titleDoneIds[i], ss);
-                        views.setImageViewBitmap(checkIds[i], WidgetDataManager.getThemedCheckedIcon(themeColor));
+                        views.setImageViewBitmap(checkIds[i], isMd3 ? WidgetDataManager.getThemedCheckedIcon(themeColor, true) : WidgetDataManager.getThemedCheckedIcon(themeColor));
                     } else {
                         views.setViewVisibility(titleDoneIds[i], View.GONE);
                         views.setViewVisibility(titleIds[i], View.VISIBLE);
                         views.setTextViewText(titleIds[i], title);
-                        views.setImageViewResource(checkIds[i], R.drawable.widget_ic_check_box_unchecked);
+                        views.setImageViewResource(checkIds[i], isMd3 ? R.drawable.widget_ic_check_box_unchecked_md3 : R.drawable.widget_ic_check_box_unchecked);
                     }
 
                     if (i == 0) {

@@ -41,6 +41,54 @@
       }
     }
 
+    :root[data-interface-style="md3"] {
+      --card-bg: #F7F9FC;
+      --card-stroke: #E0E3EB;
+      --text-main: #191C20;
+      --text-sec: #43474E;
+      --item-bg: #EDF1F7;
+      --item-hover: #E3E8F0;
+      --btn-bg: #E3E8F0;
+      --line: #E0E3EB;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root[data-interface-style="md3"] {
+        --card-bg: #1D212A;
+        --card-stroke: #333844;
+        --text-main: #E1E2E8;
+        --text-sec: #8D9199;
+        --item-bg: #252A35;
+        --item-hover: #2D3340;
+        --btn-bg: #2D3340;
+        --line: #333844;
+      }
+    }
+
+    [data-interface-style="md3"] .floating-card {
+      border-radius: 28px;
+      border-color: var(--card-stroke);
+    }
+    [data-interface-style="md3"] .task-row,
+    [data-interface-style="md3"] .settings-row {
+      border-radius: 16px;
+    }
+    [data-interface-style="md3"] .action-pill {
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    [data-interface-style="md3"] .text-input {
+      border-radius: 16px;
+    }
+    [data-interface-style="md3"] .btn-submit,
+    [data-interface-style="md3"] .btn-cancel {
+      border-radius: 999px;
+    }
+    [data-interface-style="md3"] .card-badge {
+      border-radius: 999px;
+      padding: 3px 10px;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body {
       width: 100%;
@@ -622,6 +670,8 @@
         rootData.widget2x2 = [];
       }
       applyWidgetTheme(rootData.theme);
+      const isMd3 = rootData.interfaceStyle === 'md3';
+      document.documentElement.setAttribute('data-interface-style', isMd3 ? 'md3' : 'classic');
 
       const isCustomized = !!rootData.widget2x2Customized;
       const mainMap = new Map((rootData.items || []).map(it => [it.id, it]));

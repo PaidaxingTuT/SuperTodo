@@ -124,11 +124,30 @@ public class WidgetConfigActivity extends Activity {
         btnCancel = findViewById(R.id.btn_config_cancel);
         btnSave = findViewById(R.id.btn_config_save);
 
+        boolean isMd3 = WidgetDataManager.isMd3Style(this);
+
+        if (isMd3) {
+            configCard.setBackgroundResource(R.drawable.config_card_bg_md3);
+            if (layoutCategoryBox != null) layoutCategoryBox.setBackgroundResource(R.drawable.config_spinner_bg_md3);
+            if (spTypeCategory != null) spTypeCategory.setBackgroundResource(R.drawable.config_spinner_bg_md3);
+            if (spSortKey != null) spSortKey.setBackgroundResource(R.drawable.config_spinner_bg_md3);
+            if (layoutFilterRow != null) layoutFilterRow.setBackgroundResource(R.drawable.config_spinner_bg_md3);
+
+            GradientDrawable cancelBg = new GradientDrawable();
+            cancelBg.setShape(GradientDrawable.RECTANGLE);
+            cancelBg.setColor(Color.TRANSPARENT);
+            cancelBg.setStroke((int)(getResources().getDisplayMetrics().density * 1f), getColor(R.color.widget_stroke_md3));
+            cancelBg.setCornerRadius(getResources().getDisplayMetrics().density * 22f);
+            btnCancel.setBackground(cancelBg);
+        } else {
+            configCard.setBackgroundResource(R.drawable.config_card_bg);
+        }
+
         // 主题颜色同步：保存按钮波纹背景与复选框强调色
         GradientDrawable saveBg = new GradientDrawable();
         saveBg.setShape(GradientDrawable.RECTANGLE);
         saveBg.setColor(themeColor);
-        saveBg.setCornerRadius(getResources().getDisplayMetrics().density * 12f);
+        saveBg.setCornerRadius(getResources().getDisplayMetrics().density * (isMd3 ? 22f : 12f));
         RippleDrawable ripple = new RippleDrawable(
             ColorStateList.valueOf(Color.parseColor("#33FFFFFF")),
             saveBg,
@@ -233,17 +252,18 @@ public class WidgetConfigActivity extends Activity {
     }
 
     private void updatePill(TextView view, boolean selected) {
+        boolean isMd3 = WidgetDataManager.isMd3Style(this);
         int unselectedColor = getColor(R.color.config_pill_text_unselected);
         if (selected) {
             GradientDrawable pillBg = new GradientDrawable();
             pillBg.setShape(GradientDrawable.RECTANGLE);
             pillBg.setColor(themeColor);
-            float radius = getResources().getDisplayMetrics().density * 10f;
+            float radius = getResources().getDisplayMetrics().density * (isMd3 ? 20f : 10f);
             pillBg.setCornerRadius(radius);
             view.setBackground(pillBg);
             view.setTextColor(Color.WHITE);
         } else {
-            view.setBackgroundResource(R.drawable.config_pill_unselected);
+            view.setBackgroundResource(isMd3 ? R.drawable.config_pill_unselected_md3 : R.drawable.config_pill_unselected);
             view.setTextColor(unselectedColor);
         }
     }

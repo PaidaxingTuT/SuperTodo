@@ -36,6 +36,21 @@ public class TodoWidgetQuadrantProvider extends AppWidgetProvider {
 
     public static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_quadrant);
+        boolean isMd3 = WidgetDataManager.isMd3Style(context);
+
+        if (isMd3) {
+            views.setInt(R.id.qw_root, "setBackgroundResource", R.drawable.widget_bg_md3);
+            views.setInt(R.id.qw_pill_top, "setBackgroundResource", R.drawable.widget_tag_bg_md3);
+            views.setInt(R.id.qw_pill_bottom, "setBackgroundResource", R.drawable.widget_tag_bg_md3);
+            views.setInt(R.id.qw_pill_left, "setBackgroundResource", R.drawable.widget_tag_bg_md3);
+            views.setInt(R.id.qw_pill_right, "setBackgroundResource", R.drawable.widget_tag_bg_md3);
+        } else {
+            views.setInt(R.id.qw_root, "setBackgroundResource", R.drawable.widget_bg);
+            views.setInt(R.id.qw_pill_top, "setBackgroundResource", R.drawable.qw_pill_bg);
+            views.setInt(R.id.qw_pill_bottom, "setBackgroundResource", R.drawable.qw_pill_bg);
+            views.setInt(R.id.qw_pill_left, "setBackgroundResource", R.drawable.qw_pill_bg);
+            views.setInt(R.id.qw_pill_right, "setBackgroundResource", R.drawable.qw_pill_bg);
+        }
 
         int width = WidgetDataManager.getWidgetWidth(context, appWidgetManager, appWidgetId, 280);
         int height = WidgetDataManager.getWidgetHeight(context, appWidgetManager, appWidgetId, 280);
@@ -130,10 +145,10 @@ public class TodoWidgetQuadrantProvider extends AppWidgetProvider {
         }
 
         int themeColor = WidgetDataManager.getWidgetThemeColor(context);
-        renderQuadrant(context, views, appWidgetId, "q1", itemsQ1, maxPerQuadrant, !showHeaders, themeColor);
-        renderQuadrant(context, views, appWidgetId, "q2", itemsQ2, maxPerQuadrant, !showHeaders, themeColor);
-        renderQuadrant(context, views, appWidgetId, "q3", itemsQ3, maxPerQuadrant, !showHeaders, themeColor);
-        renderQuadrant(context, views, appWidgetId, "q4", itemsQ4, maxPerQuadrant, !showHeaders, themeColor);
+        renderQuadrant(context, views, appWidgetId, "q1", itemsQ1, maxPerQuadrant, !showHeaders, themeColor, isMd3);
+        renderQuadrant(context, views, appWidgetId, "q2", itemsQ2, maxPerQuadrant, !showHeaders, themeColor, isMd3);
+        renderQuadrant(context, views, appWidgetId, "q3", itemsQ3, maxPerQuadrant, !showHeaders, themeColor, isMd3);
+        renderQuadrant(context, views, appWidgetId, "q4", itemsQ4, maxPerQuadrant, !showHeaders, themeColor, isMd3);
 
         // 点击四象限卡片打开应用四象限配置页
         Intent openAppIntent = new Intent(context, MainActivity.class);
@@ -167,7 +182,7 @@ public class TodoWidgetQuadrantProvider extends AppWidgetProvider {
         return c;
     }
 
-    private static void renderQuadrant(Context context, RemoteViews views, int appWidgetId, String qKey, List<TodoItem> items, int maxItems, boolean colorizeTitle, int themeColor) {
+    private static void renderQuadrant(Context context, RemoteViews views, int appWidgetId, String qKey, List<TodoItem> items, int maxItems, boolean colorizeTitle, int themeColor, boolean isMd3) {
         if (items == null) items = WidgetDataManager.loadQuadrantItems(context, qKey);
         int total = items.size();
 
@@ -206,6 +221,7 @@ public class TodoWidgetQuadrantProvider extends AppWidgetProvider {
             if (i <= total && i <= maxItems) {
                 TodoItem item = items.get(i - 1);
                 views.setViewVisibility(itemRowRes, View.VISIBLE);
+                views.setInt(itemRowRes, "setBackgroundResource", isMd3 ? R.drawable.widget_item_bg_md3 : R.drawable.widget_item_bg);
 
                 String title = item.title != null ? item.title : "";
                 if (item.done) {
@@ -217,7 +233,7 @@ public class TodoWidgetQuadrantProvider extends AppWidgetProvider {
                         views.setTextViewText(doneRes, ss);
                     }
                     if (chkRes > 0) {
-                        views.setImageViewBitmap(chkRes, WidgetDataManager.getThemedCheckedIcon(themeColor));
+                        views.setImageViewBitmap(chkRes, isMd3 ? WidgetDataManager.getThemedCheckedIcon(themeColor, true) : WidgetDataManager.getThemedCheckedIcon(themeColor));
                     }
                 } else {
                     if (doneRes > 0) views.setViewVisibility(doneRes, View.GONE);
@@ -238,7 +254,7 @@ public class TodoWidgetQuadrantProvider extends AppWidgetProvider {
                         }
                     }
                     if (chkRes > 0) {
-                        views.setImageViewResource(chkRes, R.drawable.widget_ic_check_box_unchecked);
+                        views.setImageViewResource(chkRes, isMd3 ? R.drawable.widget_ic_check_box_unchecked_md3 : R.drawable.widget_ic_check_box_unchecked);
                     }
                 }
 

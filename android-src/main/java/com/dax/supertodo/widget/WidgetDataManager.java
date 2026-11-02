@@ -41,6 +41,8 @@ public class WidgetDataManager {
     private static volatile String sCachedJson = null;
     private static volatile int sCheckedIconColor = 0;
     private static volatile android.graphics.Bitmap sCheckedIcon = null;
+    private static volatile int sCheckedIconMd3Color = 0;
+    private static volatile android.graphics.Bitmap sCheckedIconMd3 = null;
     private static final java.util.concurrent.ExecutorService sIoExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
 
     public static synchronized void saveWidgetData(Context context, String json) {
@@ -156,6 +158,23 @@ public class WidgetDataManager {
         return root.optBoolean("widgetRemoveDone", false);
     }
 
+    public static boolean isMd3Style(Context context) {
+        if (context == null) return false;
+        String json = getWidgetData(context);
+        if (json.isEmpty()) return false;
+        try {
+            JSONObject root = new JSONObject(json);
+            return isMd3Style(root);
+        } catch (Exception ignore) {
+            return false;
+        }
+    }
+
+    public static boolean isMd3Style(JSONObject root) {
+        if (root == null) return false;
+        return "md3".equalsIgnoreCase(root.optString("interfaceStyle", ""));
+    }
+
     public static int getWidgetThemeColor(Context context) {
         int fallback = android.graphics.Color.rgb(11, 87, 208);
         if (context == null) return fallback;
@@ -170,25 +189,52 @@ public class WidgetDataManager {
     }
 
     public static synchronized android.graphics.Bitmap getThemedCheckedIcon(int color) {
-        if (sCheckedIcon != null && sCheckedIconColor == color) return sCheckedIcon;
-        android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(48, 48, android.graphics.Bitmap.Config.ARGB_8888);
-        android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
-        android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-        paint.setColor(color);
-        canvas.drawCircle(24, 24, 22, paint);
-        paint.setColor(android.graphics.Color.WHITE);
-        paint.setStyle(android.graphics.Paint.Style.STROKE);
-        paint.setStrokeWidth(5);
-        paint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
-        paint.setStrokeJoin(android.graphics.Paint.Join.ROUND);
-        android.graphics.Path check = new android.graphics.Path();
-        check.moveTo(13, 25);
-        check.lineTo(21, 33);
-        check.lineTo(36, 16);
-        canvas.drawPath(check, paint);
-        sCheckedIconColor = color;
-        sCheckedIcon = bitmap;
-        return bitmap;
+        return getThemedCheckedIcon(color, false);
+    }
+
+    public static synchronized android.graphics.Bitmap getThemedCheckedIcon(int color, boolean isMd3) {
+        if (isMd3) {
+            if (sCheckedIconMd3 != null && sCheckedIconMd3Color == color) return sCheckedIconMd3;
+            android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(48, 48, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
+            android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+            paint.setColor(color);
+            android.graphics.RectF rect = new android.graphics.RectF(5, 5, 43, 43);
+            canvas.drawRoundRect(rect, 11, 11, paint);
+            paint.setColor(android.graphics.Color.WHITE);
+            paint.setStyle(android.graphics.Paint.Style.STROKE);
+            paint.setStrokeWidth(4.8f);
+            paint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+            paint.setStrokeJoin(android.graphics.Paint.Join.ROUND);
+            android.graphics.Path check = new android.graphics.Path();
+            check.moveTo(14, 25);
+            check.lineTo(21, 32);
+            check.lineTo(34, 17);
+            canvas.drawPath(check, paint);
+            sCheckedIconMd3Color = color;
+            sCheckedIconMd3 = bitmap;
+            return bitmap;
+        } else {
+            if (sCheckedIcon != null && sCheckedIconColor == color) return sCheckedIcon;
+            android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(48, 48, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
+            android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+            paint.setColor(color);
+            canvas.drawCircle(24, 24, 22, paint);
+            paint.setColor(android.graphics.Color.WHITE);
+            paint.setStyle(android.graphics.Paint.Style.STROKE);
+            paint.setStrokeWidth(5);
+            paint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+            paint.setStrokeJoin(android.graphics.Paint.Join.ROUND);
+            android.graphics.Path check = new android.graphics.Path();
+            check.moveTo(13, 25);
+            check.lineTo(21, 33);
+            check.lineTo(36, 16);
+            canvas.drawPath(check, paint);
+            sCheckedIconColor = color;
+            sCheckedIcon = bitmap;
+            return bitmap;
+        }
     }
 
     private static void completeRepeatItem(JSONArray items, JSONObject item) throws Exception {

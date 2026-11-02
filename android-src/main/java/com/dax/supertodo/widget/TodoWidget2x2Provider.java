@@ -32,7 +32,23 @@ public class TodoWidget2x2Provider extends AppWidgetProvider {
 
     public static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_2x2);
+        boolean isMd3 = WidgetDataManager.isMd3Style(context);
         int themeColor = WidgetDataManager.getWidgetThemeColor(context);
+
+        if (isMd3) {
+            views.setInt(R.id.widget_2x2_root, "setBackgroundResource", R.drawable.widget_bg_md3);
+            views.setInt(R.id.widget_2x2_count, "setBackgroundResource", R.drawable.widget_tag_bg_md3);
+            views.setInt(R.id.btn_2x2_settings, "setBackgroundResource", R.drawable.widget_btn_bg_md3);
+            views.setInt(R.id.btn_2x2_expand, "setBackgroundResource", R.drawable.widget_tag_bg_md3);
+            views.setInt(R.id.btn_2x2_complete, "setBackgroundResource", R.drawable.widget_tag_bg_md3);
+        } else {
+            views.setInt(R.id.widget_2x2_root, "setBackgroundResource", R.drawable.widget_bg);
+            views.setInt(R.id.widget_2x2_count, "setBackgroundResource", R.drawable.widget_tag_bg);
+            views.setInt(R.id.btn_2x2_settings, "setBackgroundResource", R.drawable.widget_btn_bg);
+            views.setInt(R.id.btn_2x2_expand, "setBackgroundResource", R.drawable.widget_tag_bg);
+            views.setInt(R.id.btn_2x2_complete, "setBackgroundResource", R.drawable.widget_tag_bg);
+        }
+
         views.setTextColor(R.id.widget_2x2_count, themeColor);
         views.setTextColor(R.id.btn_2x2_expand, themeColor);
         views.setTextColor(R.id.btn_2x2_complete, themeColor);
