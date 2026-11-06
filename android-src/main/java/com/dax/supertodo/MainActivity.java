@@ -10,6 +10,7 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     private WidgetBridge widgetBridge;
+    private com.dax.supertodo.reminder.ReminderBridge reminderBridge;
     private android.content.BroadcastReceiver downloadReceiver;
     private int lastTopDp = -1;
 
@@ -21,6 +22,10 @@ public class MainActivity extends BridgeActivity {
                 // 注册小组件与 Web 端数据及事件交互桥梁
                 widgetBridge = new WidgetBridge(this, getBridge().getWebView());
                 getBridge().getWebView().addJavascriptInterface(widgetBridge, "AndroidWidgetBridge");
+
+                // 截止提醒开关桥：只负责开关与通知权限，数据复用 WidgetBridge 的同步通道
+                reminderBridge = new com.dax.supertodo.reminder.ReminderBridge(this);
+                getBridge().getWebView().addJavascriptInterface(reminderBridge, "AndroidReminderBridge");
 
                 // 原生下载监听（直接调系统下载器，不跳浏览器）
                 getBridge().getWebView().setDownloadListener(new DownloadListener() {
@@ -110,6 +115,8 @@ public class MainActivity extends BridgeActivity {
         if (widgetBridge != null) {
             widgetBridge.notifyAppResumed();
         }
+        // 测试期：每次回到前台都重新弹出截止提醒，方便验证通知效果
+        com.dax.supertodo.reminder.DeadlineReminderManager.checkAndNotifyOnLaunch(this);
     }
 
     @Override

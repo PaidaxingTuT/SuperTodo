@@ -84,6 +84,8 @@ public class WidgetBridge {
         } catch (Exception ignore) {}
         WidgetDataManager.saveWidgetData(activity, json);
         WidgetDataManager.notifyAllWidgets(activity);
+        // 数据变更后补一次截止检查：只在该提醒、当天未提醒过且处于白天时生效
+        com.dax.supertodo.reminder.DeadlineReminderManager.onDataChanged(activity);
     }
 
     @JavascriptInterface

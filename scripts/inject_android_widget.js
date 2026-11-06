@@ -22,6 +22,10 @@ function injectWidgetManifest() {
     <uses-permission android:name="com.miui.home.launcher.permission.INSTALL_SHORTCUT" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 `;
   if (!content.includes('INSTALL_SHORTCUT')) {
     content = content.replace('<application', perms + '\n    <application');
@@ -92,6 +96,17 @@ function injectWidgetManifest() {
                 android:resource="@xml/widget_quadrant_info" />
         </receiver>
 
+
+        <!-- 三日内截止提醒：每日闹钟扫描与开机后补排 -->
+        <receiver
+            android:name="com.dax.supertodo.reminder.DeadlineReminderReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.dax.supertodo.ACTION_CHECK_DEADLINE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <!-- 小部件列表远程服务 -->
         <service

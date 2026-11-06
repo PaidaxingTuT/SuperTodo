@@ -21,6 +21,7 @@ let state={
   autoCheckUpdate:true,
   autoInstallUpdate:true,
   widgetRemoveDone:false,
+  deadlineReminder:false,
   showCostSummary:true,
   hapticFeedback:true,
   customBg:{type:'default',color:'#f2f5fb',image:'',opacity:80},
@@ -125,6 +126,7 @@ function load(){
     if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate;
     if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate;
     if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone;
+    if(d.deadlineReminder!==undefined)state.deadlineReminder=!!d.deadlineReminder;
     if(d.showCostSummary!==undefined)state.showCostSummary=!!d.showCostSummary;
     if(d.customBg&&typeof d.customBg==='object')state.customBg=Object.assign({type:'default',color:'#f2f5fb',image:'',opacity:80},d.customBg);
     else if(!state.customBg)state.customBg={type:'default',color:'#f2f5fb',image:'',opacity:80};
@@ -1616,6 +1618,9 @@ function init(){
   applySpacing();
   buildStars();
   render();
+  syncReminderFromNative();
+  const reminderSection=$('#setDeadlineReminder');
+  if(reminderSection) reminderSection.hidden=!hasReminderBridge();
   setTimeout(setupNativeBack,300);
   const showUiStyleNotice=!DEMO_MODE&&!state.uiStyleNoticeSeen;
   if(showUiStyleNotice){
@@ -2231,6 +2236,28 @@ function renderUpdateSettings(){
   if(chkRemove) chkRemove.checked=!!state.widgetRemoveDone;
   const chkCost=$('#showCostSummary');
   if(chkCost) chkCost.checked=state.showCostSummary!==false;
+  const chkReminder=$('#deadlineReminder');
+  if(chkReminder) chkReminder.checked=!!state.deadlineReminder;
+}
+
+/* ========== 截止提醒（原生每日通知） ========== */
+function hasReminderBridge(){
+  return typeof window.AndroidReminderBridge!=='undefined' && window.AndroidReminderBridge && typeof window.AndroidReminderBridge.setEnabled==='function';
+}
+function applyReminderSetting(enabled){
+  state.deadlineReminder=!!enabled;
+  save();
+  try{
+    if(hasReminderBridge()) window.AndroidReminderBridge.setEnabled(!!enabled);
+  }catch(e){}
+}
+function syncReminderFromNative(){
+  try{
+    if(!hasReminderBridge()) return;
+    state.deadlineReminder=!!window.AndroidReminderBridge.isEnabled();
+    const chk=$('#deadlineReminder');
+    if(chk) chk.checked=state.deadlineReminder;
+  }catch(e){}
 }
 
 let settingsPage='home';
@@ -2755,7 +2782,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.10.1-beta.1';
+const APP_VERSION='v1.10.1-beta.2';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -4587,6 +4614,7 @@ function exportData(){
     autoCheckUpdate: state.autoCheckUpdate,
     autoInstallUpdate: state.autoInstallUpdate,
     widgetRemoveDone: state.widgetRemoveDone,
+    deadlineReminder: state.deadlineReminder,
     showCostSummary: state.showCostSummary,
     hapticFeedback: state.hapticFeedback,
     customBg: state.customBg,
@@ -4669,6 +4697,7 @@ function applyImportedData(d){
   if(d.autoCheckUpdate!==undefined)state.autoCheckUpdate=!!d.autoCheckUpdate;
   if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate;
   if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone;
+  if(d.deadlineReminder!==undefined)state.deadlineReminder=!!d.deadlineReminder;
   if(d.showCostSummary!==undefined)state.showCostSummary=!!d.showCostSummary;
   if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
   if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget;
@@ -4900,6 +4929,20 @@ document.addEventListener('DOMContentLoaded',()=>{
         if(cleaned) renderQuadrantModal();
       }
       save();
+    });
+  }
+  const chkDeadline = $('#deadlineReminder');
+  if(chkDeadline){
+    chkDeadline.addEventListener('change',e=>{
+      applyReminderSetting(e.target.checked);
+      if(!e.target.checked) return;
+      setTimeout(()=>{
+        try{
+          if(hasReminderBridge() && !window.AndroidReminderBridge.hasNotificationPermission()){
+            alertDlg('通知权限未开启','截止提醒需要通知权限，请在系统设置中允许「超级清单」发送通知。');
+          }
+        }catch(err){}
+      },800);
     });
   }
 
