@@ -26,6 +26,10 @@ public class MainActivity extends BridgeActivity {
                 // 截止提醒开关桥：只负责开关与通知权限，数据复用 WidgetBridge 的同步通道
                 reminderBridge = new com.dax.supertodo.reminder.ReminderBridge(this);
                 getBridge().getWebView().addJavascriptInterface(reminderBridge, "AndroidReminderBridge");
+                if (com.dax.supertodo.reminder.DeadlineReminderManager.isEnabled(this)) {
+                    com.dax.supertodo.reminder.DeadlineReminderManager.scheduleNext(this);
+                    reminderBridge.requestNotificationPermissionIfNeeded();
+                }
 
                 // 原生下载监听（直接调系统下载器，不跳浏览器）
                 getBridge().getWebView().setDownloadListener(new DownloadListener() {
@@ -117,6 +121,17 @@ public class MainActivity extends BridgeActivity {
         }
         // 测试期：每次回到前台都重新弹出截止提醒，方便验证通知效果
         com.dax.supertodo.reminder.DeadlineReminderManager.checkAndNotifyOnLaunch(this);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == com.dax.supertodo.reminder.ReminderBridge.REQUEST_CODE_NOTIFICATION) {
+            if (grantResults != null && grantResults.length > 0
+                    && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                com.dax.supertodo.reminder.DeadlineReminderManager.checkAndNotifyOnLaunch(this);
+            }
+        }
     }
 
     @Override

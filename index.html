@@ -430,9 +430,13 @@ try{
 
     <div class="set-divide"></div>
 
-<div class="set-section" id="setDeadlineReminder" hidden>
-      <h3>截止提醒</h3>
-      <label class="switch"><input type="checkbox" id="deadlineReminder"><span></span><em>三日内截止时每天提醒</em></label>
+<div class="set-section" id="setDeadlineReminder">
+      <h3>截止提醒与流体云</h3>
+      <label class="switch"><input type="checkbox" id="deadlineReminder" checked><span></span><em>三日内截止事项自动弹出提醒</em></label>
+      <div class="bg-image-actions" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="btn-line" id="testReminderBtn">立即发送测试提醒</button>
+        <button type="button" class="btn-line" id="openNotifSetBtn">系统通知与流体云设置</button>
+      </div>
     </div>
 
     <div class="set-divide"></div>
@@ -466,7 +470,7 @@ try{
         <img class="info-logo-dark" src="web/assets/icons/app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.10.1-beta.2</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.10.1-beta.3</div>
       <div class="info-desc">轻量 · 优雅 · 丝滑的待办与清单管理</div>
       <div class="info-author">Crafted with <span class="heart">♥</span> by <strong>派大星TuT</strong></div>
     </div>

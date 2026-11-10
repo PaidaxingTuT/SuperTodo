@@ -21,7 +21,7 @@ let state={
   autoCheckUpdate:true,
   autoInstallUpdate:true,
   widgetRemoveDone:false,
-  deadlineReminder:false,
+  deadlineReminder:true,
   showCostSummary:true,
   hapticFeedback:true,
   customBg:{type:'default',color:'#f2f5fb',image:'',opacity:80},
@@ -1619,8 +1619,6 @@ function init(){
   buildStars();
   render();
   syncReminderFromNative();
-  const reminderSection=$('#setDeadlineReminder');
-  if(reminderSection) reminderSection.hidden=!hasReminderBridge();
   setTimeout(setupNativeBack,300);
   const showUiStyleNotice=!DEMO_MODE&&!state.uiStyleNoticeSeen;
   if(showUiStyleNotice){
@@ -2237,10 +2235,10 @@ function renderUpdateSettings(){
   const chkCost=$('#showCostSummary');
   if(chkCost) chkCost.checked=state.showCostSummary!==false;
   const chkReminder=$('#deadlineReminder');
-  if(chkReminder) chkReminder.checked=!!state.deadlineReminder;
+  if(chkReminder) chkReminder.checked=state.deadlineReminder!==false;
 }
 
-/* ========== 截止提醒（原生每日通知） ========== */
+/* ========== 截止提醒（原生每日通知与立即测试） ========== */
 function hasReminderBridge(){
   return typeof window.AndroidReminderBridge!=='undefined' && window.AndroidReminderBridge && typeof window.AndroidReminderBridge.setEnabled==='function';
 }
@@ -2258,6 +2256,41 @@ function syncReminderFromNative(){
     const chk=$('#deadlineReminder');
     if(chk) chk.checked=state.deadlineReminder;
   }catch(e){}
+}
+function triggerTestReminder(){
+  triggerHaptic('light');
+  if(!hasReminderBridge()){
+    alertDlg('仅限 Android 客户端','浏览器预览环境不支持发送原生系统通知，请在 Android 客户端中测试。');
+    return;
+  }
+  try{
+    const res = typeof window.AndroidReminderBridge.testReminderNow==='function'
+      ? window.AndroidReminderBridge.testReminderNow()
+      : '';
+    if(res==='NO_PERMISSION'){
+      dlgShow({
+        title:'需要开启通知权限',
+        msg:'系统尚未授予「超级清单」发送通知的权限。\n请点击下方按钮前往系统设置，开启「允许通知」与「横幅/流体云通知」后再试。',
+        okText:'去开启权限',
+        onOk:()=>{
+          try{
+            if(typeof window.AndroidReminderBridge.openNotificationSettings==='function'){
+              window.AndroidReminderBridge.openNotificationSettings();
+            }
+          }catch(e){}
+        }
+      });
+    }else if(res && res.indexOf('REAL_SENT:')===0){
+      const count = res.split(':')[1] || '1';
+      alertDlg('提醒已弹出','已汇总当前 '+count+' 项三日内截止/逾期的事项并发送至系统通知栏，请查看顶部横幅或下拉通知栏。');
+    }else if(res==='DEMO_SENT'){
+      alertDlg('示例提醒已弹出','当前没有 3 日内截止的未完成事项，已为您发送一条「示例截止提醒」到系统通知栏，请查看顶部横幅或下拉通知栏。');
+    }else{
+      alertDlg('发送失败','未能调用系统通知服务：'+(res||'未知原因'));
+    }
+  }catch(e){
+    alertDlg('发送异常','调用原生通知接口失败：'+e.message);
+  }
 }
 
 let settingsPage='home';
@@ -2782,7 +2815,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.10.1-beta.2';
+const APP_VERSION='v1.10.1-beta.3';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -4939,10 +4972,36 @@ document.addEventListener('DOMContentLoaded',()=>{
       setTimeout(()=>{
         try{
           if(hasReminderBridge() && !window.AndroidReminderBridge.hasNotificationPermission()){
-            alertDlg('通知权限未开启','截止提醒需要通知权限，请在系统设置中允许「超级清单」发送通知。');
+            dlgShow({
+              title:'通知权限未开启',
+              msg:'截止提醒需要系统通知权限，是否前往系统设置开启？',
+              okText:'去设置',
+              onOk:()=>{
+                try{
+                  if(typeof window.AndroidReminderBridge.openNotificationSettings==='function'){
+                    window.AndroidReminderBridge.openNotificationSettings();
+                  }
+                }catch(err){}
+              }
+            });
           }
         }catch(err){}
       },800);
+    });
+  }
+  const btnTestReminder = $('#testReminderBtn');
+  if(btnTestReminder){
+    btnTestReminder.addEventListener('click',triggerTestReminder);
+  }
+  const btnOpenNotifSet = $('#openNotifSetBtn');
+  if(btnOpenNotifSet){
+    btnOpenNotifSet.addEventListener('click',()=>{
+      triggerHaptic('light');
+      if(hasReminderBridge() && typeof window.AndroidReminderBridge.openNotificationSettings==='function'){
+        window.AndroidReminderBridge.openNotificationSettings();
+      }else{
+        alertDlg('提示','请在手机系统设置 → 应用管理 → 超级清单 → 通知管理中开启横幅与实时活动权限。');
+      }
     });
   }
 
