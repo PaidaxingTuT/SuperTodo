@@ -2275,7 +2275,11 @@ function renderReminderOptions(){
   const candidates=getReminderCandidates(state.items,options);
   const manual=options.selectedIds!==null;
   $('#reminderDays').value=options.days;
-  $('#reminderMaxItems').value=options.maxItems;
+  $$('#reminderMaxItems .seg').forEach(btn=>{
+    const selected=Number(btn.dataset.maxItems)===options.maxItems;
+    btn.classList.toggle('on',selected);
+    btn.setAttribute('aria-pressed',String(selected));
+  });
   $('#reminderManual').checked=manual;
   const choices=$('#reminderItemChoices');
   choices.hidden=!manual;
@@ -2866,7 +2870,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.10.1-beta.4';
+const APP_VERSION='v1.10.1-beta.5';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -5049,8 +5053,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
     saveReminderOptions({...state.deadlineReminderOptions,days:Number(e.target.value)});
   });
-  $('#reminderMaxItems').addEventListener('change',e=>{
-    saveReminderOptions({...state.deadlineReminderOptions,maxItems:Number(e.target.value)});
+  $('#reminderMaxItems').addEventListener('click',e=>{
+    const button=e.target.closest('[data-max-items]');
+    if(!button) return;
+    triggerHaptic('light');
+    saveReminderOptions({...state.deadlineReminderOptions,maxItems:Number(button.dataset.maxItems)});
   });
   $('#reminderManual').addEventListener('change',e=>{
     const options=normalizeReminderOptions(state.deadlineReminderOptions);

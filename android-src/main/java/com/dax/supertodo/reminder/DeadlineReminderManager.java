@@ -10,6 +10,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.text.Layout;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.AlignmentSpan;
 import com.dax.supertodo.MainActivity;
 import com.dax.supertodo.R;
 import com.dax.supertodo.widget.WidgetDataManager;
@@ -53,6 +57,9 @@ public final class DeadlineReminderManager {
     private static final int REMIND_WINDOW_DAYS = 3;
     private static final int MAX_WINDOW_DAYS = 365;
     private static final int MAX_DISPLAY_ITEMS = 4;
+
+    /** 防止 ColorOS 在 contentText 为空时把 BigText 正文回退成胶囊第二行。 */
+    private static final String EMPTY_CHIP_TEXT = new String(Character.toChars(0x200B));
 
     /** 逾期包容天数：逾期 7 天以内的未完成事项一并提醒，防止刚过期的要事被遗漏。 */
     private static final int OVERDUE_WINDOW_DAYS = -7;
@@ -297,14 +304,16 @@ public final class DeadlineReminderManager {
         }
 
         String title = buildTitle(dueItems);
+        CharSequence centeredTitle = buildCenteredTitle(title);
         String details = buildExpandedText(dueItems, getReminderOptions(context));
 
         PendingIntent contentIntent = buildContentIntent(context);
         builder.setSmallIcon(R.drawable.ic_stat_deadline)
-                .setContentTitle(title)
-                .setContentText(null)
+                .setColor(context.getColor(R.color.widget_primary))
+                .setContentTitle(centeredTitle)
+                .setContentText(EMPTY_CHIP_TEXT)
                 .setStyle(new Notification.BigTextStyle()
-                        .setBigContentTitle(title)
+                        .setBigContentTitle(centeredTitle)
                         .bigText(details))
                 .setContentIntent(contentIntent)
                 .setOngoing(true)
@@ -447,6 +456,25 @@ public final class DeadlineReminderManager {
     }
 
     /**
+     * 请求系统把数量标题在图标右侧的文本区域内居中。
+     *
+     * <p>只使用标准文本 Span，不设置 Live Updates 禁止的 RemoteViews；
+     * 系统是否保留该对齐方式由具体 ROM 决定。</p>
+     *
+     * @param title 原始数量标题
+     * @return 带居中段落样式的标题
+     */
+    private static CharSequence buildCenteredTitle(String title) {
+        SpannableString styled = new SpannableString(title);
+        styled.setSpan(
+                new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER),
+                0,
+                title.length(),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return styled;
+    }
+
+    /**
      * 复用同步缓存里的配置, 避免后台扫描依赖 WebView 存活。
      *
      * @param context 任意上下文
@@ -489,11 +517,12 @@ public final class DeadlineReminderManager {
                 break;
             }
             if (displayed > 0) {
-                builder.append("\n");
+                builder.append("\n\n");
             }
             String title = item.getTitle().replace('\n', ' ').replace('\r', ' ').trim();
-            builder.append(title.isEmpty() ? "未命名事项" : title)
-                    .append(" ")
+            builder.append("• ")
+                    .append(title.isEmpty() ? "未命名事项" : title)
+                    .append("　")
                     .append(dayLabel(item.getDaysLeft()));
             if (item.getDaysLeft() >= 0) {
                 builder.append("截止");

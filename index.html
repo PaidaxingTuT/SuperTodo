@@ -436,12 +436,15 @@ try{
       <label class="fld">截止范围（未来天数，0 为仅今天）
         <input type="number" id="reminderDays" min="0" max="365" step="1" value="3">
       </label>
-      <label class="fld">正文最多显示条数
-        <select id="reminderMaxItems" aria-label="正文最多显示条数" style="width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:10px; background:var(--surface-alt); color:var(--text); font:inherit;">
-          <option value="1">1 条</option><option value="2">2 条</option>
-          <option value="3">3 条</option><option value="4" selected>4 条</option>
-        </select>
-      </label>
+      <div class="fld">
+        <span class="fld-label">正文最多显示条数</span>
+        <div class="db-seg" id="reminderMaxItems" role="group" aria-label="正文最多显示条数">
+          <button type="button" class="seg" data-max-items="1" aria-pressed="false">1 条</button>
+          <button type="button" class="seg" data-max-items="2" aria-pressed="false">2 条</button>
+          <button type="button" class="seg" data-max-items="3" aria-pressed="false">3 条</button>
+          <button type="button" class="seg" data-max-items="4" aria-pressed="true">4 条</button>
+        </div>
+      </div>
       <label class="switch"><input type="checkbox" id="reminderManual"><span></span><em>手动选择正文展示的事项</em></label>
       <p style="color:var(--text2); font-size:12px;">标题统计范围内全部未完成事项（含近7天逾期），正文最多4条，按截止日期优先展示。</p>
       <div id="reminderItemChoices" hidden></div>
@@ -483,7 +486,7 @@ try{
         <img class="info-logo-dark" src="web/assets/icons/app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.10.1-beta.4</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.10.1-beta.5</div>
       <div class="info-desc">轻量 · 优雅 · 丝滑的待办与清单管理</div>
       <div class="info-author">Crafted with <span class="heart">♥</span> by <strong>派大星TuT</strong></div>
     </div>
