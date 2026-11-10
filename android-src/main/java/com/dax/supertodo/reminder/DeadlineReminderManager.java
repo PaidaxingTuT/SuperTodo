@@ -51,11 +51,11 @@ public final class DeadlineReminderManager {
 
     /** 提醒窗口天数：从今天起 3 天内到期（含今天与已逾期）的未完成事项都会进入提醒。 */
     private static final int REMIND_WINDOW_DAYS = 3;
+    private static final int MAX_WINDOW_DAYS = 365;
+    private static final int MAX_DISPLAY_ITEMS = 4;
 
     /** 逾期包容天数：逾期 7 天以内的未完成事项一并提醒，防止刚过期的要事被遗漏。 */
     private static final int OVERDUE_WINDOW_DAYS = -7;
-
-    private static final int MAX_LISTED_ITEMS = 5;
 
     private static final String DUE_PATTERN = "yyyy-MM-dd";
     private static final long ONE_DAY_MILLIS = 24L * 60L * 60L * 1000L;
@@ -158,10 +158,9 @@ public final class DeadlineReminderManager {
     }
 
     /**
-     * 数据发生变化（Web 端 syncData 同步完成）时立即刷新提醒。
+     * 数据保存后刷新提醒, 让应用和小组件完成操作都能及时移除已完成事项。
      *
-     * <p>移除原本对 08:00-21:00 的硬拦截，保证用户在任何时间新增或修改三日内截止事项、
-     * 或冷启动 WebView 首次同步完数据时都能立刻看到提醒。</p>
+     * <p>普通数据同步只更新当天已有通知, 避免每次勾选或保存设置都重新响铃。</p>
      *
      * @param context 任意上下文
      */
@@ -169,7 +168,7 @@ public final class DeadlineReminderManager {
         if (!isEnabled(context)) {
             return;
         }
-        checkAndNotify(context, true);
+        checkAndNotify(context, false);
     }
 
     /**
@@ -278,8 +277,8 @@ public final class DeadlineReminderManager {
     /**
      * 构建截止提醒通知。
      *
-     * <p>针对 Android 16 (API 36+) 启用 ProgressStyle + 倒计时 Chronometer + Promoted Ongoing，
-     * 避免使用会导致胶囊降级的 BigTextStyle；针对 API 35 及以下使用 BigTextStyle 展开多行明细并确保高优横幅弹出。</p>
+     * <p>使用 BigTextStyle 展示逐项截止日期, 并为 API 36+ 的胶囊提供数量摘要。
+     * 不使用进度条与倒计时, 避免将待办清单误显示为行程进度。</p>
      *
      * @param context 任意上下文
      * @param dueItems 已按截止时间排序的事项
@@ -298,94 +297,42 @@ public final class DeadlineReminderManager {
         }
 
         String title = buildTitle(dueItems);
-        String summary = buildSummary(dueItems);
-        String expanded = buildExpandedText(dueItems);
-        DueItem nearest = dueItems.get(0);
-        long targetWhen = resolveTargetTimestamp(nearest.getDaysLeft());
+        String details = buildExpandedText(dueItems, getReminderOptions(context));
 
         PendingIntent contentIntent = buildContentIntent(context);
         builder.setSmallIcon(R.drawable.ic_stat_deadline)
                 .setContentTitle(title)
-                .setContentText(summary)
-                .setSubText("超级清单 · 截止提醒")
+                .setContentText(null)
+                .setStyle(new Notification.BigTextStyle()
+                        .setBigContentTitle(title)
+                        .bigText(details))
                 .setContentIntent(contentIntent)
                 .setOngoing(true)
                 .setAutoCancel(false)
                 .setOnlyAlertOnce(!alertNow)
-                .setWhen(targetWhen)
-                .setShowWhen(true)
-                .setUsesChronometer(true)
+                .setWhen(0)
+                .setShowWhen(false)
+                .setUsesChronometer(false)
                 .setCategory(Notification.CATEGORY_REMINDER)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setDefaults(alertNow ? Notification.DEFAULT_ALL : 0)
                 .setPriority(Notification.PRIORITY_MAX);
 
-        if (Build.VERSION.SDK_INT >= 24) {
-            builder.setChronometerCountDown(true);
-        }
-
-        String criticalText = buildCriticalChipText(dueItems);
-        boolean promotedApplied = applyPromotedLiveUpdate(builder, dueItems, criticalText);
-        if (!promotedApplied) {
-            builder.setStyle(new Notification.BigTextStyle()
-                    .setBigContentTitle(title)
-                    .bigText(expanded));
-        }
-
+        applyPromotedLiveUpdate(builder, title);
         return builder.build();
     }
 
     /**
-     * 计算最近一条事项截止日当天 23:59:59 的毫秒时间戳，供状态栏胶囊倒计时使用。
-     *
-     * @param daysLeft 距离今天的天数
-     * @return 目标时间戳
-     */
-    private static long resolveTargetTimestamp(int daysLeft) {
-        Calendar cal = Calendar.getInstance();
-        int offset = Math.max(0, daysLeft);
-        cal.add(Calendar.DAY_OF_YEAR, offset);
-        cal.set(Calendar.HOUR_OF_DAY, 23);
-        cal.set(Calendar.MINUTE, 59);
-        cal.set(Calendar.SECOND, 59);
-        return cal.getTimeInMillis();
-    }
-
-    /**
-     * 构造状态栏胶囊上显示的简短关键文本（要求简短，不超过 7 个字符）。
-     *
-     * @param dueItems 待办列表
-     * @return 短文本，如 "今日 2项" 或 "3日内 4项"
-     */
-    private static String buildCriticalChipText(List<DueItem> dueItems) {
-        DueItem first = dueItems.get(0);
-        if (first.getDaysLeft() < 0) {
-            return "逾期 " + dueItems.size() + "项";
-        }
-        if (first.getDaysLeft() == 0) {
-            return "今日 " + dueItems.size() + "项";
-        }
-        if (first.getDaysLeft() == 1) {
-            return "明日 " + dueItems.size() + "项";
-        }
-        return dueItems.size() + "项待办";
-    }
-
-    /**
-     * 在 Android 16 (API 36+) 上通过反射应用 ProgressStyle 与 setRequestPromotedOngoing，
-     * 请求 ColorOS 16+ / Android 16 系统将通知提升为流体云/实时活动胶囊。
+     * 保留胶囊数量摘要, 让展开后的系统卡片使用正文展示任务明细。
      *
      * @param builder 通知构建器
-     * @param dueItems 到期事项列表
-     * @param criticalText 胶囊短文本
-     * @return true 表示成功应用了 API 36 实时活动样式
+     * @param criticalText 收起状态显示的数量
      */
-    private static boolean applyPromotedLiveUpdate(
+    private static void applyPromotedLiveUpdate(
             Notification.Builder builder,
-            List<DueItem> dueItems,
             String criticalText) {
         if (Build.VERSION.SDK_INT < 36) {
-            return false;
+            return;
         }
         try {
             builder.getClass()
@@ -394,25 +341,8 @@ public final class DeadlineReminderManager {
             builder.getClass()
                     .getMethod("setShortCriticalText", String.class)
                     .invoke(builder, criticalText);
-
-            Class<?> progressStyleClass = Class.forName("android.app.Notification$ProgressStyle");
-            Object progressStyle = progressStyleClass.getDeclaredConstructor().newInstance();
-            int minDays = Math.max(0, Math.min(REMIND_WINDOW_DAYS, dueItems.get(0).getDaysLeft()));
-            int progress = Math.max(15, (REMIND_WINDOW_DAYS - minDays + 1) * 25);
-            progressStyleClass.getMethod("setProgress", int.class)
-                    .invoke(progressStyle, Math.min(100, progress));
-            try {
-                progressStyleClass.getMethod("setStyledByProgress", boolean.class)
-                        .invoke(progressStyle, false);
-            } catch (Exception ignore) {
-                // 部分预览版 SDK 方法签名差异可忽略
-            }
-            builder.getClass()
-                    .getMethod("setStyle", Notification.Style.class)
-                    .invoke(builder, progressStyle);
-            return true;
-        } catch (Exception ignore) {
-            return false;
+        } catch (ReflectiveOperationException exception) {
+            android.util.Log.w("DeadlineReminder", "系统不支持实时活动数量摘要", exception);
         }
     }
 
@@ -430,6 +360,9 @@ public final class DeadlineReminderManager {
         }
         try {
             JSONObject root = new JSONObject(raw);
+            JSONObject options = root.optJSONObject("deadlineReminderOptions");
+            int windowDays = options == null ? REMIND_WINDOW_DAYS
+                    : Math.max(0, Math.min(MAX_WINDOW_DAYS, options.optInt("days", REMIND_WINDOW_DAYS)));
             JSONArray items = root.optJSONArray("items");
             if (items == null) {
                 return result;
@@ -447,10 +380,11 @@ public final class DeadlineReminderManager {
                     continue;
                 }
                 int daysLeft = daysUntil(due);
-                if (daysLeft < OVERDUE_WINDOW_DAYS || daysLeft > REMIND_WINDOW_DAYS) {
+                if (daysLeft < OVERDUE_WINDOW_DAYS || daysLeft > windowDays) {
                     continue;
                 }
                 result.add(new DueItem(
+                        item.optString("id", ""),
                         item.optString("title", ""),
                         daysLeft,
                         item.optInt("star", 0)));
@@ -503,71 +437,68 @@ public final class DeadlineReminderManager {
     }
 
     /**
-     * 构造通知标题。
+     * 用统一的数量标题为任务明细留出空间。
      *
      * @param dueItems 窗口内事项
-     * @return 单条时显示"明天截止 · 交房租"，多条时显示"3 天内截止 · 3 项"
+     * @return 剩余待办数量
      */
     private static String buildTitle(List<DueItem> dueItems) {
-        if (dueItems.size() == 1) {
-            DueItem item = dueItems.get(0);
-            String label = item.getDaysLeft() < 0
-                    ? dayLabel(item.getDaysLeft())
-                    : dayLabel(item.getDaysLeft()) + "截止";
-            return label + " · " + truncate(item.getTitle(), 14);
-        }
-        DueItem first = dueItems.get(0);
-        if (first.getDaysLeft() <= 0) {
-            return "今日及逾期 · 共 " + dueItems.size() + " 项近期截止";
-        }
-        return REMIND_WINDOW_DAYS + " 天内截止 · 共 " + dueItems.size() + " 项";
+        return "剩余" + dueItems.size() + "项待办";
     }
 
     /**
-     * 构造通知折叠时的摘要文本。
+     * 复用同步缓存里的配置, 避免后台扫描依赖 WebView 存活。
      *
-     * @param dueItems 窗口内事项
-     * @return 最多三条事项的摘要
+     * @param context 任意上下文
+     * @return 正文展示配置, 无配置时返回默认空对象
      */
-    private static String buildSummary(List<DueItem> dueItems) {
-        StringBuilder builder = new StringBuilder();
-        int limit = Math.min(dueItems.size(), 3);
-        for (int i = 0; i < limit; i++) {
-            if (i > 0) {
-                builder.append(" · ");
+    private static JSONObject getReminderOptions(Context context) {
+        try {
+            JSONObject root = new JSONObject(WidgetDataManager.getWidgetData(context));
+            JSONObject options = root.optJSONObject("deadlineReminderOptions");
+            return options == null ? new JSONObject() : options;
+        } catch (org.json.JSONException exception) {
+            return new JSONObject();
+        }
+    }
+
+    /**
+     * 正文只展示用户指定的事项, 保持每项一行且不超过四条。
+     *
+     * @param dueItems 窗口内全部事项, 总数不受正文选择影响
+     * @param options 用户的条数和手动选择配置
+     * @return 事项名称与相对截止日期
+     */
+    private static String buildExpandedText(List<DueItem> dueItems, JSONObject options) {
+        int maxItems = Math.max(1, Math.min(MAX_DISPLAY_ITEMS,
+                options.optInt("maxItems", MAX_DISPLAY_ITEMS)));
+        JSONArray selectedIds = options.optJSONArray("selectedIds");
+        java.util.Set<String> selected = new java.util.HashSet<>();
+        if (selectedIds != null) {
+            for (int i = 0; i < Math.min(selectedIds.length(), maxItems); i++) {
+                selected.add(selectedIds.optString(i));
             }
-            DueItem item = dueItems.get(i);
-            builder.append(truncate(item.getTitle(), 10));
-            builder.append("（").append(dayLabel(item.getDaysLeft())).append("）");
         }
-        if (dueItems.size() > limit) {
-            builder.append(" 等 ").append(dueItems.size()).append(" 项");
-        }
-        return builder.toString();
-    }
-
-    /**
-     * 构造展开后的明细文本，每行一条事项。
-     *
-     * @param dueItems 窗口内事项
-     * @return 明细文本
-     */
-    private static String buildExpandedText(List<DueItem> dueItems) {
         StringBuilder builder = new StringBuilder();
-        int limit = Math.min(dueItems.size(), MAX_LISTED_ITEMS);
-        for (int i = 0; i < limit; i++) {
-            DueItem item = dueItems.get(i);
-            if (i > 0) {
+        int displayed = 0;
+        for (DueItem item : dueItems) {
+            if (selectedIds != null && !item.id.isEmpty() && !selected.contains(item.id)) {
+                continue;
+            }
+            if (displayed >= maxItems) {
+                break;
+            }
+            if (displayed > 0) {
                 builder.append("\n");
             }
-            builder.append("· ")
-                    .append(truncate(item.getTitle(), 18))
-                    .append("（")
-                    .append(dayLabel(item.getDaysLeft()))
-                    .append("）");
-        }
-        if (dueItems.size() > limit) {
-            builder.append("\n· 还有 ").append(dueItems.size() - limit).append(" 项");
+            String title = item.getTitle().replace('\n', ' ').replace('\r', ' ').trim();
+            builder.append(title.isEmpty() ? "未命名事项" : title)
+                    .append(" ")
+                    .append(dayLabel(item.getDaysLeft()));
+            if (item.getDaysLeft() >= 0) {
+                builder.append("截止");
+            }
+            displayed++;
         }
         return builder.toString();
     }
@@ -592,24 +523,6 @@ public final class DeadlineReminderManager {
             return "后天";
         }
         return daysLeft + "天后";
-    }
-
-    /**
-     * 截断过长的标题，避免通知文本被系统截断得很难看。
-     *
-     * @param text 原始文本
-     * @param maxLength 最大字数
-     * @return 截断后的文本
-     */
-    private static String truncate(String text, int maxLength) {
-        String value = text == null ? "" : text.trim();
-        if (value.isEmpty()) {
-            return "未命名事项";
-        }
-        if (value.length() <= maxLength) {
-            return value;
-        }
-        return value.substring(0, maxLength) + "…";
     }
 
     /**
@@ -712,11 +625,17 @@ public final class DeadlineReminderManager {
      * 窗口内的一条待提醒事项。
      */
     private static final class DueItem {
+        private final String id;
         private final String title;
         private final int daysLeft;
         private final int star;
 
         DueItem(String title, int daysLeft, int star) {
+            this("", title, daysLeft, star);
+        }
+
+        DueItem(String id, String title, int daysLeft, int star) {
+            this.id = id;
             this.title = title;
             this.daysLeft = daysLeft;
             this.star = star;

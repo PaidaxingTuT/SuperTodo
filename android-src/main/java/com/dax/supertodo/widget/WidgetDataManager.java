@@ -63,6 +63,8 @@ public class WidgetDataManager {
                 }
             } catch (Exception ignore) {}
         });
+        // 所有保存入口共用通知刷新, 包括桌面小组件完成和 Web 数据同步。
+        com.dax.supertodo.reminder.DeadlineReminderManager.onDataChanged(appContext);
     }
 
     public static synchronized String getWidgetData(Context context) {

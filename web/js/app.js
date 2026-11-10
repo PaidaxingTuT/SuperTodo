@@ -22,6 +22,7 @@ let state={
   autoInstallUpdate:true,
   widgetRemoveDone:false,
   deadlineReminder:true,
+  deadlineReminderOptions:{days:3,maxItems:4,selectedIds:null},
   showCostSummary:true,
   hapticFeedback:true,
   customBg:{type:'default',color:'#f2f5fb',image:'',opacity:80},
@@ -127,6 +128,7 @@ function load(){
     if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate;
     if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone;
     if(d.deadlineReminder!==undefined)state.deadlineReminder=!!d.deadlineReminder;
+    state.deadlineReminderOptions=normalizeReminderOptions(d.deadlineReminderOptions);
     if(d.showCostSummary!==undefined)state.showCostSummary=!!d.showCostSummary;
     if(d.customBg&&typeof d.customBg==='object')state.customBg=Object.assign({type:'default',color:'#f2f5fb',image:'',opacity:80},d.customBg);
     else if(!state.customBg)state.customBg={type:'default',color:'#f2f5fb',image:'',opacity:80};
@@ -146,9 +148,9 @@ function load(){
 
 /* ========== 桌面小部件桥接（小米澎湃OS / Android） ========== */
 let syncWidgetTimer=null;
-function syncToNativeWidget(){
+function syncToNativeWidget(immediate=false){
   clearTimeout(syncWidgetTimer);
-  syncWidgetTimer=setTimeout(()=>{
+  const sync=()=>{
     try{
       if(window.AndroidWidgetBridge&&window.AndroidWidgetBridge.syncData){
         let toSend = state;
@@ -165,7 +167,9 @@ function syncToNativeWidget(){
         window.AndroidWidgetBridge.syncData(JSON.stringify(toSend));
       }
     }catch(e){}
-  },100);
+  };
+  if(immediate) sync();
+  else syncWidgetTimer=setTimeout(sync,100);
 }
 function syncFromNativeWidget(){
   try{
@@ -2236,9 +2240,55 @@ function renderUpdateSettings(){
   if(chkCost) chkCost.checked=state.showCostSummary!==false;
   const chkReminder=$('#deadlineReminder');
   if(chkReminder) chkReminder.checked=state.deadlineReminder!==false;
+  renderReminderOptions();
 }
 
 /* ========== 截止提醒（原生每日通知与立即测试） ========== */
+function normalizeReminderOptions(value){
+  const options=value&&typeof value==='object'?value:{};
+  const days=Number.isInteger(options.days)?Math.max(0,Math.min(365,options.days)):3;
+  const maxItems=Number.isInteger(options.maxItems)?Math.max(1,Math.min(4,options.maxItems)):4;
+  const selectedIds=Array.isArray(options.selectedIds)
+    ? [...new Set(options.selectedIds.filter(id=>typeof id==='string'&&id))].slice(0,maxItems)
+    : null;
+  return {days,maxItems,selectedIds};
+}
+function getReminderCandidates(items,options,now=new Date()){
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const candidates=[];
+  for(const item of items){
+    if(!item||item.done||!/^\d{4}-\d{2}-\d{2}$/.test(item.due||'')) continue;
+    const [year,month,day]=item.due.split('-').map(Number);
+    const date=new Date(year,month-1,day);
+    if(date.getFullYear()!==year||date.getMonth()!==month-1||date.getDate()!==day) continue;
+    const daysLeft=Math.round((date-today)/86400000);
+    if(daysLeft>=-7&&daysLeft<=options.days) candidates.push({...item,daysLeft});
+  }
+  return candidates.sort((a,b)=>a.daysLeft-b.daysLeft||(b.star||0)-(a.star||0));
+}
+function reminderDueLabel(days){
+  if(days<0) return '已逾期'+Math.abs(days)+'天';
+  return (days===0?'今天':days===1?'明天':days===2?'后天':days+'天后')+'截止';
+}
+function renderReminderOptions(){
+  const options=normalizeReminderOptions(state.deadlineReminderOptions);
+  const candidates=getReminderCandidates(state.items,options);
+  const manual=options.selectedIds!==null;
+  $('#reminderDays').value=options.days;
+  $('#reminderMaxItems').value=options.maxItems;
+  $('#reminderManual').checked=manual;
+  const choices=$('#reminderItemChoices');
+  choices.hidden=!manual;
+  choices.innerHTML=manual?candidates.map(item=>`<label style="display:flex; align-items:center; gap:8px; margin:10px 0;"><input type="checkbox" data-reminder-id="${esc(item.id)}" ${options.selectedIds.includes(item.id)?'checked':''}><span>${esc(item.title||'未命名事项')} <small style="color:var(--text2);">${esc(reminderDueLabel(item.daysLeft))}</small></span></label>`).join(''):'';
+  const shown=manual?candidates.filter(item=>options.selectedIds.includes(item.id)).length:Math.min(candidates.length,options.maxItems);
+  $('#reminderSelectionHint').textContent='剩余'+candidates.length+'项待办，正文显示'+shown+'条'+(manual?'（最多可选'+options.maxItems+'条）':'');
+}
+function saveReminderOptions(options){
+  state.deadlineReminderOptions=normalizeReminderOptions(options);
+  save();
+  renderReminderOptions();
+}
+
 function hasReminderBridge(){
   return typeof window.AndroidReminderBridge!=='undefined' && window.AndroidReminderBridge && typeof window.AndroidReminderBridge.setEnabled==='function';
 }
@@ -2264,6 +2314,7 @@ function triggerTestReminder(){
     return;
   }
   try{
+    syncToNativeWidget(true);
     const res = typeof window.AndroidReminderBridge.testReminderNow==='function'
       ? window.AndroidReminderBridge.testReminderNow()
       : '';
@@ -2282,9 +2333,9 @@ function triggerTestReminder(){
       });
     }else if(res && res.indexOf('REAL_SENT:')===0){
       const count = res.split(':')[1] || '1';
-      alertDlg('提醒已弹出','已汇总当前 '+count+' 项三日内截止/逾期的事项并发送至系统通知栏，请查看顶部横幅或下拉通知栏。');
+      alertDlg('提醒已提交系统','当前日期范围内剩余 '+count+' 项待办，正文按设置最多展示4条。请下拉通知栏展开查看。');
     }else if(res==='DEMO_SENT'){
-      alertDlg('示例提醒已弹出','当前没有 3 日内截止的未完成事项，已为您发送一条「示例截止提醒」到系统通知栏，请查看顶部横幅或下拉通知栏。');
+      alertDlg('示例提醒已提交系统','当前日期范围内没有未完成事项，已发送示例提醒。请下拉通知栏展开查看。');
     }else{
       alertDlg('发送失败','未能调用系统通知服务：'+(res||'未知原因'));
     }
@@ -2815,7 +2866,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.10.1-beta.3';
+const APP_VERSION='v1.10.1-beta.4';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -4648,6 +4699,7 @@ function exportData(){
     autoInstallUpdate: state.autoInstallUpdate,
     widgetRemoveDone: state.widgetRemoveDone,
     deadlineReminder: state.deadlineReminder,
+    deadlineReminderOptions: normalizeReminderOptions(state.deadlineReminderOptions),
     showCostSummary: state.showCostSummary,
     hapticFeedback: state.hapticFeedback,
     customBg: state.customBg,
@@ -4731,6 +4783,7 @@ function applyImportedData(d){
   if(d.autoInstallUpdate!==undefined)state.autoInstallUpdate=!!d.autoInstallUpdate;
   if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone;
   if(d.deadlineReminder!==undefined)state.deadlineReminder=!!d.deadlineReminder;
+  state.deadlineReminderOptions=normalizeReminderOptions(d.deadlineReminderOptions);
   if(d.showCostSummary!==undefined)state.showCostSummary=!!d.showCostSummary;
   if(d.ai)state.ai=Object.assign({enabled:false,base:'',key:'',model:''},d.ai);
   if(d.quadrantWidget&&typeof d.quadrantWidget==='object')state.quadrantWidget=d.quadrantWidget;
@@ -4989,6 +5042,44 @@ document.addEventListener('DOMContentLoaded',()=>{
       },800);
     });
   }
+  $('#reminderDays').addEventListener('change',e=>{
+    if(e.target.value===''||!e.target.validity.valid){
+      renderReminderOptions();
+      return;
+    }
+    saveReminderOptions({...state.deadlineReminderOptions,days:Number(e.target.value)});
+  });
+  $('#reminderMaxItems').addEventListener('change',e=>{
+    saveReminderOptions({...state.deadlineReminderOptions,maxItems:Number(e.target.value)});
+  });
+  $('#reminderManual').addEventListener('change',e=>{
+    const options=normalizeReminderOptions(state.deadlineReminderOptions);
+    const selectedIds=e.target.checked
+      ? getReminderCandidates(state.items,options).slice(0,options.maxItems).map(item=>item.id)
+      : null;
+    saveReminderOptions({...options,selectedIds});
+  });
+  $('#reminderItemChoices').addEventListener('change',e=>{
+    const id=e.target.dataset.reminderId;
+    if(!id) return;
+    const options=normalizeReminderOptions(state.deadlineReminderOptions);
+    const selected=new Set(options.selectedIds||[]);
+    if(e.target.checked){
+      const currentIds=new Set(getReminderCandidates(state.items,options).map(item=>item.id));
+      for(const staleId of selected){
+        if(!currentIds.has(staleId)) selected.delete(staleId);
+      }
+      if(selected.size>=options.maxItems){
+        e.target.checked=false;
+        $('#reminderSelectionHint').textContent='最多选择'+options.maxItems+'条，请先取消其他事项。';
+        return;
+      }
+      selected.add(id);
+    }else{
+      selected.delete(id);
+    }
+    saveReminderOptions({...options,selectedIds:[...selected]});
+  });
   const btnTestReminder = $('#testReminderBtn');
   if(btnTestReminder){
     btnTestReminder.addEventListener('click',triggerTestReminder);
