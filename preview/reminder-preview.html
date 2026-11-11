@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>截止提醒 · 网页效果模拟</title>
+  <title>截止提醒 · 课表式流体云模拟</title>
   <style>
-    :root{color-scheme:dark;--page:#0d1016;--panel:#151922;--phone:#090b10;--card:#20252e;--text:#f2f4f8;--muted:#9ca4b2;--line:#323844;--accent:#78aaf8;--accent-deep:#0b57d0}
+    :root{color-scheme:dark;--page:#0d1016;--panel:#151922;--phone:#090b10;--card:#20252e;--text:#f2f4f8;--muted:#9ca4b2;--line:#323844;--accent:#78aaf8;--overdue:#ff7b72;--today:#ffb74d;--tomorrow:#8ab4f8;--soon:#80cbc4}
     *{box-sizing:border-box}
     body{margin:0;min-width:320px;background:var(--page);color:var(--text);font-family:"Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}
     main{width:min(1180px,100%);margin:auto;padding:36px 24px 28px}
     header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:28px}
-    h1{margin:0 0 8px;font-size:26px;line-height:1.3;font-weight:650;letter-spacing:0}
+    h1{margin:0 0 8px;font-size:26px;line-height:1.3;font-weight:650}
     header p{margin:0;color:var(--muted);font-size:14px;line-height:1.7}
     .badge{flex:none;padding:7px 12px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
     .surfaces{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
@@ -24,16 +24,17 @@
     .clock{position:absolute;top:86px;left:0;right:0;text-align:center}
     .clock strong{display:block;font-size:64px;line-height:1.1;font-weight:300;letter-spacing:-2px}
     .clock span{display:block;margin-top:8px;color:#aeb5c0;font-size:13px}
-    .aod-notice{position:absolute;left:18px;right:18px;bottom:86px;display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;min-height:88px;padding:18px 16px;border:1px solid #252a32;border-radius:22px;background:#11151b}
+    .aod-notice{position:absolute;left:18px;right:18px;bottom:86px;display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:12px;min-height:84px;padding:16px;border:1px solid #252a32;border-radius:22px;background:#11151b}
     .app-symbol{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:#172b48;color:var(--accent)}
     .app-symbol svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-    .count-title{margin:0;text-align:center;font-size:16px;line-height:1.5;font-weight:600;white-space:nowrap}
+    .count-title{margin:0;font-size:16px;line-height:1.4;font-weight:600;white-space:nowrap}
     .aod-hint{position:absolute;bottom:34px;left:0;right:0;text-align:center;color:#626b78;font-size:11px}
     .wallpaper{background:radial-gradient(circle at 78% 20%,#233d60 0,transparent 42%),linear-gradient(155deg,#182231 0%,#0c1119 58%,#111827 100%)}
-    .capsule{position:absolute;z-index:3;top:9px;left:50%;display:flex;align-items:center;gap:9px;max-width:calc(100% - 36px);min-height:36px;padding:7px 15px 7px 9px;transform:translateX(-50%);border:1px solid rgb(255 255 255/.1);border-radius:999px;background:rgb(8 11 16/.88);box-shadow:0 4px 14px rgb(0 0 0/.28);white-space:nowrap}
-    .capsule .app-symbol{width:24px;height:24px;border-radius:50%;background:#17355d}
-    .capsule .app-symbol svg{width:14px;height:14px}
-    .capsule .count-title{font-size:13px;font-weight:550}
+    .capsule{position:absolute;z-index:3;top:8px;left:50%;display:flex;align-items:center;gap:10px;min-height:34px;padding:5px 13px 5px 7px;transform:translateX(-50%);border:1px solid rgb(255 255 255/.12);border-radius:999px;background:rgb(6 8 12/.94);box-shadow:0 4px 14px rgb(0 0 0/.32);white-space:nowrap}
+    .capsule .app-symbol{width:22px;height:22px;border-radius:50%;background:#17355d}
+    .capsule .app-symbol svg{width:13px;height:13px}
+    .camera-dot{width:11px;height:11px;border-radius:50%;background:#000;box-shadow:inset 0 0 0 1.5px #1e2533}
+    .capsule .count-title{font-size:12.5px;font-weight:600;letter-spacing:.2px}
     .desktop-time{position:absolute;top:100px;left:0;right:0;text-align:center;color:#e9edf4}
     .desktop-time strong{display:block;font-size:48px;font-weight:350}
     .desktop-time span{font-size:12px;color:#b8c1ce}
@@ -44,60 +45,66 @@
     .app-icon.super img{width:100%;height:100%;object-fit:cover}
     .home-indicator{position:absolute;bottom:12px;left:50%;width:100px;height:4px;transform:translateX(-50%);border-radius:999px;background:#aab1bc}
     .shade{background:#0c1016}
-    .shade-heading{position:absolute;top:56px;left:20px;right:20px;display:flex;justify-content:space-between;color:#b2bac6;font-size:12px}
-    .notification{position:absolute;top:94px;left:12px;right:12px;padding:18px 16px 16px;border:1px solid #343b46;border-radius:24px;background:var(--card);box-shadow:0 8px 22px rgb(0 0 0/.22)}
-    .notification-head{display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;margin-bottom:20px}
-    .notification-head .app-symbol{width:34px;height:34px;border-radius:11px;background:#17365f}
-    .notification-head .app-symbol svg{width:19px;height:19px}
-    .notification-head .count-title{font-size:17px}
-    .tasks{display:grid;gap:15px;margin:0;padding:0;list-style:none}
-    .tasks li{display:flex;align-items:baseline;gap:9px;min-width:0;color:#e6e9ee;font-size:14px;line-height:1.65}
-    .bullet{flex:none;color:var(--accent);font-size:15px}
-    .task-name{min-width:0;overflow-wrap:anywhere}
-    .due{flex:none;margin-left:auto;padding-left:8px;color:#c1c8d2;white-space:nowrap}
-    .shade-empty{position:absolute;top:480px;left:0;right:0;text-align:center;color:#59616d;font-size:11px}
+    .shade-heading{position:absolute;top:54px;left:20px;right:20px;display:flex;justify-content:space-between;color:#b2bac6;font-size:12px}
+    .notification{position:absolute;top:84px;left:12px;right:12px;padding:15px 16px;border:1px solid #343b46;border-radius:24px;background:var(--card);box-shadow:0 8px 22px rgb(0 0 0/.22)}
+    .notification.secondary{top:254px;background:#191e26;border-color:#282e38}
+    .notification-head{display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:10px;margin-bottom:10px}
+    .notification-head .app-symbol{width:32px;height:32px;border-radius:10px;background:#17365f}
+    .notification-head .app-symbol svg{width:18px;height:18px}
+    .notification-head .count-title{font-size:16px}
+    .schedule-rows{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+    .schedule-rows li{display:flex;align-items:baseline;gap:10px;min-width:0;color:#e6e9ee;font-size:13.5px;line-height:1.45}
+    .schedule-rows.dense{gap:4px}
+    .schedule-rows.dense li{font-size:12.5px;line-height:1.4}
+    .time-tag{flex:none;font-weight:700}
+    .time-tag.overdue{color:var(--overdue)}
+    .time-tag.today{color:var(--today)}
+    .time-tag.tomorrow{color:var(--tomorrow)}
+    .time-tag.soon{color:var(--soon)}
+    .task-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sub-caption{margin:0 0 8px;color:var(--muted);font-size:11px}
     .note{margin:22px 2px 0;color:var(--muted);font-size:12px;line-height:1.8}
     .note strong{color:#d6dce5;font-weight:550}
     @media(max-width:900px){.surfaces{grid-template-columns:1fr;max-width:390px;margin:auto}.phone{height:600px}main{padding:24px 16px}header{display:block}.badge{display:inline-block;margin-top:14px}}
-    @media(prefers-reduced-motion:no-preference){.surface{animation:enter .35s ease both}.surface:nth-child(2){animation-delay:.06s}.surface:nth-child(3){animation-delay:.12s}@keyframes enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}}
   </style>
 </head>
 <body>
 <main>
   <header>
     <div>
-      <h1>截止提醒 · 系统界面模拟</h1>
-      <p>对应 v1.10.1-beta.5 的排版意图，示例为 2 项明天截止的待办。</p>
+      <h1>截止提醒 · 课表式流体云模拟</h1>
+      <p>微缩胶囊右侧缩短为「2项待办」，展开面板改为课表式「左列彩色粗体时间 + 右列事项」单行紧凑排版（最多 4 行不截断）。</p>
     </div>
-    <span class="badge">网页模拟 · 非真机截图</span>
+    <span class="badge">ColorOS 标准 Live Updates 真实映射</span>
   </header>
 
   <div class="surfaces">
     <section class="surface" aria-labelledby="aodTitle">
-      <div class="surface-head"><h2 id="aodTitle">熄屏 / AOD</h2><span>标题在右侧区域居中</span></div>
+      <div class="surface-head"><h2 id="aodTitle">熄屏 / AOD</h2><span>垂直居中 · 系统固定左对齐</span></div>
       <div class="phone">
-        <div class="clock"><strong>21:45</strong><span>11月10日 星期二</span></div>
+        <div class="clock"><strong>21:45</strong><span>11月11日 星期三</span></div>
         <div class="aod-notice">
           <div class="app-symbol" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           </div>
-          <p class="count-title">剩余2项待办</p>
+          <p class="count-title">2项待办</p>
         </div>
-        <div class="aod-hint">轻触通知查看详情</div>
+        <div class="aod-hint">1px 占位消除左上顶起 · 水平方向由 ROM 固定左对齐</div>
       </div>
     </section>
 
     <section class="surface" aria-labelledby="desktopTitle">
-      <div class="surface-head"><h2 id="desktopTitle">桌面微缩胶囊</h2><span>无第二行 · 无跑马灯</span></div>
+      <div class="surface-head"><h2 id="desktopTitle">缩小的流体胶囊</h2><span>右侧仅「2项待办」</span></div>
       <div class="phone wallpaper">
         <div class="status"><span>21:45</span><span class="status-icons">● ⌁ ▰</span></div>
         <div class="capsule">
           <div class="app-symbol" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           </div>
-          <p class="count-title">剩余2项待办</p>
+          <span class="camera-dot" aria-hidden="true"></span>
+          <p class="count-title">2项待办</p>
         </div>
-        <div class="desktop-time"><strong>21:45</strong><span>星期二，11月10日</span></div>
+        <div class="desktop-time"><strong>21:45</strong><span>星期三，11月11日</span></div>
         <div class="app-grid" aria-hidden="true">
           <div class="app"><div class="app-icon super"><img src="../web/assets/icons/app-icon.png" alt=""></div>超级清单</div>
           <div class="app"><div class="app-icon">◷</div>时钟</div>
@@ -109,28 +116,44 @@
     </section>
 
     <section class="surface" aria-labelledby="notificationTitle">
-      <div class="surface-head"><h2 id="notificationTitle">展开通知卡片</h2><span>项目分组留白</span></div>
+      <div class="surface-head"><h2 id="notificationTitle">展开流体云卡片</h2><span>按行数自适应高度（2小 / 4大）</span></div>
       <div class="phone shade">
         <div class="status"><span>21:45</span><span class="status-icons">● ⌁ ▰</span></div>
-        <div class="shade-heading"><span>通知中心</span><span>管理</span></div>
-        <article class="notification" aria-label="截止提醒通知">
+        <div class="shade-heading"><span>流体云高度对比</span><span>wrap_content 自适应</span></div>
+        <article class="notification" aria-label="2项待办小卡片">
+          <p class="sub-caption">1～2 项：小卡片高度（1.0x 标准字号，紧凑不留白）</p>
           <div class="notification-head">
             <div class="app-symbol" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             </div>
             <p class="count-title">剩余2项待办</p>
           </div>
-          <ul class="tasks">
-            <li><span class="bullet">•</span><span class="task-name">备份服务器</span><span class="due">明天截止</span></li>
-            <li><span class="bullet">•</span><span class="task-name">整理 code 目录</span><span class="due">明天截止</span></li>
+          <ul class="schedule-rows">
+            <li><span class="time-tag tomorrow">明天截止</span><span class="task-name">备份服务器</span></li>
+            <li><span class="time-tag tomorrow">明天截止</span><span class="task-name">整理 code 目录</span></li>
           </ul>
         </article>
-        <div class="shade-empty">没有其他通知</div>
+
+        <article class="notification secondary" aria-label="4项待办大卡片">
+          <p class="sub-caption">3～4 项：自动撑开为大卡片高度（0.92x 字号防触顶裁切）</p>
+          <div class="notification-head">
+            <div class="app-symbol" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <p class="count-title">剩余4项待办</p>
+          </div>
+          <ul class="schedule-rows dense">
+            <li><span class="time-tag overdue">逾期1天</span><span class="task-name">报销差旅发票</span></li>
+            <li><span class="time-tag today">今天截止</span><span class="task-name">提交项目周报</span></li>
+            <li><span class="time-tag tomorrow">明天截止</span><span class="task-name">备份服务器</span></li>
+            <li><span class="time-tag soon">后天截止</span><span class="task-name">整理 code 目录</span></li>
+          </ul>
+        </article>
       </div>
     </section>
   </div>
 
-  <p class="note"><strong>模拟边界：</strong>这里展示的是源码请求的视觉效果。ColorOS 可能忽略居中 Span，或继续把 BigText 正文映射到胶囊第二行；最终必须以真机结果为准。</p>
+  <p class="note"><strong>WakeUp 课程表与非审批通道差异说明：</strong>WakeUp 课程表接入的是 OPPO 官方合作内置的「小布建议 · AI 流体云课程提醒」（系统 UPK/OML 卡片），可自定义居中与分栏视图；在不走 OPPO 商务审批的前提下，标准 Android 16 Live Updates 禁止传入自定义 RemoteViews，因此熄屏（AOD）卡片水平方向由 ColorOS 固定为左对齐，仅能恢复垂直居中并优化胶囊短文案与展开富文本层级。</p>
 </main>
 </body>
 </html>

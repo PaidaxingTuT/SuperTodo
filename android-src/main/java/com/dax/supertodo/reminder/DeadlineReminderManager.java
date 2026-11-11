@@ -9,11 +9,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.graphics.Typeface;
 import android.os.Build;
-import android.text.Layout;
 import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
 import android.text.Spanned;
-import android.text.style.AlignmentSpan;
+import android.text.style.AbsoluteSizeSpan;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StyleSpan;
 import com.dax.supertodo.MainActivity;
 import com.dax.supertodo.R;
 import com.dax.supertodo.widget.WidgetDataManager;
@@ -26,8 +31,10 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * 截止提醒管理器。
@@ -57,9 +64,23 @@ public final class DeadlineReminderManager {
     private static final int REMIND_WINDOW_DAYS = 3;
     private static final int MAX_WINDOW_DAYS = 365;
     private static final int MAX_DISPLAY_ITEMS = 4;
+    private static final int COMPACT_CARD_MAX_ITEMS = 2;
+    private static final float DENSE_CARD_TEXT_SCALE = 0.92f;
+    private static final int COLLAPSED_PLACEHOLDER_PX = 1;
 
-    /** 防止 ColorOS 在 contentText 为空时把 BigText 正文回退成胶囊第二行。 */
+    /** 防止 ColorOS 在 contentText 为空时把 BigText 正文回退成胶囊第二行跑马灯。 */
     private static final String EMPTY_CHIP_TEXT = new String(Character.toChars(0x200B));
+
+    private static final int COLOR_OVERDUE_LIGHT = 0xFFD93025;
+    private static final int COLOR_OVERDUE_DARK = 0xFFFF7B72;
+    private static final int COLOR_TODAY_LIGHT = 0xFFE37400;
+    private static final int COLOR_TODAY_DARK = 0xFFFFB74D;
+    private static final int COLOR_TOMORROW_LIGHT = 0xFF0B57D0;
+    private static final int COLOR_TOMORROW_DARK = 0xFF8AB4F8;
+    private static final int COLOR_SOON_LIGHT = 0xFF00796B;
+    private static final int COLOR_SOON_DARK = 0xFF80CBC4;
+    private static final int COLOR_LATER_LIGHT = 0xFF5F6368;
+    private static final int COLOR_LATER_DARK = 0xFF9AA0A6;
 
     /** 逾期包容天数：逾期 7 天以内的未完成事项一并提醒，防止刚过期的要事被遗漏。 */
     private static final int OVERDUE_WINDOW_DAYS = -7;
@@ -303,17 +324,18 @@ public final class DeadlineReminderManager {
             builder = new Notification.Builder(context);
         }
 
-        String title = buildTitle(dueItems);
-        CharSequence centeredTitle = buildCenteredTitle(title);
-        String details = buildExpandedText(dueItems, getReminderOptions(context));
+        String chipText = buildChipText(dueItems);
+        String expandedTitle = buildTitle(dueItems);
+        JSONObject options = getReminderOptions(context);
+        CharSequence details = buildStyledExpandedText(context, dueItems, options);
 
         PendingIntent contentIntent = buildContentIntent(context);
         builder.setSmallIcon(R.drawable.ic_stat_deadline)
                 .setColor(context.getColor(R.color.widget_primary))
-                .setContentTitle(centeredTitle)
-                .setContentText(EMPTY_CHIP_TEXT)
+                .setContentTitle(chipText)
+                .setContentText(buildCollapsedPlaceholder())
                 .setStyle(new Notification.BigTextStyle()
-                        .setBigContentTitle(centeredTitle)
+                        .setBigContentTitle(expandedTitle)
                         .bigText(details))
                 .setContentIntent(contentIntent)
                 .setOngoing(true)
@@ -327,7 +349,7 @@ public final class DeadlineReminderManager {
                 .setDefaults(alertNow ? Notification.DEFAULT_ALL : 0)
                 .setPriority(Notification.PRIORITY_MAX);
 
-        applyPromotedLiveUpdate(builder, title);
+        applyPromotedLiveUpdate(builder, chipText);
         return builder.build();
     }
 
@@ -446,32 +468,39 @@ public final class DeadlineReminderManager {
     }
 
     /**
-     * 用统一的数量标题为任务明细留出空间。
+     * 生成缩小流体胶囊右侧的极简短文案, 控制在 4~5 个字以内避免胶囊过长。
      *
      * @param dueItems 窗口内事项
-     * @return 剩余待办数量
+     * @return 形如 "2项待办" 的紧凑文案
+     */
+    private static String buildChipText(List<DueItem> dueItems) {
+        return dueItems.size() + "项待办";
+    }
+
+    /**
+     * 生成展开态流体云与通知卡片的完整标题。
+     *
+     * @param dueItems 窗口内事项
+     * @return 形如 "剩余2项待办" 的展开标题
      */
     private static String buildTitle(List<DueItem> dueItems) {
         return "剩余" + dueItems.size() + "项待办";
     }
 
     /**
-     * 请求系统把数量标题在图标右侧的文本区域内居中。
+     * 构造 1px 字号的零宽占位符: 既让 ColorOS 判定 contentText 非空从而不把正文回退成胶囊跑马灯,
+     * 又尽可能压缩熄屏通知第二行的高度, 避免把第一行标题顶到左上角。
      *
-     * <p>只使用标准文本 Span，不设置 Live Updates 禁止的 RemoteViews；
-     * 系统是否保留该对齐方式由具体 ROM 决定。</p>
-     *
-     * @param title 原始数量标题
-     * @return 带居中段落样式的标题
+     * @return 带 1px 尺寸约束的零宽字符
      */
-    private static CharSequence buildCenteredTitle(String title) {
-        SpannableString styled = new SpannableString(title);
-        styled.setSpan(
-                new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER),
+    private static CharSequence buildCollapsedPlaceholder() {
+        SpannableString placeholder = new SpannableString(EMPTY_CHIP_TEXT);
+        placeholder.setSpan(
+                new AbsoluteSizeSpan(COLLAPSED_PLACEHOLDER_PX, false),
                 0,
-                title.length(),
+                EMPTY_CHIP_TEXT.length(),
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        return styled;
+        return placeholder;
     }
 
     /**
@@ -491,67 +520,173 @@ public final class DeadlineReminderManager {
     }
 
     /**
-     * 正文只展示用户指定的事项, 保持每项一行且不超过四条。
+     * 按条数上限和用户勾选顺序筛出要在流体云正文中展示的事项。
      *
-     * @param dueItems 窗口内全部事项, 总数不受正文选择影响
+     * @param dueItems 窗口内全部事项
      * @param options 用户的条数和手动选择配置
-     * @return 事项名称与相对截止日期
+     * @return 最多 4 条待展示事项
      */
-    private static String buildExpandedText(List<DueItem> dueItems, JSONObject options) {
+    private static List<DueItem> selectDisplayItems(List<DueItem> dueItems, JSONObject options) {
         int maxItems = Math.max(1, Math.min(MAX_DISPLAY_ITEMS,
                 options.optInt("maxItems", MAX_DISPLAY_ITEMS)));
         JSONArray selectedIds = options.optJSONArray("selectedIds");
-        java.util.Set<String> selected = new java.util.HashSet<>();
+        Set<String> selected = new HashSet<>();
         if (selectedIds != null) {
-            for (int i = 0; i < Math.min(selectedIds.length(), maxItems); i++) {
+            int limit = Math.min(selectedIds.length(), maxItems);
+            for (int i = 0; i < limit; i++) {
                 selected.add(selectedIds.optString(i));
             }
         }
-        StringBuilder builder = new StringBuilder();
-        int displayed = 0;
+        List<DueItem> chosen = new ArrayList<>();
         for (DueItem item : dueItems) {
             if (selectedIds != null && !item.id.isEmpty() && !selected.contains(item.id)) {
                 continue;
             }
-            if (displayed >= maxItems) {
+            if (chosen.size() >= maxItems) {
                 break;
             }
-            if (displayed > 0) {
-                builder.append("\n\n");
+            chosen.add(item);
+        }
+        return chosen;
+    }
+
+    /**
+     * 构造纯文本课表式正文(单换行分隔, 左侧定宽时间标签 + 右侧事项名称), 确保最多 4 行不被流体云截断。
+     *
+     * @param dueItems 窗口内全部事项
+     * @param options 用户的条数和手动选择配置
+     * @return 纯文本多行明细
+     */
+    private static String buildExpandedText(List<DueItem> dueItems, JSONObject options) {
+        List<DueItem> chosen = selectDisplayItems(dueItems, options);
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < chosen.size(); i++) {
+            if (i > 0) {
+                builder.append('\n');
             }
-            String title = item.getTitle().replace('\n', ' ').replace('\r', ' ').trim();
-            builder.append("• ")
-                    .append(title.isEmpty() ? "未命名事项" : title)
-                    .append("　")
-                    .append(dayLabel(item.getDaysLeft()));
-            if (item.getDaysLeft() >= 0) {
-                builder.append("截止");
-            }
-            displayed++;
+            DueItem item = chosen.get(i);
+            builder.append(dueBadgeLabel(item.getDaysLeft()))
+                    .append("  ")
+                    .append(cleanTitle(item.getTitle()));
         }
         return builder.toString();
     }
 
     /**
-     * 把剩余天数转换成用户更容易理解的文案。
+     * 构造带语义色彩与粗体时间列的课表式富文本正文, 适配系统深浅色模式。
+     *
+     * @param context 任意上下文
+     * @param dueItems 窗口内全部事项
+     * @param options 用户的条数和手动选择配置
+     * @return 可直接传给 BigTextStyle 的富文本
+     */
+    private static CharSequence buildStyledExpandedText(
+            Context context,
+            List<DueItem> dueItems,
+            JSONObject options) {
+        boolean darkMode = isNightMode(context);
+        List<DueItem> chosen = selectDisplayItems(dueItems, options);
+        SpannableStringBuilder builder = new SpannableStringBuilder();
+        for (int i = 0; i < chosen.size(); i++) {
+            if (i > 0) {
+                builder.append('\n');
+            }
+            DueItem item = chosen.get(i);
+            String badge = dueBadgeLabel(item.getDaysLeft());
+            int badgeStart = builder.length();
+            builder.append(badge);
+            int badgeEnd = builder.length();
+            builder.setSpan(
+                    new StyleSpan(Typeface.BOLD),
+                    badgeStart,
+                    badgeEnd,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            builder.setSpan(
+                    new ForegroundColorSpan(badgeColor(item.getDaysLeft(), darkMode)),
+                    badgeStart,
+                    badgeEnd,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            builder.append("  ").append(cleanTitle(item.getTitle()));
+        }
+        if (chosen.size() > COMPACT_CARD_MAX_ITEMS && builder.length() > 0) {
+            builder.setSpan(
+                    new RelativeSizeSpan(DENSE_CARD_TEXT_SCALE),
+                    0,
+                    builder.length(),
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return builder;
+    }
+
+    /**
+     * 清理事项标题中的换行符, 保证每条事项严格只占一行。
+     *
+     * @param rawTitle 原始事项标题
+     * @return 单行非空标题
+     */
+    private static String cleanTitle(String rawTitle) {
+        String cleaned = rawTitle == null ? "" : rawTitle.replace('\n', ' ').replace('\r', ' ').trim();
+        if (cleaned.isEmpty()) {
+            return "未命名事项";
+        }
+        return cleaned;
+    }
+
+    /**
+     * 生成课表左列紧凑的截止标签(常见场景统一为 4 个字宽度, 形成整齐纵列)。
      *
      * @param daysLeft 剩余天数
-     * @return 已逾期 N 天 / 今天 / 明天 / 后天 / N 天后
+     * @return 逾期N天 / 今天截止 / 明天截止 / 后天截止 / N天后截止
      */
-    private static String dayLabel(int daysLeft) {
+    private static String dueBadgeLabel(int daysLeft) {
         if (daysLeft < 0) {
-            return "已逾期" + Math.abs(daysLeft) + "天";
+            return "逾期" + Math.abs(daysLeft) + "天";
         }
         if (daysLeft == 0) {
-            return "今天";
+            return "今天截止";
         }
         if (daysLeft == 1) {
-            return "明天";
+            return "明天截止";
         }
         if (daysLeft == 2) {
-            return "后天";
+            return "后天截止";
         }
-        return daysLeft + "天后";
+        return daysLeft + "天后截止";
+    }
+
+    /**
+     * 根据紧急程度和系统深浅色返回左列标签前景色。
+     *
+     * @param daysLeft 剩余天数
+     * @param darkMode 系统是否处于深色模式
+     * @return ARGB 颜色值
+     */
+    private static int badgeColor(int daysLeft, boolean darkMode) {
+        if (daysLeft < 0) {
+            return darkMode ? COLOR_OVERDUE_DARK : COLOR_OVERDUE_LIGHT;
+        }
+        if (daysLeft == 0) {
+            return darkMode ? COLOR_TODAY_DARK : COLOR_TODAY_LIGHT;
+        }
+        if (daysLeft == 1) {
+            return darkMode ? COLOR_TOMORROW_DARK : COLOR_TOMORROW_LIGHT;
+        }
+        if (daysLeft == 2) {
+            return darkMode ? COLOR_SOON_DARK : COLOR_SOON_LIGHT;
+        }
+        return darkMode ? COLOR_LATER_DARK : COLOR_LATER_LIGHT;
+    }
+
+    /**
+     * 判断当前系统是否处于深色模式, 以便选择高对比度的语义标签色。
+     *
+     * @param context 任意上下文
+     * @return true 表示深色模式
+     */
+    private static boolean isNightMode(Context context) {
+        int nightMask = context.getResources().getConfiguration().uiMode
+                & Configuration.UI_MODE_NIGHT_MASK;
+        return nightMask == Configuration.UI_MODE_NIGHT_YES;
     }
 
     /**
