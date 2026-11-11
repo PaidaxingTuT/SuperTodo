@@ -32,9 +32,9 @@
     .lock-sub{margin:2px 0 0;font-size:12px;line-height:1.35;color:rgb(255 255 255/.84);white-space:nowrap}
     .fp-ring{position:absolute;left:50%;bottom:36px;width:48px;height:48px;transform:translateX(-50%);border:2.5px solid rgb(255 255 255/.9);border-radius:50%;box-shadow:0 0 12px rgb(255 255 255/.45)}
     .wallpaper{background:radial-gradient(circle at 78% 20%,#233d60 0,transparent 42%),linear-gradient(155deg,#182231 0%,#0c1119 58%,#111827 100%)}
-    .capsule{position:absolute;z-index:3;top:8px;left:50%;display:flex;align-items:center;gap:10px;min-height:34px;padding:5px 13px 5px 7px;transform:translateX(-50%);border:1px solid rgb(255 255 255/.12);border-radius:999px;background:rgb(6 8 12/.94);box-shadow:0 4px 14px rgb(0 0 0/.32);white-space:nowrap}
-    .app-symbol{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#17355d;color:var(--accent)}
-    .app-symbol svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .capsule{position:absolute;z-index:3;top:8px;left:50%;display:flex;align-items:center;gap:10px;min-height:34px;padding:5px 13px 5px 11px;transform:translateX(-50%);border:1px solid rgb(255 255 255/.12);border-radius:999px;background:rgb(6 8 12/.96);box-shadow:0 4px 14px rgb(0 0 0/.32);white-space:nowrap}
+    .app-symbol{display:grid;place-items:center;width:20px;height:20px;color:#fff}
+    .app-symbol svg{width:17px;height:17px;fill:currentColor}
     .camera-dot{width:11px;height:11px;border-radius:50%;background:#000;box-shadow:inset 0 0 0 1.5px #1e2533}
     .count-title{margin:0;font-size:12.5px;font-weight:600;letter-spacing:.2px}
     .desktop-time{position:absolute;top:100px;left:0;right:0;text-align:center;color:#e9edf4}
@@ -55,7 +55,7 @@
     .live-card.next{top:256px;opacity:.92}
     .live-card h3{margin:0;font-size:17px;line-height:1.35;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .live-card p{margin:5px 0 0;font-size:13.5px;line-height:1.4;color:#dce3ee}
-    .cal-glyph{width:24px;height:24px;color:#fff;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .app-glyph{width:24px;height:24px;color:#fff;fill:currentColor}
     .time-tag{font-weight:700}
     .time-tag.today{color:var(--today)}
     .time-tag.tomorrow{color:var(--tomorrow)}
@@ -99,7 +99,7 @@
         <div class="status"><span>14:23</span><span class="status-icons">● ⌁ ▰</span></div>
         <div class="capsule">
           <div class="app-symbol" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M8.25 7.51L19.29 18.55L17.07 20.77L12.66 16.36L8.22 20.80L6.00 18.58L10.44 14.14L6.03 9.73ZM10.31 5.45L12.53 3.23L16.94 7.64L21.38 3.20L23.60 5.42L19.16 9.86L23.57 14.27L21.35 16.49Z"/></svg>
           </div>
           <span class="camera-dot" aria-hidden="true"></span>
           <p class="count-title">3项待办</p>
@@ -124,7 +124,7 @@
             <h3>备份服务器</h3>
             <p><span class="time-tag today">今天截止</span> · 另2项</p>
           </div>
-          <svg class="cal-glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <svg class="app-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.45 7.51L16.49 18.55L14.27 20.77L9.86 16.36L5.42 20.80L3.20 18.58L7.64 14.14L3.23 9.73ZM7.51 5.45L9.73 3.23L14.14 7.64L18.58 3.20L20.80 5.42L16.36 9.86L20.77 14.27L18.55 16.49Z"/></svg>
         </article>
 
         <p class="step-note">▼ 勾选完成「备份服务器」后自动切换下一项：</p>
@@ -134,13 +134,13 @@
             <h3>整理 code 目录</h3>
             <p><span class="time-tag tomorrow">明天截止</span> · 另1项</p>
           </div>
-          <svg class="cal-glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <svg class="app-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.45 7.51L16.49 18.55L14.27 20.77L9.86 16.36L5.42 20.80L3.20 18.58L7.64 14.14L3.23 9.73ZM7.51 5.45L9.73 3.23L14.14 7.64L18.58 3.20L20.80 5.42L16.36 9.86L20.77 14.27L18.55 16.49Z"/></svg>
         </article>
       </div>
     </section>
   </div>
 
-  <p class="note"><strong>真机对齐说明：</strong>一加 ColorOS 16 的标准实时活动卡片（右侧带日历图标）固定上限为两行且不可展开，锁屏底部胶囊直接复用该正文并在超过约 8.5 个汉字时自动跑马灯。采用「主标题 = 最急事项名，副行 = 截止时间 · 另N项」后，三处入口同时保持完整清晰、静态不滚屏。</p>
+  <p class="note"><strong>真机对齐说明：</strong>通知小图标已统一替换为软件双 T 标志矢量图形，并在视口内向右偏移 2.8dp 补齐收起胶囊左侧弧边留白；卡片与锁屏胶囊保持「最急事项名 + 截止时间 · 另N项」双行静态展示。</p>
 </main>
 </body>
 </html>
