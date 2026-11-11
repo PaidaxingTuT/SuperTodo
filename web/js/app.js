@@ -22,7 +22,7 @@ let state={
   autoInstallUpdate:true,
   widgetRemoveDone:false,
   deadlineReminder:true,
-  deadlineReminderOptions:{days:3,maxItems:4,selectedIds:null},
+  deadlineReminderOptions:{days:3,selectedIds:null},
   showCostSummary:true,
   hapticFeedback:true,
   customBg:{type:'default',color:'#f2f5fb',image:'',opacity:80},
@@ -2247,11 +2247,10 @@ function renderUpdateSettings(){
 function normalizeReminderOptions(value){
   const options=value&&typeof value==='object'?value:{};
   const days=Number.isInteger(options.days)?Math.max(0,Math.min(365,options.days)):3;
-  const maxItems=Number.isInteger(options.maxItems)?Math.max(1,Math.min(4,options.maxItems)):4;
   const selectedIds=Array.isArray(options.selectedIds)
-    ? [...new Set(options.selectedIds.filter(id=>typeof id==='string'&&id))].slice(0,maxItems)
+    ? [...new Set(options.selectedIds.filter(id=>typeof id==='string'&&id))].slice(0,1)
     : null;
-  return {days,maxItems,selectedIds};
+  return {days,selectedIds};
 }
 function getReminderCandidates(items,options,now=new Date()){
   const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
@@ -2267,25 +2266,22 @@ function getReminderCandidates(items,options,now=new Date()){
   return candidates.sort((a,b)=>a.daysLeft-b.daysLeft||(b.star||0)-(a.star||0));
 }
 function reminderDueLabel(days){
-  if(days<0) return '已逾期'+Math.abs(days)+'天';
+  if(days<0) return '逾期'+Math.abs(days)+'天';
   return (days===0?'今天':days===1?'明天':days===2?'后天':days+'天后')+'截止';
 }
 function renderReminderOptions(){
   const options=normalizeReminderOptions(state.deadlineReminderOptions);
   const candidates=getReminderCandidates(state.items,options);
   const manual=options.selectedIds!==null;
+  const focusItem=(manual&&candidates.find(item=>options.selectedIds.includes(item.id)))||candidates[0]||null;
   $('#reminderDays').value=options.days;
-  $$('#reminderMaxItems .seg').forEach(btn=>{
-    const selected=Number(btn.dataset.maxItems)===options.maxItems;
-    btn.classList.toggle('on',selected);
-    btn.setAttribute('aria-pressed',String(selected));
-  });
   $('#reminderManual').checked=manual;
   const choices=$('#reminderItemChoices');
   choices.hidden=!manual;
-  choices.innerHTML=manual?candidates.map(item=>`<label style="display:flex; align-items:center; gap:8px; margin:10px 0;"><input type="checkbox" data-reminder-id="${esc(item.id)}" ${options.selectedIds.includes(item.id)?'checked':''}><span>${esc(item.title||'未命名事项')} <small style="color:var(--text2);">${esc(reminderDueLabel(item.daysLeft))}</small></span></label>`).join(''):'';
-  const shown=manual?candidates.filter(item=>options.selectedIds.includes(item.id)).length:Math.min(candidates.length,options.maxItems);
-  $('#reminderSelectionHint').textContent='剩余'+candidates.length+'项待办，正文显示'+shown+'条'+(manual?'（最多可选'+options.maxItems+'条）':'');
+  choices.innerHTML=manual?candidates.map(item=>`<label style="display:flex; align-items:center; gap:8px; margin:10px 0;"><input type="radio" name="reminderFocusItem" data-reminder-id="${esc(item.id)}" ${focusItem&&focusItem.id===item.id?'checked':''}><span>${esc(item.title||'未命名事项')} <small style="color:var(--text2);">${esc(reminderDueLabel(item.daysLeft))}</small></span></label>`).join(''):'';
+  $('#reminderSelectionHint').textContent=focusItem
+    ? '共 '+candidates.length+' 项待办，当前上岛：'+(focusItem.title||'未命名事项')+'（'+reminderDueLabel(focusItem.daysLeft)+'）'
+    : '当前范围内暂无待提醒事项';
 }
 function saveReminderOptions(options){
   state.deadlineReminderOptions=normalizeReminderOptions(options);
@@ -2870,7 +2866,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.10.1-beta.6';
+const APP_VERSION='v1.10.1-beta.7';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -5053,39 +5049,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
     saveReminderOptions({...state.deadlineReminderOptions,days:Number(e.target.value)});
   });
-  $('#reminderMaxItems').addEventListener('click',e=>{
-    const button=e.target.closest('[data-max-items]');
-    if(!button) return;
-    triggerHaptic('light');
-    saveReminderOptions({...state.deadlineReminderOptions,maxItems:Number(button.dataset.maxItems)});
-  });
   $('#reminderManual').addEventListener('change',e=>{
     const options=normalizeReminderOptions(state.deadlineReminderOptions);
     const selectedIds=e.target.checked
-      ? getReminderCandidates(state.items,options).slice(0,options.maxItems).map(item=>item.id)
+      ? getReminderCandidates(state.items,options).slice(0,1).map(item=>item.id)
       : null;
     saveReminderOptions({...options,selectedIds});
   });
   $('#reminderItemChoices').addEventListener('change',e=>{
     const id=e.target.dataset.reminderId;
-    if(!id) return;
+    if(!id||!e.target.checked) return;
+    triggerHaptic('light');
     const options=normalizeReminderOptions(state.deadlineReminderOptions);
-    const selected=new Set(options.selectedIds||[]);
-    if(e.target.checked){
-      const currentIds=new Set(getReminderCandidates(state.items,options).map(item=>item.id));
-      for(const staleId of selected){
-        if(!currentIds.has(staleId)) selected.delete(staleId);
-      }
-      if(selected.size>=options.maxItems){
-        e.target.checked=false;
-        $('#reminderSelectionHint').textContent='最多选择'+options.maxItems+'条，请先取消其他事项。';
-        return;
-      }
-      selected.add(id);
-    }else{
-      selected.delete(id);
-    }
-    saveReminderOptions({...options,selectedIds:[...selected]});
+    saveReminderOptions({...options,selectedIds:[id]});
   });
   const btnTestReminder = $('#testReminderBtn');
   if(btnTestReminder){

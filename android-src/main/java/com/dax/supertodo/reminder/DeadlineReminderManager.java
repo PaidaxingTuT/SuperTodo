@@ -12,12 +12,9 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Typeface;
 import android.os.Build;
-import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
-import android.text.style.AbsoluteSizeSpan;
 import android.text.style.ForegroundColorSpan;
-import android.text.style.RelativeSizeSpan;
 import android.text.style.StyleSpan;
 import com.dax.supertodo.MainActivity;
 import com.dax.supertodo.R;
@@ -63,13 +60,6 @@ public final class DeadlineReminderManager {
     /** 提醒窗口天数：从今天起 3 天内到期（含今天与已逾期）的未完成事项都会进入提醒。 */
     private static final int REMIND_WINDOW_DAYS = 3;
     private static final int MAX_WINDOW_DAYS = 365;
-    private static final int MAX_DISPLAY_ITEMS = 4;
-    private static final int COMPACT_CARD_MAX_ITEMS = 2;
-    private static final float DENSE_CARD_TEXT_SCALE = 0.92f;
-    private static final int COLLAPSED_PLACEHOLDER_PX = 1;
-
-    /** 防止 ColorOS 在 contentText 为空时把 BigText 正文回退成胶囊第二行跑马灯。 */
-    private static final String EMPTY_CHIP_TEXT = new String(Character.toChars(0x200B));
 
     private static final int COLOR_OVERDUE_LIGHT = 0xFFD93025;
     private static final int COLOR_OVERDUE_DARK = 0xFFFF7B72;
@@ -324,19 +314,20 @@ public final class DeadlineReminderManager {
             builder = new Notification.Builder(context);
         }
 
-        String chipText = buildChipText(dueItems);
-        String expandedTitle = buildTitle(dueItems);
         JSONObject options = getReminderOptions(context);
-        CharSequence details = buildStyledExpandedText(context, dueItems, options);
+        DueItem focusItem = pickFocusItem(dueItems, options);
+        String chipText = buildChipText(dueItems);
+        String focusTitle = buildFocusTitle(focusItem);
+        CharSequence styledSummary = buildStyledSummaryText(context, focusItem, dueItems.size());
 
         PendingIntent contentIntent = buildContentIntent(context);
         builder.setSmallIcon(R.drawable.ic_stat_deadline)
                 .setColor(context.getColor(R.color.widget_primary))
-                .setContentTitle(chipText)
-                .setContentText(buildCollapsedPlaceholder())
+                .setContentTitle(focusTitle)
+                .setContentText(styledSummary)
                 .setStyle(new Notification.BigTextStyle()
-                        .setBigContentTitle(expandedTitle)
-                        .bigText(details))
+                        .setBigContentTitle(focusTitle)
+                        .bigText(styledSummary))
                 .setContentIntent(contentIntent)
                 .setOngoing(true)
                 .setAutoCancel(false)
@@ -471,43 +462,27 @@ public final class DeadlineReminderManager {
      * 生成缩小流体胶囊右侧的极简短文案, 控制在 4~5 个字以内避免胶囊过长。
      *
      * @param dueItems 窗口内事项
-     * @return 形如 "2项待办" 的紧凑文案
+     * @return 形如 "3项待办" 的紧凑文案
      */
     private static String buildChipText(List<DueItem> dueItems) {
         return dueItems.size() + "项待办";
     }
 
     /**
-     * 生成展开态流体云与通知卡片的完整标题。
+     * 生成流体云卡片与锁屏胶囊的主标题(当前最紧迫或用户指定的单条待办名称)。
      *
-     * @param dueItems 窗口内事项
-     * @return 形如 "剩余2项待办" 的展开标题
+     * @param focusItem 当前聚焦展示的事项
+     * @return 单行非空事项名称
      */
-    private static String buildTitle(List<DueItem> dueItems) {
-        return "剩余" + dueItems.size() + "项待办";
-    }
-
-    /**
-     * 构造 1px 字号的零宽占位符: 既让 ColorOS 判定 contentText 非空从而不把正文回退成胶囊跑马灯,
-     * 又尽可能压缩熄屏通知第二行的高度, 避免把第一行标题顶到左上角。
-     *
-     * @return 带 1px 尺寸约束的零宽字符
-     */
-    private static CharSequence buildCollapsedPlaceholder() {
-        SpannableString placeholder = new SpannableString(EMPTY_CHIP_TEXT);
-        placeholder.setSpan(
-                new AbsoluteSizeSpan(COLLAPSED_PLACEHOLDER_PX, false),
-                0,
-                EMPTY_CHIP_TEXT.length(),
-                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        return placeholder;
+    private static String buildFocusTitle(DueItem focusItem) {
+        return cleanTitle(focusItem.getTitle());
     }
 
     /**
      * 复用同步缓存里的配置, 避免后台扫描依赖 WebView 存活。
      *
      * @param context 任意上下文
-     * @return 正文展示配置, 无配置时返回默认空对象
+     * @return 提醒配置, 无配置时返回默认空对象
      */
     private static JSONObject getReminderOptions(Context context) {
         try {
@@ -520,101 +495,75 @@ public final class DeadlineReminderManager {
     }
 
     /**
-     * 按条数上限和用户勾选顺序筛出要在流体云正文中展示的事项。
+     * 选出当前要上岛聚焦的 1 条事项: 优先命中用户手动指定的未完成事项,
+     * 若未指定或指定事项已完成, 自动顺延到按截止日期和星标排在首位的紧迫事项。
      *
-     * @param dueItems 窗口内全部事项
-     * @param options 用户的条数和手动选择配置
-     * @return 最多 4 条待展示事项
+     * @param dueItems 窗口内已排序的非空待办列表
+     * @param options 用户的手动指定配置
+     * @return 当前聚焦展示的单条事项
      */
-    private static List<DueItem> selectDisplayItems(List<DueItem> dueItems, JSONObject options) {
-        int maxItems = Math.max(1, Math.min(MAX_DISPLAY_ITEMS,
-                options.optInt("maxItems", MAX_DISPLAY_ITEMS)));
+    private static DueItem pickFocusItem(List<DueItem> dueItems, JSONObject options) {
         JSONArray selectedIds = options.optJSONArray("selectedIds");
-        Set<String> selected = new HashSet<>();
-        if (selectedIds != null) {
-            int limit = Math.min(selectedIds.length(), maxItems);
-            for (int i = 0; i < limit; i++) {
-                selected.add(selectedIds.optString(i));
+        if (selectedIds != null && selectedIds.length() > 0) {
+            Set<String> preferred = new HashSet<>();
+            for (int i = 0; i < selectedIds.length(); i++) {
+                String id = selectedIds.optString(i);
+                if (!id.isEmpty()) {
+                    preferred.add(id);
+                }
+            }
+            for (DueItem item : dueItems) {
+                if (!item.id.isEmpty() && preferred.contains(item.id)) {
+                    return item;
+                }
             }
         }
-        List<DueItem> chosen = new ArrayList<>();
-        for (DueItem item : dueItems) {
-            if (selectedIds != null && !item.id.isEmpty() && !selected.contains(item.id)) {
-                continue;
-            }
-            if (chosen.size() >= maxItems) {
-                break;
-            }
-            chosen.add(item);
-        }
-        return chosen;
+        return dueItems.get(0);
     }
 
     /**
-     * 构造纯文本课表式正文(单换行分隔, 左侧定宽时间标签 + 右侧事项名称), 确保最多 4 行不被流体云截断。
+     * 构造紧凑的单行副标题(总宽控制在约 8 个全角字符以内), 既适配流体云卡片上限,
+     * 又保证锁屏胶囊不因超宽而触发跑马灯滚动。
      *
-     * @param dueItems 窗口内全部事项
-     * @param options 用户的条数和手动选择配置
-     * @return 纯文本多行明细
+     * @param focusItem 当前聚焦事项
+     * @param totalCount 窗口内未完成事项总数
+     * @return 形如 "今天截止" 或 "今天截止 · 另2项" 的紧凑文案
      */
-    private static String buildExpandedText(List<DueItem> dueItems, JSONObject options) {
-        List<DueItem> chosen = selectDisplayItems(dueItems, options);
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < chosen.size(); i++) {
-            if (i > 0) {
-                builder.append('\n');
-            }
-            DueItem item = chosen.get(i);
-            builder.append(dueBadgeLabel(item.getDaysLeft()))
-                    .append("  ")
-                    .append(cleanTitle(item.getTitle()));
+    private static String buildSummaryText(DueItem focusItem, int totalCount) {
+        String badge = dueBadgeLabel(focusItem.getDaysLeft());
+        int others = Math.max(0, totalCount - 1);
+        if (others == 0) {
+            return badge;
         }
-        return builder.toString();
+        return badge + " · 另" + others + "项";
     }
 
     /**
-     * 构造带语义色彩与粗体时间列的课表式富文本正文, 适配系统深浅色模式。
+     * 为紧凑副标题中的截止时间前缀添加粗体与深浅色自适应语义色彩。
      *
      * @param context 任意上下文
-     * @param dueItems 窗口内全部事项
-     * @param options 用户的条数和手动选择配置
-     * @return 可直接传给 BigTextStyle 的富文本
+     * @param focusItem 当前聚焦事项
+     * @param totalCount 窗口内未完成事项总数
+     * @return 可直接用于通知正文与 BigTextStyle 的单行富文本
      */
-    private static CharSequence buildStyledExpandedText(
+    private static CharSequence buildStyledSummaryText(
             Context context,
-            List<DueItem> dueItems,
-            JSONObject options) {
+            DueItem focusItem,
+            int totalCount) {
         boolean darkMode = isNightMode(context);
-        List<DueItem> chosen = selectDisplayItems(dueItems, options);
-        SpannableStringBuilder builder = new SpannableStringBuilder();
-        for (int i = 0; i < chosen.size(); i++) {
-            if (i > 0) {
-                builder.append('\n');
-            }
-            DueItem item = chosen.get(i);
-            String badge = dueBadgeLabel(item.getDaysLeft());
-            int badgeStart = builder.length();
-            builder.append(badge);
-            int badgeEnd = builder.length();
-            builder.setSpan(
-                    new StyleSpan(Typeface.BOLD),
-                    badgeStart,
-                    badgeEnd,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            builder.setSpan(
-                    new ForegroundColorSpan(badgeColor(item.getDaysLeft(), darkMode)),
-                    badgeStart,
-                    badgeEnd,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            builder.append("  ").append(cleanTitle(item.getTitle()));
-        }
-        if (chosen.size() > COMPACT_CARD_MAX_ITEMS && builder.length() > 0) {
-            builder.setSpan(
-                    new RelativeSizeSpan(DENSE_CARD_TEXT_SCALE),
-                    0,
-                    builder.length(),
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
+        String badge = dueBadgeLabel(focusItem.getDaysLeft());
+        String fullText = buildSummaryText(focusItem, totalCount);
+        SpannableStringBuilder builder = new SpannableStringBuilder(fullText);
+        builder.setSpan(
+                new StyleSpan(Typeface.BOLD),
+                0,
+                badge.length(),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        builder.setSpan(
+                new ForegroundColorSpan(badgeColor(focusItem.getDaysLeft(), darkMode)),
+                0,
+                badge.length(),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return builder;
     }
 
