@@ -55,7 +55,7 @@ public final class DeadlineReminderManager {
     private static final int ALARM_REQUEST_CODE = 20261106;
 
     private static final int REMIND_HOUR = 8;
-    private static final int REMIND_MINUTE = 30;
+    private static final int REMIND_MINUTE = 0;
 
     /** 提醒窗口天数：从今天起 3 天内到期（含今天与已逾期）的未完成事项都会进入提醒。 */
     private static final int REMIND_WINDOW_DAYS = 3;
@@ -139,7 +139,7 @@ public final class DeadlineReminderManager {
     /**
      * 排出下一次每日扫描的闹钟。
      *
-     * <p>优先使用精确闹钟，保证在 08:30 附近触发；当系统未授予精确闹钟权限时
+     * <p>优先使用精确闹钟，保证在 08:00 附近触发；当系统未授予精确闹钟权限时
      * 退化为 setAndAllowWhileIdle。</p>
      *
      * @param context 任意上下文
@@ -709,7 +709,7 @@ public final class DeadlineReminderManager {
     }
 
     /**
-     * 计算下一次扫描的时间点（今天或明天 08:30）。
+     * 计算下一次扫描的时间点（今天或明天 08:00）。
      *
      * @return 下一次触发的时间戳
      */

@@ -23,6 +23,7 @@ let state={
   widgetRemoveDone:false,
   deadlineReminder:true,
   deadlineReminderOptions:{days:3,selectedIds:null},
+  calendarSync:false,
   showCostSummary:true,
   hapticFeedback:true,
   customBg:{type:'default',color:'#f2f5fb',image:'',opacity:80},
@@ -93,6 +94,7 @@ function save(){
     }
   }
   syncToNativeWidget();
+  syncToNativeCalendar();
 }
 function load(){
   try{const d=JSON.parse(localStorage.getItem(KEY));if(d){
@@ -129,6 +131,7 @@ function load(){
     if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone;
     if(d.deadlineReminder!==undefined)state.deadlineReminder=!!d.deadlineReminder;
     state.deadlineReminderOptions=normalizeReminderOptions(d.deadlineReminderOptions);
+    if(d.calendarSync!==undefined)state.calendarSync=!!d.calendarSync;
     if(d.showCostSummary!==undefined)state.showCostSummary=!!d.showCostSummary;
     if(d.customBg&&typeof d.customBg==='object')state.customBg=Object.assign({type:'default',color:'#f2f5fb',image:'',opacity:80},d.customBg);
     else if(!state.customBg)state.customBg={type:'default',color:'#f2f5fb',image:'',opacity:80};
@@ -1346,7 +1349,7 @@ function renderTitle(){
   });
   $('#appbarSortBtn').hidden=!isList;
   $('#appbarSortBtn').classList.toggle('on',state.sortKey!=='默认');
-  $('#fabAi').hidden=!hasCloudKey();
+  $('#fabAi').hidden=false;
 }
 function renderDrawer(){
   const nav=$('#drawerNav');
@@ -1623,6 +1626,7 @@ function init(){
   buildStars();
   render();
   syncReminderFromNative();
+  syncCalendarFromNative();
   setTimeout(setupNativeBack,300);
   const showUiStyleNotice=!DEMO_MODE&&!state.uiStyleNoticeSeen;
   if(showUiStyleNotice){
@@ -2075,7 +2079,7 @@ function renderSuggest(sug){
 }
 function openAdd(pref){
   triggerHaptic('light');
-  editId=null; editStar=(pref&&pref.star)||0; modalOpen=true;
+  editId=null; editBatchIdx=null; editStar=(pref&&pref.star)||0; modalOpen=true;
   $('#modalTitle').textContent='新建事项';
   $('#fTitle').value=(pref&&pref.title)||''; $('#fNote').value=(pref&&pref.note)||''; $('#fCost').value=(pref&&pref.cost!=null)?pref.cost:''; DuePicker.set((pref&&pref.due)||'');
   $('#fRepeatDays').value=(pref&&pref.repeatDays)||'';
@@ -2102,7 +2106,7 @@ function openAdd(pref){
   showModal();
 }
 function openEdit(it){
-  editId=it.id; editStar=it.star||0; modalOpen=true;
+  editId=it.id; editBatchIdx=null; editStar=it.star||0; modalOpen=true;
   $('#modalTitle').textContent='编辑事项';
   $('#fTitle').value=it.title; $('#fNote').value=it.note||'';
   $('#fCost').value=(it.cost!==null&&it.cost!==undefined)?it.cost:''; DuePicker.set(it.due||'');
@@ -2110,6 +2114,28 @@ function openEdit(it){
   renderSubtaskEditor(it);
   $('#fTypeSeg').innerHTML=segHTML('type'); $('#fSceneSeg').innerHTML=segHTML('scene'); $('#fTimeSeg').innerHTML=segHTML('time');
   setSeg('type',itemTypes(it)); setSeg('scene',itemScenes(it)); setSeg('time',it.time||'');
+  $$('.star-b').forEach((s,i)=>s.classList.toggle('on',i<editStar));
+  $('#modalDelete').hidden=false;
+  showModal();
+}
+function openBatchItemEdit(idx){
+  const it=aiBatchItems[idx];
+  if(!it) return;
+  editId=null; editBatchIdx=idx; editStar=it.star||0; modalOpen=true;
+  $('#modalTitle').textContent='编辑日程预览';
+  $('#fTitle').value=it.title||'';
+  $('#fNote').value=it.note||'';
+  $('#fCost').value=(it.cost!==null&&it.cost!==undefined)?it.cost:'';
+  DuePicker.set(it.due||'');
+  $('#fRepeatDays').value=it.repeatDays||'';
+  renderSubtaskEditor({subtasks:Array.isArray(it.subtasks)?it.subtasks:[]});
+  $('#fTypeSeg').innerHTML=segHTML('type');
+  $('#fSceneSeg').innerHTML=segHTML('scene');
+  $('#fTimeSeg').innerHTML=segHTML('time');
+  setSeg('type',Array.isArray(it.types)&&it.types.length?it.types:(it.type?[it.type]:[]));
+  setSeg('scene',Array.isArray(it.scenes)&&it.scenes.length?it.scenes:(it.scene?[it.scene]:[]));
+  setSeg('time',it.time||'');
+  renderSuggest(null);
   $$('.star-b').forEach((s,i)=>s.classList.toggle('on',i<editStar));
   $('#modalDelete').hidden=false;
   showModal();
@@ -2123,7 +2149,7 @@ function setSeg(kind,val){
   });
 }
 function showModal(){ pushLayer(); UiMotion.show($('#modalMask')); UiMotion.show($('#modal')); $('#fTitle').focus(); }
-function hideModal(){ DuePicker.close(); UiMotion.hide($('#modal')); UiMotion.hide($('#modalMask')); modalOpen=false; pendingQuadrantAddKey=null; if(!backSuppress)syncBack(); }
+function hideModal(){ DuePicker.close(); UiMotion.hide($('#modal')); UiMotion.hide($('#modalMask')); modalOpen=false; editBatchIdx=null; pendingQuadrantAddKey=null; if(!backSuppress)syncBack(); }
 
 function segSelAll(kind){
   const cap = kind.charAt(0).toUpperCase() + kind.slice(1);
@@ -2182,6 +2208,13 @@ function saveForm(){
       g.time=name;
     }
   });
+  if(typeof editBatchIdx!=='undefined' && editBatchIdx!==null && aiBatchItems[editBatchIdx]){
+    Object.assign(aiBatchItems[editBatchIdx],g,{checked:aiBatchItems[editBatchIdx].checked});
+    renderAiBatchList();
+    hideModal();
+    triggerHaptic('light');
+    return;
+  }
   if(editId){
     const it=state.items.find(x=>x.id===editId);
     savedItem=it;
@@ -2277,8 +2310,32 @@ function renderReminderOptions(){
   $('#reminderDays').value=options.days;
   $('#reminderManual').checked=manual;
   const choices=$('#reminderItemChoices');
-  choices.hidden=!manual;
-  choices.innerHTML=manual?candidates.map(item=>`<label style="display:flex; align-items:center; gap:8px; margin:10px 0;"><input type="radio" name="reminderFocusItem" data-reminder-id="${esc(item.id)}" ${focusItem&&focusItem.id===item.id?'checked':''}><span>${esc(item.title||'未命名事项')} <small style="color:var(--text2);">${esc(reminderDueLabel(item.daysLeft))}</small></span></label>`).join(''):'';
+  const activeItem=focusItem||candidates[0]||null;
+  choices.hidden=!manual||!candidates.length;
+  choices.innerHTML=manual&&candidates.length?`
+    <div class="md3-select" data-open="false">
+      <button type="button" class="md3-select-trigger" name="reminderFocusItem" aria-haspopup="listbox" aria-expanded="false">
+        <span class="md3-select-value">
+          <strong>${esc(activeItem?.title||'未命名事项')}</strong>
+          <span class="reminder-choice-badge ${activeItem?(activeItem.daysLeft<0?'overdue':activeItem.daysLeft===0?'today':'soon'):'soon'}">${esc(activeItem?reminderDueLabel(activeItem.daysLeft):'')}</span>
+        </span>
+        <span class="md3-select-arrow" aria-hidden="true"></span>
+      </button>
+      <div class="md3-select-menu" role="listbox" hidden>
+        ${candidates.map(item=>{
+          const dueCls=item.daysLeft<0?'overdue':item.daysLeft===0?'today':'soon';
+          const selected=activeItem&&activeItem.id===item.id;
+          return `<button type="button" class="md3-select-option${selected?' is-selected':''}" role="option" aria-selected="${selected?'true':'false'}" data-reminder-id="${esc(item.id)}">
+            <span class="md3-select-option-text">
+              <strong>${esc(item.title||'未命名事项')}</strong>
+              <span class="reminder-choice-badge ${dueCls}">${esc(reminderDueLabel(item.daysLeft))}</span>
+            </span>
+            <span class="md3-select-option-check" aria-hidden="true"></span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
+  `:'';
   $('#reminderSelectionHint').textContent=focusItem
     ? '共 '+candidates.length+' 项待办，当前上岛：'+(focusItem.title||'未命名事项')+'（'+reminderDueLabel(focusItem.daysLeft)+'）'
     : '当前范围内暂无待提醒事项';
@@ -2307,41 +2364,45 @@ function syncReminderFromNative(){
     if(chk) chk.checked=state.deadlineReminder;
   }catch(e){}
 }
-function triggerTestReminder(){
-  triggerHaptic('light');
-  if(!hasReminderBridge()){
-    alertDlg('仅限 Android 客户端','浏览器预览环境不支持发送原生系统通知，请在 Android 客户端中测试。');
-    return;
-  }
+
+let syncCalendarTimer=null;
+function hasCalendarBridge(){
+  return typeof window.AndroidCalendarBridge!=='undefined' && window.AndroidCalendarBridge && typeof window.AndroidCalendarBridge.setEnabled==='function';
+}
+function syncToNativeCalendar(immediate=false){
+  clearTimeout(syncCalendarTimer);
+  const run=()=>{
+    try{
+      if(!state.calendarSync||!hasCalendarBridge()||typeof window.AndroidCalendarBridge.syncFromState!=='function') return;
+      window.AndroidCalendarBridge.syncFromState(JSON.stringify({items:state.items}));
+    }catch(e){}
+  };
+  if(immediate) run();
+  else syncCalendarTimer=setTimeout(run,180);
+}
+window.syncToNativeCalendar=syncToNativeCalendar;
+function syncCalendarFromNative(){
   try{
-    syncToNativeWidget(true);
-    const res = typeof window.AndroidReminderBridge.testReminderNow==='function'
-      ? window.AndroidReminderBridge.testReminderNow()
-      : '';
-    if(res==='NO_PERMISSION'){
-      dlgShow({
-        title:'需要开启通知权限',
-        msg:'系统尚未授予「超级清单」发送通知的权限。\n请点击下方按钮前往系统设置，开启「允许通知」与「横幅/流体云通知」后再试。',
-        okText:'去开启权限',
-        onOk:()=>{
-          try{
-            if(typeof window.AndroidReminderBridge.openNotificationSettings==='function'){
-              window.AndroidReminderBridge.openNotificationSettings();
-            }
-          }catch(e){}
-        }
-      });
-    }else if(res && res.indexOf('REAL_SENT:')===0){
-      const count = res.split(':')[1] || '1';
-      alertDlg('提醒已提交系统','当前日期范围内剩余 '+count+' 项待办，正文按设置最多展示4条。请下拉通知栏展开查看。');
-    }else if(res==='DEMO_SENT'){
-      alertDlg('示例提醒已提交系统','当前日期范围内没有未完成事项，已发送示例提醒。请下拉通知栏展开查看。');
-    }else{
-      alertDlg('发送失败','未能调用系统通知服务：'+(res||'未知原因'));
+    if(!hasCalendarBridge()) return;
+    state.calendarSync=!!window.AndroidCalendarBridge.isEnabled();
+    renderCalendarSyncSettings();
+    if(state.calendarSync) syncToNativeCalendar(true);
+  }catch(e){}
+}
+function applyCalendarSyncSetting(enabled){
+  state.calendarSync=!!enabled;
+  save();
+  try{
+    if(hasCalendarBridge()){
+      window.AndroidCalendarBridge.setEnabled(!!enabled);
+      if(enabled) syncToNativeCalendar(true);
     }
-  }catch(e){
-    alertDlg('发送异常','调用原生通知接口失败：'+e.message);
-  }
+  }catch(e){}
+  renderCalendarSyncSettings();
+}
+function renderCalendarSyncSettings(){
+  const chk=$('#calendarSyncEnabled');
+  if(chk) chk.checked=!!state.calendarSync;
 }
 
 let settingsPage='home';
@@ -2371,6 +2432,7 @@ function openSettings(reuseLayer=false){
   renderSetGroups();
   renderAiCfg();
   renderUpdateSettings();
+  renderCalendarSyncSettings();
   UiMotion.show($('#setMask'));
   UiMotion.show($('#setModal'));
 }
@@ -2866,7 +2928,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.10.1-beta.8';
+const APP_VERSION='v1.10.1';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -3769,43 +3831,27 @@ async function parseWithCloud(text,signal){
       // 若流式请求遭遇特殊代理不支持，平滑回退至非流式请求
     }
 
-    // 2. 回退机制：标准非流式请求（兼顾不支持流式或 response_format 的各类兼容网关）
-    const res = await fetch(base + '/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + state.ai.key
-      },
-      signal,
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'system', content: prompt }, { role: 'user', content: text }],
-        temperature: 0,
-        max_tokens: 300,
-        response_format: { type: 'json_object' }
-      })
-    });
+    // 2. 回退机制：标准非流式请求（原生环境下自动走 AndroidAiBridge 绕过 CORS）
+    const res = await postAiJson(base + '/chat/completions', state.ai.key, {
+      model,
+      messages: [{ role: 'system', content: prompt }, { role: 'user', content: text }],
+      temperature: 0,
+      max_tokens: 300,
+      response_format: { type: 'json_object' }
+    }, signal);
 
     if (!res.ok) {
       // 容错重试：某些轻量模型可能对 response_format 报 400，去掉后单次重试
       if (res.status === 400) {
-        const retryRes = await fetch(base + '/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + state.ai.key
-          },
-          signal,
-          body: JSON.stringify({
-            model,
-            messages: [{ role: 'system', content: prompt }, { role: 'user', content: text }],
-            temperature: 0,
-            max_tokens: 300
-          })
-        });
+        const retryRes = await postAiJson(base + '/chat/completions', state.ai.key, {
+          model,
+          messages: [{ role: 'system', content: prompt }, { role: 'user', content: text }],
+          temperature: 0,
+          max_tokens: 300
+        }, signal);
         if (retryRes.ok) {
-          const data = await retryRes.json();
-          const raw = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+          const data = retryRes.json;
+          const raw = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
           const parsed = extractJson(raw);
           if (parsed && typeof parsed === 'object') {
             setCachedAi(text, parsed);
@@ -3816,8 +3862,8 @@ async function parseWithCloud(text,signal){
       return null;
     }
 
-    const data = await res.json();
-    const raw = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    const data = res.json;
+    const raw = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
     const parsed = extractJson(raw);
     if (parsed && typeof parsed === 'object') {
       setCachedAi(text, parsed);
@@ -3849,8 +3895,323 @@ function addTagSilent(kind,name){
   if(!name||arr.includes(name))return;
   arr.push(name); save();
 }
-/* ===== AI 速记 UI ===== */
+/* ===== AI 速记与识图批量添加 UI ===== */
 let aiRequestId=0, aiAbort=null;
+let aiMode='text', aiImgSource='native', aiImageDataUrl='', aiBatchItems=[], editBatchIdx=null, suppressBatchClickIdx=null;
+
+function buildAiImagePrompt(){
+  const today=new Date().toISOString().slice(0,10);
+  return `提取图片中的所有日程/课程/待办，严格只输出紧凑单行 JSON 数组（不要缩进、换行或额外解释）。今天是 ${today}。
+可用type：${state.types.join('、')}；可用scene：${state.scenes.join('、')}；可用time：${state.times.join('、')}。
+对象字段：{"title":"标题","due":"YYYY-MM-DD或空","note":"时间地点等补充","type":"默认待办","scene":"可空","time":"默认今年","star":2}（空字段可省略）。`;
+}
+
+function extractScheduleList(raw){
+  if(!raw) return [];
+  let text=String(raw).trim();
+  const fence=text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if(fence && fence[1]) text=fence[1].trim();
+  let parsed=null;
+  try{
+    parsed=JSON.parse(text);
+  }catch(_){
+    const arrMatch=text.match(/\[[\s\S]*\]/);
+    if(arrMatch){
+      try{ parsed=JSON.parse(arrMatch[0]); }catch(__){}
+    }else{
+      const objMatch=text.match(/\{[\s\S]*\}/);
+      if(objMatch){
+        try{ parsed=JSON.parse(objMatch[0]); }catch(__){}
+      }
+    }
+  }
+  const list=Array.isArray(parsed)?parsed
+    :(parsed&&Array.isArray(parsed.items))?parsed.items
+    :(parsed&&Array.isArray(parsed.schedules))?parsed.schedules
+    :(parsed&&Array.isArray(parsed.todos))?parsed.todos
+    :(parsed&&typeof parsed==='object'&&parsed.title)?[parsed]:[];
+  return list
+    .filter(it=>it&&typeof it==='object'&&String(it.title||'').trim())
+    .map(it=>{
+      const dueRaw=String(it.due||'').trim();
+      const due=/^\d{4}-\d{2}-\d{2}$/.test(dueRaw)?dueRaw:'';
+      const type=state.types.includes(it.type)?it.type:(state.types.includes('待办')?'待办':(state.types[0]||'待办'));
+      const scene=state.scenes.includes(it.scene)?it.scene:'';
+      const time=state.times.includes(it.time)?it.time:(state.times[0]||'');
+      const starNum=Number(it.star);
+      const star=Number.isFinite(starNum)&&starNum>=1&&starNum<=3?Math.round(starNum):2;
+      return {
+        checked:true,
+        title:String(it.title).trim(),
+        due,
+        note:String(it.note||'').trim(),
+        type,
+        scene,
+        time,
+        star
+      };
+    });
+}
+
+function compressImageToDataUrl(file, maxSide=1024, quality=0.75){
+  return new Promise((resolve,reject)=>{
+    if(!file){ reject(new Error('未选择图片')); return }
+    const reader=new FileReader();
+    reader.onerror=()=>reject(new Error('读取图片失败'));
+    reader.onload=()=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('无法解码图片'));
+      img.onload=()=>{
+        let w=img.width, h=img.height;
+        if(w>maxSide||h>maxSide){
+          if(w>=h){ h=Math.round(h*(maxSide/w)); w=maxSide; }
+          else{ w=Math.round(w*(maxSide/h)); h=maxSide; }
+        }
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',quality));
+      };
+      img.src=reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+const nativeAiPending=new Map();
+let nativeAiSeq=0;
+function hasNativeAiBridge(){
+  return typeof window.AndroidAiBridge!=='undefined' && window.AndroidAiBridge && typeof window.AndroidAiBridge.postJson==='function';
+}
+window.onNativeAiResponse=function(requestId, status, bodyText, errorMsg){
+  const entry=nativeAiPending.get(requestId);
+  if(!entry) return;
+  nativeAiPending.delete(requestId);
+  if(errorMsg||status<0){
+    entry.reject(new Error(errorMsg||'原生网络请求失败'));
+    return;
+  }
+  let json=null;
+  try{ json=bodyText?JSON.parse(bodyText):null; }catch(_){}
+  entry.resolve({
+    ok:status>=200&&status<300,
+    status,
+    text:bodyText||'',
+    json
+  });
+};
+
+async function postAiJson(url, apiKey, payload, signal){
+  if(hasNativeAiBridge()){
+    if(signal&&signal.aborted) throw new DOMException('Aborted','AbortError');
+    const reqId='ai_'+(++nativeAiSeq);
+    return new Promise((resolve,reject)=>{
+      const onAbort=()=>{
+        nativeAiPending.delete(reqId);
+        reject(new DOMException('Aborted','AbortError'));
+      };
+      if(signal) signal.addEventListener('abort',onAbort,{once:true});
+      nativeAiPending.set(reqId,{
+        resolve:val=>{
+          if(signal) signal.removeEventListener('abort',onAbort);
+          resolve(val);
+        },
+        reject:err=>{
+          if(signal) signal.removeEventListener('abort',onAbort);
+          reject(err);
+        }
+      });
+      try{
+        window.AndroidAiBridge.postJson(reqId, url, apiKey||'', JSON.stringify(payload));
+      }catch(err){
+        nativeAiPending.delete(reqId);
+        if(signal) signal.removeEventListener('abort',onAbort);
+        reject(err);
+      }
+    });
+  }
+  try{
+    const res=await fetch(url,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+apiKey
+      },
+      signal,
+      body:JSON.stringify(payload)
+    });
+    const text=await res.text().catch(()=>'');
+    let json=null;
+    try{ json=text?JSON.parse(text):null; }catch(_){}
+    return {ok:res.ok, status:res.status, text, json};
+  }catch(err){
+    if(signal&&signal.aborted) throw err;
+    const isLocalHost=location.hostname==='localhost'||location.hostname==='127.0.0.1';
+    if(isLocalHost){
+      const proxyRes=await fetch('/__ai_proxy',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        signal,
+        body:JSON.stringify({url,apiKey,payload})
+      });
+      const text=await proxyRes.text().catch(()=>'');
+      let json=null;
+      try{ json=text?JSON.parse(text):null; }catch(_){}
+      return {ok:proxyRes.ok, status:proxyRes.status, text, json};
+    }
+    throw err;
+  }
+}
+
+async function callAiVisionSchedule(dataUrl, signal){
+  if(!hasCloudKey()) return {ok:false,msg:'未配置内置 AI'};
+  let base=(state.ai.base||'').trim().replace(/\/+$/,'');
+  if(!base) return {ok:false,msg:'请先填写 Base URL'};
+  if(!/^https?:\/\//i.test(base)) base='https://'+base;
+  if(base.endsWith('/chat/completions')) base=base.replace(/\/chat\/completions$/,'');
+  const model=(state.ai.model||'gpt-4o-mini').trim();
+  const prompt=buildAiImagePrompt();
+  try{
+    const res=await postAiJson(base+'/chat/completions', state.ai.key, {
+      model,
+      messages:[{
+        role:'user',
+        content:[
+          {type:'text',text:prompt},
+          {type:'image_url',image_url:{url:dataUrl}}
+        ]
+      }],
+      temperature:0,
+      max_tokens:1200
+    }, signal);
+    if(!res.ok){
+      return {ok:false,msg:`请求失败 (${res.status})：${(res.text||'').slice(0,120)||'当前模型可能不支持图片识别，可改用第三方识别'}`};
+    }
+    const data=res.json;
+    const raw=data&&data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
+    const list=extractScheduleList(raw);
+    if(!list.length) return {ok:false,msg:'未能从图片中解析出有效日程，请换用更清晰的截图或使用第三方识别'};
+    return {ok:true,items:list};
+  }catch(err){
+    if(signal&&signal.aborted) return {ok:false,aborted:true};
+    const isFetchErr=/failed to fetch|networkerror|load failed/i.test(String(err&&err.message||''));
+    return {
+      ok:false,
+      msg:isFetchErr
+        ? '网络请求被拦截或无法连接（浏览器环境常因目标接口不支持 CORS 跨域、Base URL 有误或代理不通导致 Failed to fetch），建议检查地址或切换「第三方识别」'
+        : '网络请求异常：'+(err.message||'请检查网络与接口地址')
+    };
+  }
+}
+
+function renderAiModalState(){
+  const isImage=aiMode==='image';
+  $$('#aiModeSeg .seg').forEach(b=>b.classList.toggle('on',b.dataset.aimode===aiMode));
+  $$('#aiImgSourceSeg .seg').forEach(b=>b.classList.toggle('on',b.dataset.aisource===aiImgSource));
+  $('#aiTextPane').hidden=isImage;
+  $('#aiImagePane').hidden=!isImage;
+  $('#aiImgNativePane').hidden=!isImage||aiImgSource!=='native';
+  $('#aiImgThirdPane').hidden=!isImage||aiImgSource!=='thirdparty';
+  $('#aiModalTitle').textContent=isImage?'识图批量添加':'一句话速记';
+  $('#aiGo').textContent=!isImage?'解析':(aiImgSource==='native'?'开始识别':'解析 JSON');
+  const hasPreview=isImage&&aiBatchItems.length>0;
+  $('#aiBatchPreview').hidden=!hasPreview;
+  $('#aiBatchImportBtn').hidden=!hasPreview;
+  if(hasPreview){
+    const checkedCount=aiBatchItems.filter(it=>it.checked).length;
+    $('#aiBatchImportBtn').textContent=`一键添加所选 (${checkedCount})`;
+    $('#aiBatchImportBtn').disabled=checkedCount===0;
+  }
+}
+
+function renderAiBatchList(){
+  const listEl=$('#aiBatchList');
+  if(!listEl) return;
+  $('#aiBatchCount').textContent=`已识别 ${aiBatchItems.length} 条日程（轻触勾选，长按编辑）`;
+  listEl.innerHTML=aiBatchItems.map((it,idx)=>{
+    const typeText=(Array.isArray(it.types)&&it.types.length)?it.types.join(' / '):(it.type||'待办');
+    const sceneText=(Array.isArray(it.scenes)&&it.scenes.length)?it.scenes.join(' / '):(it.scene||'');
+    return `
+    <label class="ai-batch-item${it.checked?' is-checked':''}" data-batch-idx="${idx}" title="点击勾选，长按编辑详情">
+      <input type="checkbox" data-batch-idx="${idx}" ${it.checked?'checked':''}>
+      <span class="ai-batch-item-body">
+        <span class="ai-batch-item-title">${esc(it.title)}</span>
+        <span class="ai-batch-item-meta">
+          ${it.due?`<span class="reminder-choice-badge soon">${esc(it.due)}</span>`:''}
+          <span>${esc(typeText)}${sceneText?' · '+esc(sceneText):''}</span>
+          ${it.cost!=null?`<span>· ¥${esc(String(it.cost))}</span>`:''}
+          ${it.note?`<span>· ${esc(it.note)}</span>`:''}
+        </span>
+      </span>
+    </label>`;
+  }).join('');
+  renderAiModalState();
+}
+
+function setAiMode(mode){
+  aiMode=mode;
+  if(mode==='image'&&aiImgSource==='native'&&!hasCloudKey()){
+    aiImgSource='thirdparty';
+    $('#aiStatus').textContent='未配置内置 AI，已自动切换至第三方识图导入';
+  }else if(mode==='text'&&!hasCloudKey()){
+    $('#aiStatus').textContent='文字速记需先开启内置 AI（设置 → AI · 云端增强），或使用「识图批量 → 第三方识别」';
+  }else if(mode==='text'){
+    $('#aiStatus').textContent='AI 增强已开启'+(state.ai.model?(' · '+state.ai.model):'');
+  }else{
+    $('#aiStatus').textContent=aiImgSource==='native'?'选择图片后点击「开始识别」':'复制提示词给外部 AI，粘贴返回的 JSON 后点击「解析 JSON」';
+  }
+  renderAiModalState();
+}
+
+function setAiImgSource(src){
+  if(src==='native'&&!hasCloudKey()){
+    aiImgSource='thirdparty';
+    $('#aiStatus').textContent='未配置内置 AI，已为你切换至第三方识别（复制提示词给豆包 / GPT）';
+    renderAiModalState();
+    return;
+  }
+  aiImgSource=src;
+  $('#aiStatus').textContent=src==='native'?'选择图片后点击「开始识别」':'复制提示词给外部 AI，粘贴返回的 JSON 后点击「解析 JSON」';
+  renderAiModalState();
+}
+
+function commitAiBatchItems(){
+  const selected=aiBatchItems.filter(it=>it.checked);
+  if(!selected.length) return;
+  const now=Date.now();
+  selected.slice().reverse().forEach((it,idx)=>{
+    const types=(Array.isArray(it.types)&&it.types.length)?it.types.slice():[it.type||(state.types[0]||'待办')];
+    const scenes=(Array.isArray(it.scenes)&&it.scenes.length)?it.scenes.slice():(it.scene?[it.scene]:[]);
+    const item={
+      id:uid(),
+      title:it.title,
+      note:it.note||'',
+      cost:it.cost!=null?it.cost:null,
+      star:it.star!=null?it.star:2,
+      due:it.due||'',
+      repeat:'none',
+      repeatDays:it.repeatDays||0,
+      type:types[0]||(state.types[0]||'待办'),
+      types,
+      scene:scenes[0]||'',
+      scenes,
+      time:it.time||'',
+      done:false,
+      doneScenes:[],
+      doneTypes:[],
+      subtasks:Array.isArray(it.subtasks)?it.subtasks.map(st=>({...st})):[],
+      created:now+idx
+    };
+    state.items.unshift(item);
+  });
+  save();
+  render();
+  triggerHaptic('medium');
+  closeAi(false);
+  alertDlg('批量添加成功',`已成功新增 ${selected.length} 条待办日程。`);
+}
+
 function openAi(){
   triggerHaptic('light');
   preconnectAi();
@@ -3859,8 +4220,16 @@ function openAi(){
   aiAbort=null;
   pushLayer();
   $('#aiInput').value=''; $('#aiLoading').hidden=true; $('#aiGo').disabled=false;
-  $('#aiStatus').textContent = 'AI 增强已开启'+(state.ai.model?(' · '+state.ai.model):'');
-  UiMotion.show($('#aiMask')); UiMotion.show($('#aiModal')); $('#aiInput').focus();
+  aiImageDataUrl='';
+  aiBatchItems=[];
+  if($('#aiJsonInput')) $('#aiJsonInput').value='';
+  if($('#aiImgPreviewWrap')) $('#aiImgPreviewWrap').hidden=true;
+  if($('#aiImgFile')) $('#aiImgFile').value='';
+  aiMode=hasCloudKey()?'text':'image';
+  aiImgSource=hasCloudKey()?'native':'thirdparty';
+  setAiMode(aiMode);
+  UiMotion.show($('#aiMask')); UiMotion.show($('#aiModal'));
+  if(aiMode==='text'&&hasCloudKey()) $('#aiInput').focus();
 }
 function closeAi(cancelRequest=true){
   if(cancelRequest){
@@ -3872,6 +4241,49 @@ function closeAi(cancelRequest=true){
   if(!backSuppress)syncBack();
 }
 async function runAi(){
+  if(aiMode==='image'){
+    if(aiImgSource==='thirdparty'){
+      const raw=$('#aiJsonInput').value.trim();
+      if(!raw){ $('#aiStatus').textContent='请先粘贴外部 AI 返回的 JSON 结果'; $('#aiJsonInput').focus(); return }
+      const list=extractScheduleList(raw);
+      if(!list.length){ $('#aiStatus').textContent='未识别到有效 JSON 日程数组，请检查格式后重试'; return }
+      aiBatchItems=list;
+      $('#aiStatus').textContent=`解析成功，请勾选需要添加的日程（共 ${list.length} 条）`;
+      renderAiBatchList();
+      return;
+    }
+    if(!hasCloudKey()){ setAiImgSource('thirdparty'); return }
+    if(!aiImageDataUrl){ $('#aiStatus').textContent='请先选择一张日程图片'; return }
+    const requestId=++aiRequestId;
+    if(aiAbort)aiAbort.abort();
+    const controller=new AbortController();
+    aiAbort=controller;
+    let elapsedSec=0;
+    $('#aiGo').disabled=true; $('#aiLoading').hidden=false; $('#aiStatus').textContent='正在识别图片中的日程…';
+    const timer=setInterval(()=>{
+      elapsedSec+=1;
+      if(!controller.signal.aborted) $('#aiStatus').textContent=`正在识别图片中的日程… ${elapsedSec}s`;
+    },1000);
+    let res;
+    try{
+      res=await callAiVisionSchedule(aiImageDataUrl,controller.signal);
+    }finally{
+      clearInterval(timer);
+    }
+    if(requestId!==aiRequestId||controller.signal.aborted||$('#aiModal').hidden)return;
+    aiAbort=null;
+    $('#aiGo').disabled=false; $('#aiLoading').hidden=true;
+    if(!res.ok){ $('#aiStatus').textContent=res.msg||'识图解析失败'; return }
+    aiBatchItems=res.items;
+    $('#aiStatus').textContent=`识别成功，请勾选需要添加的日程（共 ${res.items.length} 条）`;
+    renderAiBatchList();
+    return;
+  }
+
+  if(!hasCloudKey()){
+    $('#aiStatus').textContent='请先在设置中开启内置 AI，或切换到「识图批量 → 第三方识别」';
+    return;
+  }
   const text=$('#aiInput').value.trim();
   if(!text){ $('#aiInput').focus(); return }
   const requestId=++aiRequestId;
@@ -4891,7 +5303,21 @@ document.addEventListener('DOMContentLoaded',()=>{
       $('#addSubtask').click();
     }
   });
-  $('#modalDelete').addEventListener('click',()=>{ if(!editId)return; moveToTrash(editId); hideModal(); });
+  $('#modalDelete').addEventListener('click',()=>{
+    if(editBatchIdx!==null){
+      aiBatchItems.splice(editBatchIdx,1);
+      renderAiBatchList();
+      if(!aiBatchItems.length){
+        $('#aiBatchPreview').hidden=true;
+        $('#aiStatus').textContent='已移除该条预览';
+      }
+      hideModal();
+      return;
+    }
+    if(!editId)return;
+    moveToTrash(editId);
+    hideModal();
+  });
   $('#modal').addEventListener('click',e=>{
     const add=e.target.closest('.seg-chip.mini');
     if(add){ addTag(add.dataset.add); return }
@@ -5056,16 +5482,44 @@ document.addEventListener('DOMContentLoaded',()=>{
       : null;
     saveReminderOptions({...options,selectedIds});
   });
-  $('#reminderItemChoices').addEventListener('change',e=>{
-    const id=e.target.dataset.reminderId;
-    if(!id||!e.target.checked) return;
-    triggerHaptic('light');
-    const options=normalizeReminderOptions(state.deadlineReminderOptions);
-    saveReminderOptions({...options,selectedIds:[id]});
+  const reminderChoicesEl=$('#reminderItemChoices');
+  reminderChoicesEl.addEventListener('click',e=>{
+    const trigger=e.target.closest('.md3-select-trigger');
+    const wrap=reminderChoicesEl.querySelector('.md3-select');
+    if(!wrap) return;
+    if(trigger){
+      e.stopPropagation();
+      const nextOpen=wrap.dataset.open!=='true';
+      wrap.dataset.open=nextOpen?'true':'false';
+      trigger.setAttribute('aria-expanded',nextOpen?'true':'false');
+      const menu=wrap.querySelector('.md3-select-menu');
+      if(menu) menu.hidden=!nextOpen;
+      return;
+    }
+    const opt=e.target.closest('.md3-select-option');
+    if(opt){
+      const id=opt.dataset.reminderId;
+      if(!id) return;
+      triggerHaptic('light');
+      const options=normalizeReminderOptions(state.deadlineReminderOptions);
+      saveReminderOptions({...options,selectedIds:[id]});
+    }
   });
-  const btnTestReminder = $('#testReminderBtn');
-  if(btnTestReminder){
-    btnTestReminder.addEventListener('click',triggerTestReminder);
+  document.addEventListener('click',e=>{
+    const wrap=reminderChoicesEl.querySelector('.md3-select');
+    if(!wrap||wrap.dataset.open!=='true'||wrap.contains(e.target)) return;
+    wrap.dataset.open='false';
+    const trigger=wrap.querySelector('.md3-select-trigger');
+    const menu=wrap.querySelector('.md3-select-menu');
+    if(trigger) trigger.setAttribute('aria-expanded','false');
+    if(menu) menu.hidden=true;
+  });
+  const chkCalendarSync = $('#calendarSyncEnabled');
+  if(chkCalendarSync){
+    chkCalendarSync.addEventListener('change',e=>{
+      triggerHaptic('light');
+      applyCalendarSyncSetting(e.target.checked);
+    });
   }
   const btnOpenNotifSet = $('#openNotifSetBtn');
   if(btnOpenNotifSet){
@@ -5094,12 +5548,132 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#importFile').addEventListener('change',importData);
   $('#clearBtn').addEventListener('click',clearAll);
 
-  /* AI 一句话速记 */
+  /* AI 速记与识图批量添加 */
   $('#aiClose').addEventListener('click',closeAi);
   $('#aiCancel').addEventListener('click',closeAi);
   $('#aiMask').addEventListener('click',closeAi);
   $('#aiGo').addEventListener('click',runAi);
   $('#aiInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();runAi()} });
+  $('#aiModeSeg').addEventListener('click',e=>{
+    const btn=e.target.closest('[data-aimode]');
+    if(btn) setAiMode(btn.dataset.aimode);
+  });
+  $('#aiImgSourceSeg').addEventListener('click',e=>{
+    const btn=e.target.closest('[data-aisource]');
+    if(btn) setAiImgSource(btn.dataset.aisource);
+  });
+  $('#aiPickImgBtn').addEventListener('click',()=>$('#aiImgFile').click());
+  $('#aiImgFile').addEventListener('change',async e=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file) return;
+    try{
+      aiImageDataUrl=await compressImageToDataUrl(file);
+      $('#aiImgPreview').src=aiImageDataUrl;
+      $('#aiImgPreviewWrap').hidden=false;
+      $('#aiStatus').textContent='图片已就绪，点击「开始识别」';
+    }catch(err){
+      $('#aiStatus').textContent=err.message||'图片加载失败';
+    }
+  });
+  $('#aiClearImgBtn').addEventListener('click',()=>{
+    aiImageDataUrl='';
+    $('#aiImgFile').value='';
+    $('#aiImgPreviewWrap').hidden=true;
+    $('#aiStatus').textContent='已清除图片';
+  });
+  $('#aiModal').addEventListener('paste',async e=>{
+    if(aiMode!=='image'||aiImgSource!=='native') return;
+    const items=e.clipboardData&&e.clipboardData.items;
+    if(!items) return;
+    for(const it of items){
+      if(it.type&&it.type.startsWith('image/')){
+        const file=it.getAsFile();
+        if(!file) continue;
+        try{
+          aiImageDataUrl=await compressImageToDataUrl(file);
+          $('#aiImgPreview').src=aiImageDataUrl;
+          $('#aiImgPreviewWrap').hidden=false;
+          $('#aiStatus').textContent='已粘贴截图，点击「开始识别」';
+        }catch(err){
+          $('#aiStatus').textContent=err.message||'截图处理失败';
+        }
+        break;
+      }
+    }
+  });
+  $('#aiCopyPromptBtn').addEventListener('click',async ()=>{
+    const promptText=buildAiImagePrompt();
+    try{
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(promptText);
+      }else{
+        const ta=document.createElement('textarea');
+        ta.value=promptText;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      triggerHaptic('light');
+      $('#aiStatus').textContent='已复制识图提示词！请连同图片发给豆包 / GPT，再将返回的 JSON 粘贴到下方';
+    }catch(err){
+      $('#aiStatus').textContent='复制失败，请手动授权剪贴板权限';
+    }
+  });
+  $('#aiBatchList').addEventListener('change',e=>{
+    if(e.target.type!=='checkbox') return;
+    const idx=Number(e.target.dataset.batchIdx);
+    if(!Number.isFinite(idx)||!aiBatchItems[idx]) return;
+    aiBatchItems[idx].checked=e.target.checked;
+    const card=e.target.closest('.ai-batch-item');
+    if(card) card.classList.toggle('is-checked',e.target.checked);
+    renderAiModalState();
+  });
+  $('#aiBatchList').addEventListener('click',e=>{
+    const card=e.target.closest('.ai-batch-item');
+    if(!card) return;
+    const idx=Number(card.dataset.batchIdx);
+    if(suppressBatchClickIdx===idx){
+      e.preventDefault();
+      suppressBatchClickIdx=null;
+    }
+  });
+  let batchPressTimer=null, batchPressStart=null;
+  const clearBatchPress=()=>{
+    if(batchPressTimer){ clearTimeout(batchPressTimer); batchPressTimer=null; }
+    batchPressStart=null;
+  };
+  $('#aiBatchList').addEventListener('pointerdown',e=>{
+    if(e.button&&e.button!==0) return;
+    const card=e.target.closest('.ai-batch-item');
+    if(!card) return;
+    const idx=Number(card.dataset.batchIdx);
+    if(!Number.isFinite(idx)||!aiBatchItems[idx]) return;
+    clearBatchPress();
+    batchPressStart={x:e.clientX,y:e.clientY};
+    batchPressTimer=setTimeout(()=>{
+      batchPressTimer=null;
+      suppressBatchClickIdx=idx;
+      triggerHaptic('medium');
+      openBatchItemEdit(idx);
+    },420);
+  });
+  $('#aiBatchList').addEventListener('pointermove',e=>{
+    if(!batchPressTimer||!batchPressStart) return;
+    if(Math.hypot(e.clientX-batchPressStart.x,e.clientY-batchPressStart.y)>8) clearBatchPress();
+  });
+  $('#aiBatchList').addEventListener('pointerup',clearBatchPress);
+  $('#aiBatchList').addEventListener('pointercancel',clearBatchPress);
+  $('#aiBatchList').addEventListener('scroll',clearBatchPress,{passive:true});
+  $('#aiBatchList').addEventListener('contextmenu',e=>{
+    if(e.target.closest('.ai-batch-item')) e.preventDefault();
+  });
+  $('#aiBatchToggleAll').addEventListener('click',()=>{
+    const allChecked=aiBatchItems.length>0&&aiBatchItems.every(it=>it.checked);
+    aiBatchItems.forEach(it=>{ it.checked=!allChecked; });
+    renderAiBatchList();
+  });
+  $('#aiBatchImportBtn').addEventListener('click',commitAiBatchItems);
 
   /* 智能整理 */
   $('#tidyClose').addEventListener('click',closeTidy);

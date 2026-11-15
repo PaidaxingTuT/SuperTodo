@@ -63,8 +63,8 @@ try{
 }catch(e){}
 </script>
 <link rel="stylesheet" href="web/vendor/air-datepicker/air-datepicker.css">
-<link rel="stylesheet" href="web/styles/style.css?v=subtask-shared-type">
-<link rel="stylesheet" id="interfaceStyleSheet" data-md3-href="web/styles/md3.css?v=subtask-shared-type">
+<link rel="stylesheet" href="web/styles/style.css?v=settings-md3-refactor-11">
+<link rel="stylesheet" id="interfaceStyleSheet" data-md3-href="web/styles/md3.css?v=settings-md3-refactor-11">
 <script>
 try{
   const demo=new URLSearchParams(location.search).get('demo')==='1';
@@ -213,15 +213,62 @@ try{
   </div>
 </div>
 
-<!-- ===== AI 一句话速记弹窗 ===== -->
+<!-- ===== AI 速记与识图批量添加弹窗 ===== -->
 <div class="modal-mask" id="aiMask" hidden></div>
-<div class="modal modal-sm" id="aiModal" hidden>
-  <div class="modal-head"><h2>一句话速记</h2><button class="md-close" id="aiClose" aria-label="关闭"></button></div>
+<div class="modal" id="aiModal" hidden>
+  <div class="modal-head"><h2 id="aiModalTitle">AI 助手</h2><button class="md-close" id="aiClose" aria-label="关闭"></button></div>
   <div class="modal-body">
-    <label class="fld">
-      <input type="text" id="aiInput" placeholder="例如：买一把剪刀，30块，明天用" autocomplete="off">
-    </label>
-    <div class="ai-tip">AI 会自动归类并填好表单，保存前可修改。</div>
+    <div class="db-seg ai-mode-seg" id="aiModeSeg">
+      <button type="button" class="seg on" data-aimode="text">文字速记</button>
+      <button type="button" class="seg" data-aimode="image">识图批量</button>
+    </div>
+
+    <div id="aiTextPane">
+      <label class="set-field" for="aiInput">
+        <span class="set-field-label">输入一句话，AI 自动归类</span>
+        <input type="text" id="aiInput" placeholder="例如：买一把剪刀，30块，明天用" autocomplete="off">
+      </label>
+      <div class="ai-tip">解析后将预填待办表单，保存前可自由修改。</div>
+    </div>
+
+    <div id="aiImagePane" hidden>
+      <div class="db-seg ai-source-seg" id="aiImgSourceSeg">
+        <button type="button" class="seg on" data-aisource="native">原生识别</button>
+        <button type="button" class="seg" data-aisource="thirdparty">第三方识别</button>
+      </div>
+
+      <div id="aiImgNativePane">
+        <div class="ai-upload-box" id="aiUploadBox">
+          <input type="file" id="aiImgFile" accept="image/*" hidden>
+          <button type="button" class="btn-line" id="aiPickImgBtn">选择日程图片</button>
+          <div id="aiImgPreviewWrap" class="ai-img-preview-wrap" hidden>
+            <img id="aiImgPreview" alt="待识别图片预览">
+            <button type="button" class="btn-text danger" id="aiClearImgBtn">移除图片</button>
+          </div>
+        </div>
+        <div class="ai-tip">支持课程表、培训计划、会议安排截图，需在设置中配置支持视觉的模型。</div>
+      </div>
+
+      <div id="aiImgThirdPane" hidden>
+        <div class="ai-third-step">
+          <span class="set-field-label">1. 复制专用提示词，连同图片发给豆包 / GPT / Kimi</span>
+          <button type="button" class="btn-line" id="aiCopyPromptBtn">复制识图提示词</button>
+        </div>
+        <label class="set-field ai-third-step" for="aiJsonInput">
+          <span class="set-field-label">2. 粘贴外部 AI 返回的 JSON 结果</span>
+          <textarea id="aiJsonInput" class="ai-json-textarea" rows="5" placeholder='粘贴 AI 返回的 JSON 数组（支持 ```json 代码块）'></textarea>
+        </label>
+      </div>
+
+      <div id="aiBatchPreview" class="ai-batch-preview" hidden>
+        <div class="ai-batch-head">
+          <span id="aiBatchCount">已识别 0 条日程</span>
+          <button type="button" class="btn-text" id="aiBatchToggleAll">全选 / 取消</button>
+        </div>
+        <div id="aiBatchList" class="ai-batch-list"></div>
+      </div>
+    </div>
+
     <div class="ai-loading" id="aiLoading" hidden>正在解析…</div>
     <div class="ai-status" id="aiStatus"></div>
   </div>
@@ -229,6 +276,7 @@ try{
     <div class="spacer"></div>
     <button class="btn-text" id="aiCancel">取消</button>
     <button class="btn-filled" id="aiGo">解析</button>
+    <button class="btn-filled" id="aiBatchImportBtn" hidden>一键添加所选</button>
   </div>
 </div>
 
@@ -270,197 +318,271 @@ try{
   <div class="modal-head"><md-filled-tonal-icon-button class="settings-icon-button" id="setBack" type="button" aria-label="返回设置" hidden><md-icon>arrow_back</md-icon></md-filled-tonal-icon-button><h2 id="setTitle">设置</h2><md-filled-tonal-icon-button class="settings-icon-button" id="setClose" type="button" aria-label="关闭"><md-icon>close</md-icon></md-filled-tonal-icon-button></div>
   <div class="modal-body">
     <div id="settingsHome">
-      <nav class="settings-menu" aria-label="设置分类">
-        <button class="settings-entry" type="button" data-settings-page="appearance">
-          <morph-icon data-icon="contrast" aria-hidden="true"></morph-icon>
-          <span><strong>外观设置</strong><small>日夜模式、主色、背景、列表布局</small></span>
-          <morph-icon data-icon="right" aria-hidden="true"></morph-icon>
-        </button>
-        <button class="settings-entry" type="button" data-settings-page="features">
-          <morph-icon data-icon="settings" aria-hidden="true"></morph-icon>
-          <span><strong>功能设置</strong><small>分类、预算、更新、小部件、AI</small></span>
-          <morph-icon data-icon="right" aria-hidden="true"></morph-icon>
-        </button>
-      </nav>
-<div class="set-section">
-      <div class="set-btns">
-        <button class="btn-line" id="exportBtn">导出备份</button>
-        <button class="btn-line" id="importBtn">导入备份</button>
+      <div class="set-group">
+        <div class="set-group-title">常规</div>
+        <nav class="settings-menu" aria-label="设置分类">
+          <button class="settings-entry" type="button" data-settings-page="appearance">
+            <morph-icon data-icon="contrast" aria-hidden="true"></morph-icon>
+            <span><strong>外观设置</strong><small>日夜模式、主色、背景、列表布局</small></span>
+            <morph-icon data-icon="right" aria-hidden="true"></morph-icon>
+          </button>
+          <button class="settings-entry" type="button" data-settings-page="features">
+            <morph-icon data-icon="settings" aria-hidden="true"></morph-icon>
+            <span><strong>功能设置</strong><small>分类、预算、更新、小部件、AI</small></span>
+            <morph-icon data-icon="right" aria-hidden="true"></morph-icon>
+          </button>
+        </nav>
       </div>
-      <button class="btn-line danger" id="clearBtn">清空全部</button>
-      <input type="file" id="importFile" accept=".json" hidden>
+
+      <div class="set-group">
+        <div class="set-group-title">数据与备份</div>
+        <div class="set-card set-data-card">
+          <div class="set-btns">
+            <button class="btn-line" id="exportBtn">导出备份</button>
+            <button class="btn-line" id="importBtn">导入备份</button>
+          </div>
+          <button class="btn-line danger" id="clearBtn">清空全部</button>
+          <input type="file" id="importFile" accept=".json" hidden>
+        </div>
+      </div>
     </div>
-    </div>
+
     <div id="settingsAppearance" hidden>
-<div class="set-section">
-      <h3>外观 · 日夜模式</h3>
-      <div class="db-seg" id="colorModeSeg" style="margin: 8px 0 16px;">
-        <button class="seg" data-mode="system">跟随系统</button>
-        <button class="seg" data-mode="light">日间浅色</button>
-        <button class="seg" data-mode="dark">夜间深色</button>
-      </div>
-
-      <h3>外观 · 主色</h3>
-      <div class="palette" id="palette"></div>
-      <div class="pal-custom">
-        <button class="btn-line" id="customColorBtn">自定义颜色</button>
-        <input type="color" id="customColor" value="#0b57d0" hidden>
-      </div>
-    </div>
-
-    <div class="set-divide"></div>
-
-<div class="set-section">
-      <h3>主页面背景</h3>
-      <div class="db-seg" id="bgTypeSeg" style="margin: 8px 0 12px;">
-        <button class="seg on" data-bg="default">默认背景</button>
-        <button class="seg" data-bg="color">自定义纯色</button>
-        <button class="seg" data-bg="image">背景图片</button>
-      </div>
-
-      <!-- 自定义纯色配置面板 -->
-      <div id="bgColorPanel" style="display:none; margin-bottom: 12px;">
-        <div class="pal-custom" style="margin-top: 4px;">
-          <button class="btn-line" id="customBgColorBtn">选择背景颜色</button>
-          <input type="color" id="customBgColor" value="#f2f5fb" hidden>
-        </div>
-      </div>
-
-      <!-- 背景图片配置面板 -->
-      <div id="bgImagePanel" style="display:none; margin-bottom: 12px;">
-        <div class="bg-image-actions">
-          <button class="btn-line" id="uploadBgBtn">选择背景图片</button>
-          <button class="btn-line danger" id="removeBgBtn" style="display:none;">移除图片</button>
-          <input type="file" id="bgFileInput" accept="image/*" hidden>
-        </div>
-        <div id="bgPreviewBox" style="margin-top:10px; display:none; align-items:center; gap:10px;">
-          <div id="bgThumb" style="width:48px; height:48px; border-radius:12px; border:1px solid var(--line); background-size:cover; background-position:center; flex-shrink:0;"></div>
-          <span id="bgFileName" style="font-size:12px; color:var(--text2); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">已设置自定义背景图</span>
-        </div>
-      </div>
-
-      <!-- 背景透明度调节 -->
-      <div class="slider-row" id="bgOpacityRow" style="display:none; margin-top:10px;">
-        <div class="slider-label">
-          <span>背景透明度</span>
-          <span class="slider-val" id="valBgOpacity">80%</span>
-        </div>
-        <div class="slider-control"><input type="range" class="density-slider" id="sliderBgOpacity" aria-label="背景透明度" min="10" max="100" step="5" value="80"></div>
-      </div>
-    </div>
-
-    <div class="set-divide"></div>
-
-<div class="set-section">
-      <h3>列表布局</h3>
-      <div class="db-seg" id="spacingPresetSeg" style="margin: 8px 0 10px;">
-        <button class="seg" data-preset="compact">紧凑</button>
-        <button class="seg" data-preset="standard">标准</button>
-        <button class="seg" data-preset="spacious">宽松</button>
-      </div>
-
-      <div class="custom-spacing-box">
-        <div class="slider-row">
-          <div class="slider-label">
-            <span>卡片间距</span>
-            <span class="slider-val" id="valItemGap">10px</span>
+      <div class="set-group">
+        <div class="set-group-title">日夜模式与主题色</div>
+        <div class="set-card">
+          <div class="set-block">
+            <h3 class="set-subhead">日夜模式</h3>
+            <div class="db-seg" id="colorModeSeg">
+              <button class="seg" data-mode="system">跟随系统</button>
+              <button class="seg" data-mode="light">日间浅色</button>
+              <button class="seg" data-mode="dark">夜间深色</button>
+            </div>
           </div>
-          <div class="slider-control"><input type="range" class="density-slider" id="sliderItemGap" aria-label="卡片间距" min="4" max="22" step="1" value="10"></div>
-        </div>
-
-        <div class="slider-row">
-          <div class="slider-label">
-            <span>卡片内边距</span>
-            <span class="slider-val" id="valItemPad">13px</span>
+          <div class="set-block">
+            <h3 class="set-subhead">主题主色</h3>
+            <div class="palette" id="palette"></div>
+            <div class="pal-custom">
+              <button class="btn-line" id="customColorBtn">自定义颜色</button>
+              <input type="color" id="customColor" value="#0b57d0" hidden>
+            </div>
           </div>
-          <div class="slider-control"><input type="range" class="density-slider" id="sliderItemPad" aria-label="卡片内边距" min="6" max="22" step="1" value="13"></div>
         </div>
+      </div>
 
-        <div class="slider-row">
-          <div class="slider-label">
-            <span>标题字号大小</span>
-            <span class="slider-val" id="valItemFont">15px</span>
+      <div class="set-group">
+        <div class="set-group-title">主页面背景</div>
+        <div class="set-card">
+          <div class="db-seg" id="bgTypeSeg">
+            <button class="seg on" data-bg="default">默认背景</button>
+            <button class="seg" data-bg="color">自定义纯色</button>
+            <button class="seg" data-bg="image">背景图片</button>
           </div>
-          <div class="slider-control"><input type="range" class="density-slider" id="sliderItemFont" aria-label="标题字号大小" min="12" max="19" step="0.5" value="15"></div>
+
+          <!-- 自定义纯色配置面板 -->
+          <div id="bgColorPanel" class="set-subpanel" style="display:none;">
+            <div class="pal-custom">
+              <button class="btn-line" id="customBgColorBtn">选择背景颜色</button>
+              <input type="color" id="customBgColor" value="#f2f5fb" hidden>
+            </div>
+          </div>
+
+          <!-- 背景图片配置面板 -->
+          <div id="bgImagePanel" class="set-subpanel" style="display:none;">
+            <div class="bg-image-actions">
+              <button class="btn-line" id="uploadBgBtn">选择背景图片</button>
+              <button class="btn-line danger" id="removeBgBtn" style="display:none;">移除图片</button>
+              <input type="file" id="bgFileInput" accept="image/*" hidden>
+            </div>
+            <div id="bgPreviewBox" class="bg-preview-box" style="display:none;">
+              <div id="bgThumb" class="bg-thumb"></div>
+              <span id="bgFileName" class="bg-file-name">已设置自定义背景图</span>
+            </div>
+          </div>
+
+          <!-- 背景透明度调节 -->
+          <div class="slider-row set-subpanel" id="bgOpacityRow" style="display:none;">
+            <div class="slider-label">
+              <span>背景透明度</span>
+              <span class="slider-val" id="valBgOpacity">80%</span>
+            </div>
+            <div class="slider-control"><input type="range" class="density-slider" id="sliderBgOpacity" aria-label="背景透明度" min="10" max="100" step="5" value="80"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="set-group">
+        <div class="set-group-title">列表密度与排版</div>
+        <div class="set-card">
+          <div class="db-seg" id="spacingPresetSeg">
+            <button class="seg" data-preset="compact">紧凑</button>
+            <button class="seg" data-preset="standard">标准</button>
+            <button class="seg" data-preset="spacious">宽松</button>
+          </div>
+
+          <div class="custom-spacing-box">
+            <div class="slider-row">
+              <div class="slider-label">
+                <span>卡片间距</span>
+                <span class="slider-val" id="valItemGap">10px</span>
+              </div>
+              <div class="slider-control"><input type="range" class="density-slider" id="sliderItemGap" aria-label="卡片间距" min="4" max="22" step="1" value="10"></div>
+            </div>
+
+            <div class="slider-row">
+              <div class="slider-label">
+                <span>卡片内边距</span>
+                <span class="slider-val" id="valItemPad">13px</span>
+              </div>
+              <div class="slider-control"><input type="range" class="density-slider" id="sliderItemPad" aria-label="卡片内边距" min="6" max="22" step="1" value="13"></div>
+            </div>
+
+            <div class="slider-row">
+              <div class="slider-label">
+                <span>标题字号大小</span>
+                <span class="slider-val" id="valItemFont">15px</span>
+              </div>
+              <div class="slider-control"><input type="range" class="density-slider" id="sliderItemFont" aria-label="标题字号大小" min="12" max="19" step="0.5" value="15"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-    </div>
+
     <div id="settingsFeatures" hidden>
-<div class="set-section">
-      <h3>类型</h3>
-      <div class="tags" id="setTypes"></div>
-    </div>
-
-    <div class="set-divide"></div>
-
-<div class="set-section">
-      <h3>场景分组</h3>
-      <div class="tags" id="setScenes"></div>
-    </div>
-
-    <div class="set-divide"></div>
-
-<div class="set-section">
-      <h3>时间分组</h3>
-      <div class="tags" id="setTimes"></div>
-    </div>
-
-    <div class="set-divide"></div>
-
-<div class="set-section">
-      <h3>统计与预算</h3>
-      <label class="switch"><input type="checkbox" id="showCostSummary"><span></span><em>统计预算汇总</em></label>
-    </div>
-
-    <div class="set-divide"></div>
-
-<div class="set-section">
-      <h3>更新与安装</h3>
-      <label class="switch"><input type="checkbox" id="autoCheckUpdate"><span></span><em>启动时自动检查更新</em></label>
-      <label class="switch" style="margin-top:8px;"><input type="checkbox" id="autoInstallUpdate"><span></span><em>更新包下载完成后自动安装</em></label>
-    </div>
-
-    <div class="set-divide"></div>
-
-<div class="set-section">
-      <h3>桌面小部件</h3>
-      <label class="switch"><input type="checkbox" id="widgetRemoveDone"><span></span><em>在小部件中完成事项后自动移除</em></label>
-    </div>
-
-    <div class="set-divide"></div>
-
-<div class="set-section" id="setDeadlineReminder">
-      <h3>截止提醒与流体云</h3>
-      <label class="switch"><input type="checkbox" id="deadlineReminder" checked><span></span><em>临近截止事项自动弹出提醒</em></label>
-      <label class="fld">截止范围（未来天数，0 为仅今天）
-        <input type="number" id="reminderDays" min="0" max="365" step="1" value="3">
-      </label>
-      <label class="switch"><input type="checkbox" id="reminderManual"><span></span><em>手动指定优先上岛的事项</em></label>
-      <p style="color:var(--text2); font-size:12px;">胶囊统计范围内全部未完成事项（含近7天逾期），卡片聚焦展示最紧迫的 1 项，完成后自动切换下一项。</p>
-      <div id="reminderItemChoices" hidden></div>
-      <p id="reminderSelectionHint" role="status" style="color:var(--text2); font-size:12px;"></p>
-      <div class="bg-image-actions" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button type="button" class="btn-line" id="testReminderBtn">立即发送测试提醒</button>
-        <button type="button" class="btn-line" id="openNotifSetBtn">系统通知与流体云设置</button>
+      <div class="set-group">
+        <div class="set-group-title">标签与分组</div>
+        <div class="set-card">
+          <div class="set-block">
+            <h3 class="set-subhead">类型</h3>
+            <div class="tags" id="setTypes"></div>
+          </div>
+          <div class="set-block">
+            <h3 class="set-subhead">场景分组</h3>
+            <div class="tags" id="setScenes"></div>
+          </div>
+          <div class="set-block">
+            <h3 class="set-subhead">时间分组</h3>
+            <div class="tags" id="setTimes"></div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="set-divide"></div>
+      <div class="set-group">
+        <div class="set-group-title">显示与小部件</div>
+        <div class="set-card set-card-list">
+          <div class="set-row">
+            <label class="switch">
+              <input type="checkbox" id="showCostSummary">
+              <span></span>
+              <em>统计预算汇总<small>在列表顶部展示花费与预算统计卡片</small></em>
+            </label>
+          </div>
+          <div class="set-row">
+            <label class="switch">
+              <input type="checkbox" id="widgetRemoveDone">
+              <span></span>
+              <em>在小部件中完成事项后自动移除<small>勾选完成后立即从桌面小部件列表清理</small></em>
+            </label>
+          </div>
+        </div>
+      </div>
 
-<div class="set-section">
-      <h3>AI · 云端增强</h3>
-      <label class="switch ai-switch"><input type="checkbox" id="aiEnabled"><span></span><em>启用 AI 增强</em></label>
-      <label class="fld">
-        <input type="text" id="aiBase" placeholder="Base URL，如 https://api.deepseek.com/v1" data-aifield="base" autocomplete="off">
-      </label>
-      <label class="fld">
-        <input type="password" id="aiKey" placeholder="API Key" data-aifield="key" autocomplete="off">
-      </label>
-      <label class="fld">
-        <input type="text" id="aiModel" placeholder="模型名，如 deepseek-chat" data-aifield="model" autocomplete="off">
-      </label>
-    </div>
+      <div class="set-group">
+        <div class="set-group-title">更新与安装</div>
+        <div class="set-card set-card-list">
+          <div class="set-row">
+            <label class="switch">
+              <input type="checkbox" id="autoCheckUpdate">
+              <span></span>
+              <em>启动时自动检查更新</em>
+            </label>
+          </div>
+          <div class="set-row">
+            <label class="switch">
+              <input type="checkbox" id="autoInstallUpdate">
+              <span></span>
+              <em>更新包下载完成后自动安装</em>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="set-group">
+        <div class="set-group-title">截止提醒与流体云</div>
+        <div class="set-card set-card-list" id="setDeadlineReminder">
+          <div class="set-row">
+            <label class="switch">
+              <input type="checkbox" id="deadlineReminder" checked>
+              <span></span>
+              <em>临近截止事项自动弹出提醒</em>
+            </label>
+          </div>
+          <div class="set-row set-row-inline">
+            <label class="set-inline-label" for="reminderDays">
+              <em>截止范围<small>未来天数，0 为仅今天</small></em>
+              <span class="set-number-box">
+                <input type="number" id="reminderDays" min="0" max="365" step="1" value="3">
+                <span class="set-number-unit">天</span>
+              </span>
+            </label>
+          </div>
+          <div class="set-row">
+            <label class="switch">
+              <input type="checkbox" id="reminderManual">
+              <span></span>
+              <em>手动指定优先上岛的事项</em>
+            </label>
+          </div>
+          <div class="set-row set-row-stack">
+            <div id="reminderItemChoices" hidden></div>
+            <p id="reminderSelectionHint" class="set-note" role="status"></p>
+            <div class="bg-image-actions">
+              <button type="button" class="btn-line" id="openNotifSetBtn">系统通知与流体云设置</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="set-group">
+        <div class="set-group-title">系统日程联动</div>
+        <div class="set-card set-card-list" id="setCalendarSync">
+          <div class="set-row">
+            <label class="switch">
+              <input type="checkbox" id="calendarSyncEnabled">
+              <span></span>
+              <em>同步截止事项到系统日历<small>添加、修改或完成带截止日期的待办时自动同步</small></em>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="set-group">
+        <div class="set-group-title">AI · 云端增强</div>
+        <div class="set-card set-card-list">
+          <div class="set-row">
+            <label class="switch ai-switch">
+              <input type="checkbox" id="aiEnabled">
+              <span></span>
+              <em>启用 AI 增强<small>用于一句话速记与智能整理分类</small></em>
+            </label>
+          </div>
+          <div class="set-row set-row-stack set-ai-fields">
+            <label class="set-field" for="aiBase">
+              <span class="set-field-label">Base URL</span>
+              <input type="text" id="aiBase" placeholder="https://api.deepseek.com/v1" data-aifield="base" autocomplete="off">
+            </label>
+            <label class="set-field" for="aiKey">
+              <span class="set-field-label">API Key</span>
+              <input type="password" id="aiKey" placeholder="输入你的 API Key" data-aifield="key" autocomplete="off">
+            </label>
+            <label class="set-field" for="aiModel">
+              <span class="set-field-label">模型名</span>
+              <input type="text" id="aiModel" placeholder="deepseek-chat" data-aifield="model" autocomplete="off">
+            </label>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -477,7 +599,7 @@ try{
         <img class="info-logo-dark" src="web/assets/icons/app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.10.1-beta.8</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.10.1</div>
       <div class="info-desc">轻量 · 优雅 · 丝滑的待办与清单管理</div>
       <div class="info-author">Crafted with <span class="heart">♥</span> by <strong>派大星TuT</strong></div>
     </div>
@@ -712,11 +834,11 @@ try{
 <script src="web/vendor/motion/motion.js"></script>
 <script src="web/vendor/morphicons/morphicons.min.js"></script>
 <script src="web/js/ui/icons.js"></script>
-<script src="web/js/ui/animations.js?v=subtask-shared-type"></script>
+<script src="web/js/ui/animations.js?v=settings-md3-refactor-9"></script>
 <script src="web/vendor/air-datepicker/air-datepicker.js"></script>
 <script src="web/vendor/air-datepicker/air-datepicker-zh.js"></script>
 <script src="web/js/features/date-picker.js"></script>
 <script src="web/js/features/repeat.js?v=subtask-reset"></script>
-<script src="web/js/app.js?v=subtask-shared-type"></script>
+<script src="web/js/app.js?v=settings-md3-refactor-14"></script>
 </body>
 </html>

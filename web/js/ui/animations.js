@@ -198,8 +198,8 @@ const UiMotion = (() => {
   document.addEventListener('click',event=>{
     const summary=event.target.closest('.subtask-list summary');
     if(summary){ event.preventDefault(); toggleDetails(summary.closest('details')); }
-    const button=event.target.closest('button, .seg-chip, .seg, .star-b');
-    if(button) animate(button,{scale:[1,.96,1]},{duration:.16});
+    const button=event.target.closest('button, .seg-chip, .star-b');
+    if(button && !button.closest('.db-seg')) animate(button,{scale:[1,.96,1]},{duration:.16});
   },true);
   document.addEventListener('change',event=>{
     if(event.target.matches('input[type="checkbox"]')) check(event.target,event.target.checked);

@@ -11,6 +11,8 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     private WidgetBridge widgetBridge;
     private com.dax.supertodo.reminder.ReminderBridge reminderBridge;
+    private com.dax.supertodo.calendar.CalendarBridge calendarBridge;
+    private com.dax.supertodo.ai.AiHttpBridge aiHttpBridge;
     private android.content.BroadcastReceiver downloadReceiver;
     private int lastTopDp = -1;
 
@@ -30,6 +32,14 @@ public class MainActivity extends BridgeActivity {
                     com.dax.supertodo.reminder.DeadlineReminderManager.scheduleNext(this);
                     reminderBridge.requestNotificationPermissionIfNeeded();
                 }
+
+                // 系统日程同步桥：将带截止日期的未完成待办写入系统日历
+                calendarBridge = new com.dax.supertodo.calendar.CalendarBridge(this);
+                getBridge().getWebView().addJavascriptInterface(calendarBridge, "AndroidCalendarBridge");
+
+                // 原生 AI HTTP 请求桥：绕过 WebView CORS 限制
+                aiHttpBridge = new com.dax.supertodo.ai.AiHttpBridge(this, getBridge().getWebView());
+                getBridge().getWebView().addJavascriptInterface(aiHttpBridge, "AndroidAiBridge");
 
                 // 原生下载监听（直接调系统下载器，不跳浏览器）
                 getBridge().getWebView().setDownloadListener(new DownloadListener() {
@@ -130,6 +140,18 @@ public class MainActivity extends BridgeActivity {
             if (grantResults != null && grantResults.length > 0
                     && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 com.dax.supertodo.reminder.DeadlineReminderManager.checkAndNotifyOnLaunch(this);
+            }
+        } else if (requestCode == com.dax.supertodo.calendar.CalendarBridge.REQUEST_CODE_CALENDAR) {
+            if (grantResults != null && grantResults.length > 0
+                    && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                if (getBridge() != null && getBridge().getWebView() != null) {
+                    getBridge().getWebView().post(() -> {
+                        getBridge().getWebView().evaluateJavascript(
+                            "if(window.syncToNativeCalendar) window.syncToNativeCalendar(true);",
+                            null
+                        );
+                    });
+                }
             }
         }
     }
