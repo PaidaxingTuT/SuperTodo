@@ -23,7 +23,6 @@ let state={
   widgetRemoveDone:false,
   deadlineReminder:true,
   deadlineReminderOptions:{days:3,selectedIds:null},
-  calendarSync:false,
   showCostSummary:true,
   hapticFeedback:true,
   customBg:{type:'default',color:'#f2f5fb',image:'',opacity:80},
@@ -94,7 +93,6 @@ function save(){
     }
   }
   syncToNativeWidget();
-  syncToNativeCalendar();
 }
 function load(){
   try{const d=JSON.parse(localStorage.getItem(KEY));if(d){
@@ -131,7 +129,6 @@ function load(){
     if(d.widgetRemoveDone!==undefined)state.widgetRemoveDone=!!d.widgetRemoveDone;
     if(d.deadlineReminder!==undefined)state.deadlineReminder=!!d.deadlineReminder;
     state.deadlineReminderOptions=normalizeReminderOptions(d.deadlineReminderOptions);
-    if(d.calendarSync!==undefined)state.calendarSync=!!d.calendarSync;
     if(d.showCostSummary!==undefined)state.showCostSummary=!!d.showCostSummary;
     if(d.customBg&&typeof d.customBg==='object')state.customBg=Object.assign({type:'default',color:'#f2f5fb',image:'',opacity:80},d.customBg);
     else if(!state.customBg)state.customBg={type:'default',color:'#f2f5fb',image:'',opacity:80};
@@ -475,6 +472,9 @@ function applyTheme(hex){
   document.documentElement.style.setProperty('--primary-faint',faint);
   document.documentElement.style.setProperty('--primary-deep',deep);
   document.documentElement.style.setProperty('--on-primary',state.interfaceStyle==='md3'&&dark?hslToCss(h[0],saturation,20):'#fff');
+  delete document.documentElement.dataset.themeGradient;
+  document.documentElement.style.removeProperty('--primary-gradient');
+  document.documentElement.style.removeProperty('--on-gradient');
   var m=document.querySelector('meta[name=theme-color]'); if(m)m.setAttribute('content',getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
 }
 
@@ -1626,7 +1626,6 @@ function init(){
   buildStars();
   render();
   syncReminderFromNative();
-  syncCalendarFromNative();
   setTimeout(setupNativeBack,300);
   const showUiStyleNotice=!DEMO_MODE&&!state.uiStyleNoticeSeen;
   if(showUiStyleNotice){
@@ -2057,16 +2056,45 @@ function syncItemDoneToQuadrant(itemId, isDone){
 let editId=null, editStar=0, modalOpen=false;
 function appendSubtaskEditor(task={}){
   $('#fSubtasks').insertAdjacentHTML('beforeend',`<div class="subtask-edit" data-subtask-id="${esc(task.id||uid())}">
-    <input type="checkbox" aria-label="子任务完成状态" ${task.done?'checked':''}>
-    <input type="text" placeholder="子任务内容" value="${esc(task.title||'')}" autocomplete="off">
-    <button type="button" class="btn-text danger" data-remove-subtask aria-label="移除子任务"><morph-icon data-icon="close" aria-hidden="true"></morph-icon></button>
+    <label class="subtask-edit-check" aria-label="子任务完成状态">
+      <input type="checkbox" ${task.done?'checked':''}>
+      <span class="subtask-edit-box"></span>
+    </label>
+    <label class="float-field subtask-edit-field">
+      <input type="text" placeholder=" " value="${esc(task.title||'')}" autocomplete="off">
+      <span class="float-label">子任务内容</span>
+    </label>
+    <button type="button" class="btn-text danger subtask-edit-del" data-remove-subtask aria-label="移除子任务"><morph-icon data-icon="close" aria-hidden="true"></morph-icon></button>
   </div>`);
 }
 function renderSubtaskEditor(it={}){
   $('#fSubtasks').innerHTML='';
   itemSubtasks(it).forEach(appendSubtaskEditor);
 }
-function buildStars(){ const s=$('#fStars'); for(let i=1;i<=5;i++){const b=document.createElement('button');b.type='button';b.className='star-b';b.dataset.v=i;b.textContent='★';s.appendChild(b);} }
+function buildStars(){
+  const s=$('#fStars');
+  s.innerHTML='<span class="stars-fill" aria-hidden="true"></span>';
+  for(let i=1;i<=5;i++){
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='star-b';
+    b.dataset.v=i;
+    b.textContent='★';
+    s.appendChild(b);
+  }
+}
+function syncStars(val, animateFill=true){
+  editStar=Math.max(0,Math.min(5,Number(val)||0));
+  $$('#fStars .star-b').forEach((s,i)=>s.classList.toggle('on',i<editStar));
+  const fill=$('#fStars .stars-fill');
+  if(!fill) return;
+  const pct=editStar*20;
+  const targetW=editStar>0?`calc(${pct}% - 8px)`:'0px';
+  const targetOp=editStar>0?1:0;
+  fill.style.transition=animateFill?'width .16s ease, opacity .14s ease':'none';
+  fill.style.width=targetW;
+  fill.style.opacity=String(targetOp);
+}
 function segHTML(kind){ const arr=kind==='type'?state.types:kind==='scene'?state.scenes:state.times; return arr.map(v=>`<button class="seg-chip" data-k="${kind}" data-v="${esc(v)}">${esc(v)}</button>`).join('')+`<button class="seg-chip mini" data-add="${kind}">+</button>`; }
 function renderSuggest(sug){
   const box=$('#aiSuggestBox');
@@ -2101,7 +2129,7 @@ function openAdd(pref){
     if(pref.time) setSeg('time', pref.time);
   }
   renderSuggest(pref?pref.suggest:null);
-  $$('.star-b').forEach((s,i)=>s.classList.toggle('on',i<editStar));
+  syncStars(editStar,false);
   $('#modalDelete').hidden=true;
   showModal();
 }
@@ -2114,7 +2142,7 @@ function openEdit(it){
   renderSubtaskEditor(it);
   $('#fTypeSeg').innerHTML=segHTML('type'); $('#fSceneSeg').innerHTML=segHTML('scene'); $('#fTimeSeg').innerHTML=segHTML('time');
   setSeg('type',itemTypes(it)); setSeg('scene',itemScenes(it)); setSeg('time',it.time||'');
-  $$('.star-b').forEach((s,i)=>s.classList.toggle('on',i<editStar));
+  syncStars(editStar,false);
   $('#modalDelete').hidden=false;
   showModal();
 }
@@ -2136,7 +2164,7 @@ function openBatchItemEdit(idx){
   setSeg('scene',Array.isArray(it.scenes)&&it.scenes.length?it.scenes:(it.scene?[it.scene]:[]));
   setSeg('time',it.time||'');
   renderSuggest(null);
-  $$('.star-b').forEach((s,i)=>s.classList.toggle('on',i<editStar));
+  syncStars(editStar,false);
   $('#modalDelete').hidden=false;
   showModal();
 }
@@ -2365,46 +2393,6 @@ function syncReminderFromNative(){
   }catch(e){}
 }
 
-let syncCalendarTimer=null;
-function hasCalendarBridge(){
-  return typeof window.AndroidCalendarBridge!=='undefined' && window.AndroidCalendarBridge && typeof window.AndroidCalendarBridge.setEnabled==='function';
-}
-function syncToNativeCalendar(immediate=false){
-  clearTimeout(syncCalendarTimer);
-  const run=()=>{
-    try{
-      if(!state.calendarSync||!hasCalendarBridge()||typeof window.AndroidCalendarBridge.syncFromState!=='function') return;
-      window.AndroidCalendarBridge.syncFromState(JSON.stringify({items:state.items}));
-    }catch(e){}
-  };
-  if(immediate) run();
-  else syncCalendarTimer=setTimeout(run,180);
-}
-window.syncToNativeCalendar=syncToNativeCalendar;
-function syncCalendarFromNative(){
-  try{
-    if(!hasCalendarBridge()) return;
-    state.calendarSync=!!window.AndroidCalendarBridge.isEnabled();
-    renderCalendarSyncSettings();
-    if(state.calendarSync) syncToNativeCalendar(true);
-  }catch(e){}
-}
-function applyCalendarSyncSetting(enabled){
-  state.calendarSync=!!enabled;
-  save();
-  try{
-    if(hasCalendarBridge()){
-      window.AndroidCalendarBridge.setEnabled(!!enabled);
-      if(enabled) syncToNativeCalendar(true);
-    }
-  }catch(e){}
-  renderCalendarSyncSettings();
-}
-function renderCalendarSyncSettings(){
-  const chk=$('#calendarSyncEnabled');
-  if(chk) chk.checked=!!state.calendarSync;
-}
-
 let settingsPage='home';
 function showSettingsPage(page){
   settingsPage=page;
@@ -2432,7 +2420,6 @@ function openSettings(reuseLayer=false){
   renderSetGroups();
   renderAiCfg();
   renderUpdateSettings();
-  renderCalendarSyncSettings();
   UiMotion.show($('#setMask'));
   UiMotion.show($('#setModal'));
 }
@@ -2928,7 +2915,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.10.1';
+const APP_VERSION='v1.10.2';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -3953,15 +3940,27 @@ function extractScheduleList(raw){
     });
 }
 
+const MAX_RAW_IMAGE_BYTES=8*1024*1024;
+const MAX_IMAGE_PIXELS=25000000;
+const MAX_COMPRESSED_DATAURL_LEN=3*1024*1024;
 function compressImageToDataUrl(file, maxSide=1024, quality=0.75){
   return new Promise((resolve,reject)=>{
     if(!file){ reject(new Error('未选择图片')); return }
+    if(file.size>MAX_RAW_IMAGE_BYTES){
+      const mb=(file.size/(1024*1024)).toFixed(1);
+      reject(new Error(`图片过大（${mb}MB，上限 8MB），已驳回，请压缩或裁剪后再上传`));
+      return;
+    }
     const reader=new FileReader();
     reader.onerror=()=>reject(new Error('读取图片失败'));
     reader.onload=()=>{
       const img=new Image();
       img.onerror=()=>reject(new Error('无法解码图片'));
       img.onload=()=>{
+        if(img.width*img.height>MAX_IMAGE_PIXELS){
+          reject(new Error('图片分辨率过高（超过 2500 万像素），已驳回，请先裁剪后再试'));
+          return;
+        }
         let w=img.width, h=img.height;
         if(w>maxSide||h>maxSide){
           if(w>=h){ h=Math.round(h*(maxSide/w)); w=maxSide; }
@@ -3971,7 +3970,12 @@ function compressImageToDataUrl(file, maxSide=1024, quality=0.75){
         canvas.width=w; canvas.height=h;
         const ctx=canvas.getContext('2d');
         ctx.drawImage(img,0,0,w,h);
-        resolve(canvas.toDataURL('image/jpeg',quality));
+        const out=canvas.toDataURL('image/jpeg',quality);
+        if(out.length>MAX_COMPRESSED_DATAURL_LEN){
+          reject(new Error('图片编码后仍过大（超过 3MB），已驳回，请更换较小截图'));
+          return;
+        }
+        resolve(out);
       };
       img.src=reader.result;
     };
@@ -4116,7 +4120,7 @@ function renderAiModalState(){
   $('#aiModalTitle').textContent=isImage?'识图批量添加':'一句话速记';
   $('#aiGo').textContent=!isImage?'解析':(aiImgSource==='native'?'开始识别':'解析 JSON');
   const hasPreview=isImage&&aiBatchItems.length>0;
-  $('#aiBatchPreview').hidden=!hasPreview;
+  $('#aiBatchPreview').classList.toggle('is-open',hasPreview);
   $('#aiBatchImportBtn').hidden=!hasPreview;
   if(hasPreview){
     const checkedCount=aiBatchItems.filter(it=>it.checked).length;
@@ -4754,19 +4758,26 @@ function initSwipeGestures(){
   let hapticFired = false;
   let isPointerDown = false;
   let pointerId = null;
+  let lastMoveX = 0, lastMoveTime = 0, swipeVelocity = 0;
 
   const resetState = (springBack = true) => {
     const prevRow = activeRow;
     const prevFront = frontEl;
     const prevComp = compActEl;
     const prevDel = delActEl;
+    const vel = swipeVelocity;
     if(frontEl){
       if(pointerId !== null){
         try { frontEl.releasePointerCapture(pointerId); } catch(err){}
       }
       if(springBack){
-        frontEl.style.transition = 'transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1)';
-        frontEl.style.transform = 'translateX(0)';
+        const ctrl = typeof UiMotion !== 'undefined' && UiMotion.spring
+          ? UiMotion.spring(frontEl, { x: 0 }, { velocity: vel })
+          : null;
+        if(!ctrl){
+          frontEl.style.transition = 'transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          frontEl.style.transform = 'translateX(0)';
+        }
         if(prevComp){
           prevComp.style.transition = 'clip-path 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), -webkit-clip-path 0.24s cubic-bezier(0.2, 0.8, 0.2, 1)';
           prevComp.style.clipPath = 'inset(0 100% 0 0)';
@@ -4777,12 +4788,14 @@ function initSwipeGestures(){
           prevDel.style.clipPath = 'inset(0 0 0 100%)';
           prevDel.style.webkitClipPath = 'inset(0 0 0 100%)';
         }
-        setTimeout(() => {
+        const cleanup = () => {
           if(prevRow) prevRow.classList.remove('swiping');
           if(prevFront) prevFront.classList.remove('swiping');
           if(prevComp){ prevComp.style.transition = ''; prevComp.style.clipPath = ''; prevComp.style.webkitClipPath = ''; }
           if(prevDel){ prevDel.style.transition = ''; prevDel.style.clipPath = ''; prevDel.style.webkitClipPath = ''; }
-        }, 240);
+        };
+        if(ctrl && typeof ctrl.then === 'function') ctrl.then(cleanup).catch(cleanup);
+        else setTimeout(cleanup, 240);
       } else {
         if(prevRow) prevRow.classList.remove('swiping');
         if(prevFront) prevFront.classList.remove('swiping');
@@ -4839,6 +4852,9 @@ function initSwipeGestures(){
     if(delActEl){ delActEl.style.transition = 'none'; delActEl.style.clipPath = 'inset(0 0 0 100%)'; delActEl.style.webkitClipPath = 'inset(0 0 0 100%)'; }
     startX = e.clientX;
     startY = e.clientY;
+    lastMoveX = e.clientX;
+    lastMoveTime = performance.now();
+    swipeVelocity = 0;
     currentTx = 0;
     dirLocked = false;
     isHoriz = false;
@@ -4858,17 +4874,17 @@ function initSwipeGestures(){
       const absDx = Math.abs(dx);
       const absDy = Math.abs(dy);
       // 微小移动时不急于下定论，留出足够空间判定真实滑动方向
-      if(absDx < 7 && absDy < 7) return;
+      if(absDx < 5 && absDy < 5) return;
 
-      if(absDx >= 7 && absDx >= absDy * 0.95){
-        // 水平位移达到 7px 且不明显小于垂直位移，锁定为横向手势
+      if(absDx >= 5 && absDx >= absDy * 0.72){
+        // 放宽横向判定范围，允许自然斜向滑出
         dirLocked = true;
         isHoriz = true;
         try { frontEl.setPointerCapture(pointerId); } catch(err){}
         if(activeRow) activeRow.classList.add('swiping');
         if(frontEl) frontEl.classList.add('swiping');
-      } else if(absDy >= 10 && absDy > absDx * 1.25){
-        // 垂直位移达到 10px 且明显大于水平位移，锁定为纵向滚动
+      } else if(absDy >= 14 && absDy > absDx * 1.5){
+        // 垂直位移明显大于水平位移时才锁定为纵向滚动
         dirLocked = true;
         isHoriz = false;
       }
@@ -4883,12 +4899,17 @@ function initSwipeGestures(){
     let tx = dx;
     if(tx > 160) tx = 160 + (tx - 160) * 0.28;
     else if(tx < -160) tx = -160 + (tx + 160) * 0.28;
+    const nowT = performance.now();
+    const dt = Math.max(8, nowT - lastMoveTime);
+    swipeVelocity = Math.max(-2200, Math.min(2200, ((tx - currentTx) / dt) * 1000));
+    lastMoveX = e.clientX;
+    lastMoveTime = nowT;
     currentTx = tx;
 
     frontEl.style.transform = `translateX(${tx}px)`;
 
-    // 触发幅度阈值：78px（稳健防误触且手感顺滑）
-    const THRESHOLD = 78;
+    // 触发幅度阈值：64px（放宽触发范围，并支持轻快甩手触发）
+    const THRESHOLD = 64;
     if(tx > 0){
       if(compActEl){
         compActEl.classList.add('active');
@@ -4948,8 +4969,10 @@ function initSwipeGestures(){
     const row = activeRow;
     const front = frontEl;
     const finalTx = currentTx;
-    // 触发幅度判定阈值：78px
-    const THRESHOLD = 78;
+    // 触发幅度阈值：64px（放宽触发范围，快滑 ≥38px 也可触发）
+    const THRESHOLD = 64;
+    const flickRight = finalTx >= 38 && swipeVelocity > 480;
+    const flickLeft = finalTx <= -38 && swipeVelocity < -480;
 
     if(isHoriz && row && front){
       const itemId = row.dataset.item;
@@ -4957,28 +4980,41 @@ function initSwipeGestures(){
       const kind = checkEl ? checkEl.dataset.doneKind : state.groupBy;
       const key = checkEl ? checkEl.dataset.doneKey : ((state.view && state.view.group) || '');
 
-      if(finalTx >= THRESHOLD){
+      if(finalTx >= THRESHOLD || flickRight){
         triggerHaptic('medium');
-        front.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
-        front.style.transform = 'translateX(0)';
+        const ctrl = typeof UiMotion !== 'undefined' && UiMotion.spring
+          ? UiMotion.spring(front, { x: 0 }, { velocity: swipeVelocity })
+          : null;
+        if(!ctrl){
+          front.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          front.style.transform = 'translateX(0)';
+        }
         if(compActEl){
-          compActEl.style.transition = 'clip-path 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), -webkit-clip-path 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          compActEl.style.transition = 'clip-path 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), -webkit-clip-path 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
           compActEl.style.clipPath = 'inset(0 100% 0 0)';
           compActEl.style.webkitClipPath = 'inset(0 100% 0 0)';
         }
         const r = row, f = front, ca = compActEl;
-        setTimeout(() => {
+        const cleanup = () => {
           if(r) r.classList.remove('swiping');
           if(f) f.classList.remove('swiping');
           if(ca){ ca.style.transition = ''; ca.style.clipPath = ''; ca.style.webkitClipPath = ''; }
-        }, 220);
+        };
+        if(ctrl && typeof ctrl.then === 'function') ctrl.then(cleanup).catch(cleanup);
+        else setTimeout(cleanup, 240);
         resetState(false);
         toggleDone(itemId, kind, key);
         return;
-      } else if(finalTx <= -THRESHOLD){
+      } else if(finalTx <= -THRESHOLD || flickLeft){
         triggerHaptic('heavy');
-        front.style.transition = 'transform 0.2s ease-out';
-        front.style.transform = 'translateX(-105%)';
+        const outX = -(front.offsetWidth * 1.08 || 360);
+        const ctrl = typeof UiMotion !== 'undefined' && UiMotion.spring
+          ? UiMotion.spring(front, { x: outX }, { velocity: swipeVelocity, stiffness: 420 })
+          : null;
+        if(!ctrl){
+          front.style.transition = 'transform 0.2s ease-out';
+          front.style.transform = 'translateX(-105%)';
+        }
         if(delActEl){
           delActEl.style.transition = 'clip-path 0.2s ease-out, -webkit-clip-path 0.2s ease-out';
           delActEl.style.clipPath = 'inset(0 0 0 0)';
@@ -5308,7 +5344,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       aiBatchItems.splice(editBatchIdx,1);
       renderAiBatchList();
       if(!aiBatchItems.length){
-        $('#aiBatchPreview').hidden=true;
+        $('#aiBatchPreview').classList.remove('is-open');
         $('#aiStatus').textContent='已移除该条预览';
       }
       hideModal();
@@ -5338,7 +5374,53 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   $('#fTitle').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();$('#fNote').focus()} });
   $('#fNote').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();saveForm()} });
-  $('#fStars').addEventListener('click',e=>{ const st=e.target.closest('.star-b'); if(!st)return; editStar=parseInt(st.dataset.v); $$('.star-b').forEach((s,i)=>s.classList.toggle('on',i<editStar)); });
+  const starsBox=$('#fStars');
+  let starDragging=false, starPointerId=null, starDragged=false;
+  const starFromX=clientX=>{
+    const r=starsBox.getBoundingClientRect();
+    if(!r.width) return editStar;
+    if(clientX<r.left+4) return 0;
+    return Math.max(1,Math.min(5,Math.ceil(((clientX-r.left)/r.width)*5)));
+  };
+  starsBox.addEventListener('pointerdown',e=>{
+    if(e.button!==undefined && e.button!==0) return;
+    starDragging=true;
+    starDragged=false;
+    starPointerId=e.pointerId;
+    try{ starsBox.setPointerCapture(e.pointerId); }catch(_){}
+    const next=starFromX(e.clientX);
+    if(next!==editStar){
+      syncStars(next,true);
+      triggerHaptic('light');
+    }
+  });
+  starsBox.addEventListener('pointermove',e=>{
+    if(!starDragging || e.pointerId!==starPointerId) return;
+    starDragged=true;
+    const next=starFromX(e.clientX);
+    if(next!==editStar){
+      syncStars(next,true);
+      triggerHaptic('light');
+    }
+  });
+  const endStarDrag=e=>{
+    if(!starDragging || (e.pointerId!==undefined && e.pointerId!==starPointerId)) return;
+    starDragging=false;
+    try{ starsBox.releasePointerCapture(starPointerId); }catch(_){}
+    starPointerId=null;
+  };
+  starsBox.addEventListener('pointerup',endStarDrag);
+  starsBox.addEventListener('pointercancel',endStarDrag);
+  starsBox.addEventListener('click',e=>{
+    if(starDragged){ starDragged=false; return; }
+    const st=e.target.closest('.star-b');
+    if(!st) return;
+    const val=parseInt(st.dataset.v,10);
+    if(val!==editStar){
+      syncStars(val,true);
+      triggerHaptic('light');
+    }
+  });
   $('#fCost').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();saveForm()} });
 
   $('#sortClose').addEventListener('click',closeSort);
@@ -5514,13 +5596,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(trigger) trigger.setAttribute('aria-expanded','false');
     if(menu) menu.hidden=true;
   });
-  const chkCalendarSync = $('#calendarSyncEnabled');
-  if(chkCalendarSync){
-    chkCalendarSync.addEventListener('change',e=>{
-      triggerHaptic('light');
-      applyCalendarSyncSetting(e.target.checked);
-    });
-  }
   const btnOpenNotifSet = $('#openNotifSetBtn');
   if(btnOpenNotifSet){
     btnOpenNotifSet.addEventListener('click',()=>{

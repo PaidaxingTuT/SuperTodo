@@ -23,6 +23,64 @@ const UiMotion = (() => {
     motions.set(el,control);
     return control;
   }
+  function spring(el, frames, options={}){
+    if(!el) return null;
+    motions.get(el)?.stop();
+    if(!enabled()){
+      if(frames.x!==undefined || frames.y!==undefined){
+        const x=Array.isArray(frames.x)?frames.x[frames.x.length-1]:(frames.x??0);
+        const y=Array.isArray(frames.y)?frames.y[frames.y.length-1]:(frames.y??0);
+        el.style.transform=`translate3d(${typeof x==='number'?x+'px':x}, ${typeof y==='number'?y+'px':y}, 0)`;
+      }
+      return {stop(){},then(cb){if(cb)cb();return Promise.resolve();}};
+    }
+    const control=Motion.animate(el,frames,{type:'spring',bounce:0,stiffness:360,...options});
+    motions.set(el,control);
+    return control;
+  }
+  function bindOverscrollBounce(scrollEl, targetEl){
+    if(!scrollEl || scrollEl.__overscrollBound) return;
+    scrollEl.__overscrollBound=true;
+    const inner=targetEl||scrollEl;
+    let active=false, pid=null, lastY=0, lastT=0, pullY=0, velY=0;
+    const damp=d=>Math.sign(d)*Math.min(72, Math.abs(d)*0.34);
+    const release=()=>{
+      if(!active) return;
+      active=false; pid=null;
+      if(Math.abs(pullY)>0.5){
+        const v=Math.max(-1800,Math.min(1800,velY));
+        pullY=0;
+        const ctrl=spring(inner,{y:0},{velocity:v,stiffness:340});
+        ctrl?.then?.(()=>{ if(pullY===0) inner.style.removeProperty('transform'); });
+      }
+    };
+    scrollEl.addEventListener('pointerdown',e=>{
+      if(e.button!==undefined && e.button!==0) return;
+      if(e.target.closest('.drag-handle, .swipe-front.swiping, input, textarea, select')) return;
+      motions.get(inner)?.stop();
+      active=true; pid=e.pointerId; lastY=e.clientY; lastT=performance.now(); pullY=0; velY=0;
+    },{passive:true});
+    scrollEl.addEventListener('pointermove',e=>{
+      if(!active || e.pointerId!==pid) return;
+      if(document.querySelector('.swipe-front.swiping')){ active=false; return; }
+      const now=performance.now();
+      const dy=e.clientY-lastY;
+      const dt=Math.max(8, now-lastT);
+      lastY=e.clientY; lastT=now;
+      const maxScroll=Math.max(0, scrollEl.scrollHeight-scrollEl.clientHeight);
+      const atTop=scrollEl.scrollTop<=1;
+      const atBottom=scrollEl.scrollTop>=maxScroll-1;
+      if((atTop && dy>0) || (atBottom && dy<0) || Math.abs(pullY)>0.5){
+        pullY+=dy;
+        if((atTop && pullY<0) || (atBottom && pullY>0 && !atTop)) pullY=0;
+        const clamped=damp(pullY);
+        velY=(dy/dt)*1000*0.35;
+        inner.style.transform=`translate3d(0, ${clamped}px, 0)`;
+      }
+    },{passive:true});
+    scrollEl.addEventListener('pointerup',release,{passive:true});
+    scrollEl.addEventListener('pointercancel',release,{passive:true});
+  }
   function check(el,done){
     if(el.matches('.subtask-check input')) el=el.closest('.subtask-toggle');
     const ripple=getComputedStyle(el).getPropertyValue('--primary-soft').trim();
@@ -198,12 +256,16 @@ const UiMotion = (() => {
   document.addEventListener('click',event=>{
     const summary=event.target.closest('.subtask-list summary');
     if(summary){ event.preventDefault(); toggleDetails(summary.closest('details')); }
-    const button=event.target.closest('button, .seg-chip, .star-b');
-    if(button && !button.closest('.db-seg')) animate(button,{scale:[1,.96,1]},{duration:.16});
+    const button=event.target.closest('button, .seg-chip');
+    if(button && !button.closest('.db-seg') && !button.matches('.star-b')) animate(button,{scale:[1,.96,1]},{duration:.16});
   },true);
   document.addEventListener('change',event=>{
     if(event.target.matches('input[type="checkbox"]')) check(event.target,event.target.checked);
   });
-  return {check,progress,width,beforeRender,afterRender,animate,show,hide,isOpen:el=>!el.hidden && el.dataset.motionClosing!=='true'};
+  return {check,progress,width,beforeRender,afterRender,animate,spring,bindOverscrollBounce,show,hide,isOpen:el=>!el.hidden && el.dataset.motionClosing!=='true'};
 })();
+document.addEventListener('DOMContentLoaded',()=>{
+  UiMotion.bindOverscrollBounce(document.getElementById('mainScroll'), document.getElementById('content'));
+  UiMotion.bindOverscrollBounce(document.querySelector('#setModal .modal-body'));
+});
 document.documentElement.classList.add('motion-enabled');

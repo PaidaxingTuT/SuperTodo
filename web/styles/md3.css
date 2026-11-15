@@ -174,21 +174,36 @@ button.card-check[data-done]:active{background:var(--primary-faint)}
 .modal-body{padding:16px 24px 24px}
 .modal-foot{padding:8px 24px 24px;border:0}
 .fld{margin-bottom:16px}
-.fld input:not([type="checkbox"]):not([type="hidden"]){min-height:56px;border-color:var(--outline);border-radius:4px 4px 0 0;border-width:0 0 1px;background:var(--surface-container-highest);padding:16px;font-size:16px}
-.fld input:focus{background:var(--surface-container-highest);box-shadow:0 2px 0 var(--primary)}
 .fld-label{color:var(--text2);font-size:12px;font-weight:500}
+.modal .float-field{--float-bg:var(--surface-container-high)}
+.set-card .float-field{--float-bg:var(--surface-container)}
+.float-field input:not([type="checkbox"]):not([type="hidden"]),
+.float-field textarea{
+  min-height:52px;
+  border:1.5px solid color-mix(in srgb,var(--outline) 52%,transparent);
+  border-radius:14px;
+  background:transparent;
+  padding:13px 14px;
+  font-size:15px;
+}
+.float-field input:focus,
+.float-field textarea:focus{
+  border-color:var(--primary);
+  background:transparent;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 24%,transparent);
+}
 .fif .fld-in{min-width:0}
-.fld .subtask-edit input[type="checkbox"]{width:24px;height:24px;min-height:24px;padding:0;flex:0 0 24px}
-.stars{gap:0}
-.star-b{flex:1;max-width:52px;min-height:48px}
-.subtask-edit button{min-width:44px;min-height:44px}
+.stars{background:var(--surface-container-highest);border:0;border-radius:16px;padding:4px;gap:0}
+.stars-fill{border-radius:12px}
+.star-b{width:46px;height:42px;border-radius:12px}
+.subtask-edit-box{border-color:var(--outline)}
 .segbg,.tags{gap:8px}
 .seg-chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;max-width:100%;padding:8px 16px;border:0;border-radius:999px;background:var(--surface-container-low);color:var(--text2);font-size:14px;font-weight:500;overflow-wrap:anywhere}
 .seg-chip.on{background:var(--primary-soft);color:var(--on-primary-container)}
 .seg-chip.mini{width:44px;min-width:44px;height:44px;padding:0;border:0;border-radius:50%;background:var(--secondary-container);color:var(--on-secondary-container);font-size:22px}
-.tag-chip{gap:2px;min-height:44px;max-width:100%;padding:0 4px 0 12px;border:0;border-radius:999px;background:var(--surface-container-low);color:var(--text);font-size:14px}
-.tag-chip-name{min-width:0;min-height:44px;padding:8px 4px;border-radius:999px;font-size:14px;font-weight:500;overflow-wrap:anywhere}
-.tag-chip .x{width:36px;height:36px;flex-shrink:0;border-radius:50%;color:var(--text2);font-weight:400}
+.tag-chip{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:44px;max-width:100%;padding:0 8px 0 14px;border:1px solid color-mix(in srgb,var(--outline-variant,var(--line)) 75%,transparent);border-radius:999px;background:var(--surface-container-highest);color:var(--text);font-size:14px}
+.tag-chip-name{display:inline-flex;align-items:center;justify-content:center;min-width:0;min-height:44px;padding:0;border-radius:999px;font-size:14px;font-weight:500;line-height:1;text-align:center;overflow-wrap:anywhere}
+.tag-chip .x{width:28px;height:28px;flex-shrink:0;border-radius:50%;color:var(--text2);font-weight:400;display:inline-flex;align-items:center;justify-content:center}
 .tag-chip .x morph-icon{width:16px;height:16px}
 .tag-chip .x:active{background:var(--surface-container-highest)}
 .add-chip{min-height:44px;padding:8px 16px;border:0;border-radius:999px;background:var(--secondary-container);color:var(--on-secondary-container);font-size:14px;font-weight:500}

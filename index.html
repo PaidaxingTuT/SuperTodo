@@ -63,8 +63,8 @@ try{
 }catch(e){}
 </script>
 <link rel="stylesheet" href="web/vendor/air-datepicker/air-datepicker.css">
-<link rel="stylesheet" href="web/styles/style.css?v=settings-md3-refactor-11">
-<link rel="stylesheet" id="interfaceStyleSheet" data-md3-href="web/styles/md3.css?v=settings-md3-refactor-11">
+<link rel="stylesheet" href="web/styles/style.css?v=settings-md3-refactor-20">
+<link rel="stylesheet" id="interfaceStyleSheet" data-md3-href="web/styles/md3.css?v=settings-md3-refactor-20">
 <script>
 try{
   const demo=new URLSearchParams(location.search).get('demo')==='1';
@@ -141,12 +141,14 @@ try{
     <button class="md-close" id="modalClose" aria-label="关闭"></button>
   </div>
   <div class="modal-body" id="modalBody">
-    <label class="fld">
-      <input type="text" id="fTitle" placeholder="事项标题" autocomplete="off">
+    <label class="fld float-field">
+      <input type="text" id="fTitle" placeholder=" " autocomplete="off">
+      <span class="float-label">事项标题</span>
     </label>
     <div class="ai-sugbox" id="aiSuggestBox" hidden></div>
-    <label class="fld">
-      <input type="text" id="fNote" placeholder="备注（可选）" autocomplete="off">
+    <label class="fld float-field">
+      <input type="text" id="fNote" placeholder=" " autocomplete="off">
+      <span class="float-label">备注（可选）</span>
     </label>
 
     <div class="fld">
@@ -171,22 +173,26 @@ try{
 
     <div class="fld fif">
       <div class="fld-in">
-        <label class="fld-label">预估花费 ¥</label>
-        <input type="number" id="fCost" placeholder="0" min="0" step="any" inputmode="decimal">
+        <label class="float-field">
+          <input type="number" id="fCost" placeholder=" " min="0" step="any" inputmode="decimal">
+          <span class="float-label">预估花费 ¥</span>
+        </label>
       </div>
       <div class="fld-in">
-        <label class="fld-label" for="fDueDisplay">截止日期</label>
-        <div class="due-field">
+        <div class="due-field float-field">
           <input type="hidden" id="fDue">
-          <input type="text" id="fDueDisplay" placeholder="选择日期" autocomplete="off" readonly aria-haspopup="dialog" aria-expanded="false">
+          <input type="text" id="fDueDisplay" placeholder=" " autocomplete="off" readonly aria-haspopup="dialog" aria-expanded="false">
+          <span class="float-label">截止日期</span>
           <morph-icon data-icon="calendar" aria-hidden="true"></morph-icon>
         </div>
       </div>
     </div>
 
     <div class="fld">
-      <label class="fld-label" for="fRepeatDays">每 X 天重复（可选）</label>
-      <input type="number" id="fRepeatDays" placeholder="不重复" min="1" max="36500" step="1" inputmode="numeric" aria-describedby="repeatHint">
+      <label class="float-field">
+        <input type="number" id="fRepeatDays" placeholder=" " min="1" max="36500" step="1" inputmode="numeric" aria-describedby="repeatHint">
+        <span class="float-label">每 X 天重复（可选）</span>
+      </label>
       <div class="ai-tip" id="repeatHint">留空则不重复。完成后按截止日期顺延；未设日期则从完成当天计算，逾期跳到下个周期。</div>
     </div>
 
@@ -224,9 +230,9 @@ try{
     </div>
 
     <div id="aiTextPane">
-      <label class="set-field" for="aiInput">
-        <span class="set-field-label">输入一句话，AI 自动归类</span>
-        <input type="text" id="aiInput" placeholder="例如：买一把剪刀，30块，明天用" autocomplete="off">
+      <label class="float-field" for="aiInput">
+        <input type="text" id="aiInput" placeholder=" " autocomplete="off">
+        <span class="float-label">输入一句话，AI 自动归类</span>
       </label>
       <div class="ai-tip">解析后将预填待办表单，保存前可自由修改。</div>
     </div>
@@ -254,18 +260,20 @@ try{
           <span class="set-field-label">1. 复制专用提示词，连同图片发给豆包 / GPT / Kimi</span>
           <button type="button" class="btn-line" id="aiCopyPromptBtn">复制识图提示词</button>
         </div>
-        <label class="set-field ai-third-step" for="aiJsonInput">
-          <span class="set-field-label">2. 粘贴外部 AI 返回的 JSON 结果</span>
-          <textarea id="aiJsonInput" class="ai-json-textarea" rows="5" placeholder='粘贴 AI 返回的 JSON 数组（支持 ```json 代码块）'></textarea>
+        <label class="float-field float-field-area ai-third-step" for="aiJsonInput">
+          <textarea id="aiJsonInput" class="ai-json-textarea" rows="5" placeholder=" "></textarea>
+          <span class="float-label">粘贴外部 AI 返回的 JSON 结果</span>
         </label>
       </div>
 
-      <div id="aiBatchPreview" class="ai-batch-preview" hidden>
-        <div class="ai-batch-head">
-          <span id="aiBatchCount">已识别 0 条日程</span>
-          <button type="button" class="btn-text" id="aiBatchToggleAll">全选 / 取消</button>
+      <div id="aiBatchPreview" class="ai-batch-preview ai-expand-grid">
+        <div class="ai-expand-inner">
+          <div class="ai-batch-head">
+            <span id="aiBatchCount">已识别 0 条日程</span>
+            <button type="button" class="btn-text" id="aiBatchToggleAll">全选 / 取消</button>
+          </div>
+          <div id="aiBatchList" class="ai-batch-list"></div>
         </div>
-        <div id="aiBatchList" class="ai-batch-list"></div>
       </div>
     </div>
 
@@ -545,19 +553,6 @@ try{
       </div>
 
       <div class="set-group">
-        <div class="set-group-title">系统日程联动</div>
-        <div class="set-card set-card-list" id="setCalendarSync">
-          <div class="set-row">
-            <label class="switch">
-              <input type="checkbox" id="calendarSyncEnabled">
-              <span></span>
-              <em>同步截止事项到系统日历<small>添加、修改或完成带截止日期的待办时自动同步</small></em>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div class="set-group">
         <div class="set-group-title">AI · 云端增强</div>
         <div class="set-card set-card-list">
           <div class="set-row">
@@ -568,17 +563,17 @@ try{
             </label>
           </div>
           <div class="set-row set-row-stack set-ai-fields">
-            <label class="set-field" for="aiBase">
-              <span class="set-field-label">Base URL</span>
-              <input type="text" id="aiBase" placeholder="https://api.deepseek.com/v1" data-aifield="base" autocomplete="off">
+            <label class="float-field" for="aiBase">
+              <input type="text" id="aiBase" placeholder=" " data-aifield="base" autocomplete="off">
+              <span class="float-label">Base URL</span>
             </label>
-            <label class="set-field" for="aiKey">
-              <span class="set-field-label">API Key</span>
-              <input type="password" id="aiKey" placeholder="输入你的 API Key" data-aifield="key" autocomplete="off">
+            <label class="float-field" for="aiKey">
+              <input type="password" id="aiKey" placeholder=" " data-aifield="key" autocomplete="off">
+              <span class="float-label">API Key</span>
             </label>
-            <label class="set-field" for="aiModel">
-              <span class="set-field-label">模型名</span>
-              <input type="text" id="aiModel" placeholder="deepseek-chat" data-aifield="model" autocomplete="off">
+            <label class="float-field" for="aiModel">
+              <input type="text" id="aiModel" placeholder=" " data-aifield="model" autocomplete="off">
+              <span class="float-label">模型名</span>
             </label>
           </div>
         </div>
@@ -599,7 +594,7 @@ try{
         <img class="info-logo-dark" src="web/assets/icons/app-icon-dark.png" alt="">
       </div>
       <div class="info-name">超级清单</div>
-      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.10.1</div>
+      <div class="info-ver" id="infoVer">SuperTodo · 版本 1.10.2</div>
       <div class="info-desc">轻量 · 优雅 · 丝滑的待办与清单管理</div>
       <div class="info-author">Crafted with <span class="heart">♥</span> by <strong>派大星TuT</strong></div>
     </div>
@@ -834,11 +829,11 @@ try{
 <script src="web/vendor/motion/motion.js"></script>
 <script src="web/vendor/morphicons/morphicons.min.js"></script>
 <script src="web/js/ui/icons.js"></script>
-<script src="web/js/ui/animations.js?v=settings-md3-refactor-9"></script>
+<script src="web/js/ui/animations.js?v=settings-md3-refactor-11"></script>
 <script src="web/vendor/air-datepicker/air-datepicker.js"></script>
 <script src="web/vendor/air-datepicker/air-datepicker-zh.js"></script>
 <script src="web/js/features/date-picker.js"></script>
 <script src="web/js/features/repeat.js?v=subtask-reset"></script>
-<script src="web/js/app.js?v=settings-md3-refactor-14"></script>
+<script src="web/js/app.js?v=settings-md3-refactor-20"></script>
 </body>
 </html>

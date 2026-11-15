@@ -11,14 +11,6 @@ function injectWidgetManifest() {
 
   let content = fs.readFileSync(manifestPath, 'utf8');
 
-  const calendarPerms = `    <uses-permission android:name="android.permission.READ_CALENDAR" />
-    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
-`;
-  if (!content.includes('READ_CALENDAR')) {
-    content = content.replace('<application', calendarPerms + '    <application');
-    fs.writeFileSync(manifestPath, content, 'utf8');
-  }
-
   if (content.includes('TodoWidget4x2Provider')) {
     console.log('Widget components already injected in AndroidManifest.xml');
     return;
