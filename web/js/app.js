@@ -2915,7 +2915,7 @@ function compressImageFile(file, maxWidth, quality, callback){
 }
 
 /* ========== 软件信息 ========== */
-const APP_VERSION='v1.10.2';
+const APP_VERSION='v1.10.3';
 const REPO_URL='https://github.com/PaidaxingTuT/SuperTodo';
 const REPO_API='https://api.github.com/repos/PaidaxingTuT/SuperTodo';
 let devClickCount=0, devClickTimer=null;
@@ -4765,19 +4765,13 @@ function initSwipeGestures(){
     const prevFront = frontEl;
     const prevComp = compActEl;
     const prevDel = delActEl;
-    const vel = swipeVelocity;
     if(frontEl){
       if(pointerId !== null){
         try { frontEl.releasePointerCapture(pointerId); } catch(err){}
       }
       if(springBack){
-        const ctrl = typeof UiMotion !== 'undefined' && UiMotion.spring
-          ? UiMotion.spring(frontEl, { x: 0 }, { velocity: vel })
-          : null;
-        if(!ctrl){
-          frontEl.style.transition = 'transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1)';
-          frontEl.style.transform = 'translateX(0)';
-        }
+        frontEl.style.transition = 'transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        frontEl.style.transform = 'translateX(0)';
         if(prevComp){
           prevComp.style.transition = 'clip-path 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), -webkit-clip-path 0.24s cubic-bezier(0.2, 0.8, 0.2, 1)';
           prevComp.style.clipPath = 'inset(0 100% 0 0)';
@@ -4788,14 +4782,12 @@ function initSwipeGestures(){
           prevDel.style.clipPath = 'inset(0 0 0 100%)';
           prevDel.style.webkitClipPath = 'inset(0 0 0 100%)';
         }
-        const cleanup = () => {
+        setTimeout(() => {
           if(prevRow) prevRow.classList.remove('swiping');
           if(prevFront) prevFront.classList.remove('swiping');
           if(prevComp){ prevComp.style.transition = ''; prevComp.style.clipPath = ''; prevComp.style.webkitClipPath = ''; }
           if(prevDel){ prevDel.style.transition = ''; prevDel.style.clipPath = ''; prevDel.style.webkitClipPath = ''; }
-        };
-        if(ctrl && typeof ctrl.then === 'function') ctrl.then(cleanup).catch(cleanup);
-        else setTimeout(cleanup, 240);
+        }, 240);
       } else {
         if(prevRow) prevRow.classList.remove('swiping');
         if(prevFront) prevFront.classList.remove('swiping');
@@ -4982,39 +4974,26 @@ function initSwipeGestures(){
 
       if(finalTx >= THRESHOLD || flickRight){
         triggerHaptic('medium');
-        const ctrl = typeof UiMotion !== 'undefined' && UiMotion.spring
-          ? UiMotion.spring(front, { x: 0 }, { velocity: swipeVelocity })
-          : null;
-        if(!ctrl){
-          front.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
-          front.style.transform = 'translateX(0)';
-        }
+        front.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        front.style.transform = 'translateX(0)';
         if(compActEl){
           compActEl.style.transition = 'clip-path 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), -webkit-clip-path 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
           compActEl.style.clipPath = 'inset(0 100% 0 0)';
           compActEl.style.webkitClipPath = 'inset(0 100% 0 0)';
         }
         const r = row, f = front, ca = compActEl;
-        const cleanup = () => {
+        setTimeout(() => {
           if(r) r.classList.remove('swiping');
           if(f) f.classList.remove('swiping');
           if(ca){ ca.style.transition = ''; ca.style.clipPath = ''; ca.style.webkitClipPath = ''; }
-        };
-        if(ctrl && typeof ctrl.then === 'function') ctrl.then(cleanup).catch(cleanup);
-        else setTimeout(cleanup, 240);
+        }, 240);
         resetState(false);
         toggleDone(itemId, kind, key);
         return;
       } else if(finalTx <= -THRESHOLD || flickLeft){
         triggerHaptic('heavy');
-        const outX = -(front.offsetWidth * 1.08 || 360);
-        const ctrl = typeof UiMotion !== 'undefined' && UiMotion.spring
-          ? UiMotion.spring(front, { x: outX }, { velocity: swipeVelocity, stiffness: 420 })
-          : null;
-        if(!ctrl){
-          front.style.transition = 'transform 0.2s ease-out';
-          front.style.transform = 'translateX(-105%)';
-        }
+        front.style.transition = 'transform 0.2s ease-out';
+        front.style.transform = 'translateX(-105%)';
         if(delActEl){
           delActEl.style.transition = 'clip-path 0.2s ease-out, -webkit-clip-path 0.2s ease-out';
           delActEl.style.clipPath = 'inset(0 0 0 0)';
